@@ -81,7 +81,9 @@ export async function* runPipeline(
     if (input.resumeFrom) {
       keywords = input.resumeFrom.keywords;
       gap = input.resumeFrom.gap;
-    } else {
+    } else if (jd.trim()) {
+      // JD-driven pre-processing — currently unreachable since the UI no
+      // longer collects a job description, kept for when it's added back.
       yield { type: "phase", label: "Extracting job description keywords" };
       keywords = await callAgent<KeywordExtraction>(
         settings,
@@ -99,6 +101,15 @@ export async function* runPipeline(
         signal
       );
       yield { type: "gap", data: gap };
+    } else {
+      keywords = { keywords: [], required_skills: [], role_summary: "" };
+      gap = {
+        present_and_strong: [],
+        present_but_undersold: [],
+        missing_entirely: [],
+        present_but_irrelevant: [],
+        strategic_brief: "",
+      };
     }
 
     // ---- Iteration loop ----

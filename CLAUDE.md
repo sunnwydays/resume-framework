@@ -135,10 +135,11 @@ API requires for structured outputs.
   `runPipeline` in `lib/pipeline.ts`, yielding a new `PipelineEvent` variant
   if the UI needs to show it.
 - **New slider/toggle**: add to `Settings` in `lib/types.ts` +
-  `DEFAULT_SETTINGS`, add UI in `components/ConfigPanel.tsx`, wire the
-  directive into `sliderDirectives()`/`styleRuleDirectives()` in
-  `lib/prompts.ts`, and if it needs code enforcement (like the toggles), add
-  it to `lib/styleRules.ts`.
+  `DEFAULT_SETTINGS`. There is currently no settings sidebar UI — settings
+  are edited by hand in `DEFAULT_SETTINGS` (or via `localStorage`, see
+  `lib/storage.ts`) until one is rebuilt. Wire the directive into
+  `sliderDirectives()`/`styleRuleDirectives()` in `lib/prompts.ts`, and if it
+  needs code enforcement (like the toggles), add it to `lib/styleRules.ts`.
 - **New export format**: `lib/export.ts` is the only place exports live;
   both current formats strip `[assumed]/[fabricated]/[TRIMMED]` via
   `stripFlags()` — reuse that for any new format.

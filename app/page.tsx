@@ -25,8 +25,6 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
 
   const [resumeText, setResumeText] = useState("");
-  const [extraDetails, setExtraDetails] = useState("");
-  const [jdText, setJdText] = useState("");
 
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
@@ -45,6 +43,9 @@ export default function Home() {
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Reads localStorage (an external system unavailable during SSR), so
+    // this can't be a lazy useState initializer without a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSettings(loadSettings());
     setHydrated(true);
   }, []);
@@ -56,8 +57,7 @@ export default function Home() {
   const canRun =
     !running &&
     settings.apiKey.trim().length > 0 &&
-    resumeText.trim().length > 50 &&
-    jdText.trim().length > 50;
+    resumeText.trim().length > 50;
 
   async function run(userFeedback?: string) {
     const abort = new AbortController();
@@ -82,8 +82,8 @@ export default function Home() {
         {
           settings,
           rawResume: resumeText,
-          extraDetails,
-          jd: jdText,
+          extraDetails: "",
+          jd: "",
           userFeedback: userFeedback ?? null,
           resumeFrom,
         },
@@ -162,10 +162,6 @@ export default function Home() {
           <InputSection
             resumeText={resumeText}
             setResumeText={setResumeText}
-            extraDetails={extraDetails}
-            setExtraDetails={setExtraDetails}
-            jdText={jdText}
-            setJdText={setJdText}
             disabled={running}
           />
 
