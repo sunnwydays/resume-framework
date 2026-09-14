@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import ApprovalBar from "@/components/ApprovalBar";
-import ConfigPanel from "@/components/ConfigPanel";
 import InputSection from "@/components/InputSection";
 import IterationLog from "@/components/IterationLog";
 import ResumePreview from "@/components/ResumePreview";
@@ -158,16 +157,7 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="grid lg:grid-cols-[320px_1fr] gap-6">
-        <aside className="lg:sticky lg:top-6 lg:self-start rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 max-h-[calc(100vh-3rem)] overflow-y-auto">
-          <h2 className="text-sm font-semibold mb-4">Configuration</h2>
-          <ConfigPanel
-            settings={settings}
-            onChange={setSettings}
-            disabled={running}
-          />
-        </aside>
-
+      <div className="mx-auto max-w-3xl">
         <div className="space-y-6 min-w-0">
           <InputSection
             resumeText={resumeText}
@@ -197,7 +187,8 @@ export default function Home() {
             )}
             {!settings.apiKey.trim() && (
               <span className="text-xs text-neutral-500">
-                Add your API key in the config panel to start.
+                Set apiKey in DEFAULT_SETTINGS (lib/types.ts) to start — the
+                config sidebar is disabled for now.
               </span>
             )}
           </div>
