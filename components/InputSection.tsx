@@ -1,5 +1,7 @@
 "use client";
 
+import sample from "@/lib/mocks/affindaSample.json"
+import { AtsParseResponse } from "@/lib/types";
 import { useRef, useState } from "react";
 
 interface Props {
@@ -7,10 +9,11 @@ interface Props {
   setResumeText: (v: string) => void;
   resumePdf: File | null;
   setResumePdf: (v: File) => void;
+  atsResult: AtsParseResponse | null;
+  setAtsResult: (v: AtsParseResponse | null) => void;
   disabled: boolean;
 }
 
-type AtsParseResult = { error: string } | Record<string, unknown>;
 type ResumeFormat = "pdf" | "text";
 
 export default function InputSection({
@@ -18,11 +21,12 @@ export default function InputSection({
   setResumeText,
   resumePdf,
   setResumePdf,
+  atsResult,
+  setAtsResult,
   disabled,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("text");
-  const [atsResult, setAtsResult] = useState<AtsParseResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const inputCls =
@@ -43,7 +47,7 @@ export default function InputSection({
     }
 
     const res = await fetch("/api/ats-parse", { method: "POST", body: form });
-    const json = await res.json();
+    const json: AtsParseResponse = await res.json();
     setAtsResult(json);
     setLoading(false);
   }
@@ -125,11 +129,13 @@ export default function InputSection({
 
       {loading && <p>Loading...</p>}
 
-      {atsResult && (
-        <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-2 rounded">
-          {JSON.stringify(atsResult, null, 2)}
-        </pre>
-      )}
+      <button
+        type="button"
+        className="text-xs text-indigo-600 hover:underline disabled:opacity-50 block"
+        onClick={() => setAtsResult(sample)}
+      >
+        Load ats sample (dev)
+      </button>
     </div>
   );
 }

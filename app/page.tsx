@@ -10,6 +10,7 @@ import { downloadPdf, downloadText } from "@/lib/export";
 import { runPipeline } from "@/lib/pipeline";
 import { loadSettings, saveSettings } from "@/lib/storage";
 import {
+  AtsParseResponse,
   DEFAULT_SETTINGS,
   type GapAnalysis,
   type IterationRecord,
@@ -17,6 +18,7 @@ import {
   type ResumeJson,
   type Settings,
 } from "@/lib/types";
+import AtsResult from "@/components/AtsResult";
 
 type FinalStatus = "approved" | "max_iterations_reached" | null;
 
@@ -26,6 +28,7 @@ export default function Home() {
 
   const [resumeText, setResumeText] = useState("");
   const [resumePdf, setResumePdf] = useState<File | null>(null);
+  const [atsResult, setAtsResult] = useState<AtsParseResponse | null>(null);
 
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
@@ -165,8 +168,12 @@ export default function Home() {
             setResumeText={setResumeText}
             resumePdf={resumePdf}
             setResumePdf={setResumePdf}
+            atsResult={atsResult}
+            setAtsResult={setAtsResult}
             disabled={running}
           />
+
+          <AtsResult result={atsResult} />
 
           <div className="flex items-center gap-3">
             <button
