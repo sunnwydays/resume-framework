@@ -1,12 +1,13 @@
 "use client";
 
+import { AtsIssue, reviewContact, reviewPerson, reviewWorkExperiences } from "@/lib/atsReview";
 import {
   AtsDateRange,
   AtsLocation,
   AtsParseResponse,
   AtsSkill,
 } from "@/lib/types";
-import { ReactNode } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 
 interface Props {
   result: AtsParseResponse | null;
@@ -89,12 +90,51 @@ function GenericValue({ value }: { value: unknown }) {
   );
 }
 
-function Field({ label, value }: { label: string; value: unknown }) {
+const ISSUE_STYLES: Record<AtsIssue["severity"], string> = {
+  critical: "text-red-600 dark:text-red-400",
+  minor: "text-amber-600 dark:text-amber-400",
+  info: "text-neutral-500",
+};
+
+// Lets the "Show/Hide errors" toggle in AtsResult reach every IssueList
+// without threading a prop through Field/DateRangeRow at each call site.
+const ShowIssuesContext = createContext(true);
+
+function IssueList({ issues }: { issues?: AtsIssue[] }) {
+  const showIssues = useContext(ShowIssuesContext);
+  if (!showIssues || !issues || issues.length === 0) return null;
+  return (
+    <div className="mt-0.5 space-y-0.5">
+      {issues.map((issue, i) => (
+        <div key={i} className={`text-xs ${ISSUE_STYLES[issue.severity]}`}>
+          {issue.message}
+          {issue.evidence && (
+            <div className="text-neutral-500">Found: {issue.evidence}</div>
+          )}
+          {issue.fix && (
+            <div className="text-neutral-500">{issue.fix}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  issues,
+}: {
+  label: string;
+  value: unknown;
+  issues?: AtsIssue[];
+}) {
   return (
     <div className="flex gap-2 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
       <div className="min-w-0">
         <GenericValue value={value} />
+        <IssueList issues={issues} />
       </div>
     </div>
   );
@@ -103,12 +143,21 @@ function Field({ label, value }: { label: string; value: unknown }) {
 // Smaller nested label/value pair, used inside a Field's value to break a
 // structured value (location, date range) into its individual source fields
 // instead of collapsing them into one display string.
-function SubField({ label, value }: { label: string; value: unknown }) {
+function SubField({
+  label,
+  value,
+  issues,
+}: {
+  label: string;
+  value: unknown;
+  issues?: AtsIssue[];
+}) {
   return (
     <div className="flex gap-2">
       <div className="w-28 shrink-0 text-neutral-500">{label}:</div>
       <div className="min-w-0">
         <GenericValue value={value} />
+        <IssueList issues={issues} />
       </div>
     </div>
   );
@@ -116,7 +165,7 @@ function SubField({ label, value }: { label: string; value: unknown }) {
 
 const LOCATION_KNOWN = ["city", "state", "country", "countryCode", "formatted", "raw"];
 
-function LocationRow({ label, loc }: { label: string; loc?: AtsLocation }) {
+function LocationRow({ label, loc, issues }: { label: string; loc?: AtsLocation; issues?: AtsIssue[] }) {
   return (
     <div className="flex gap-2 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
@@ -139,12 +188,21 @@ function LocationRow({ label, loc }: { label: string; loc?: AtsLocation }) {
           </span>
         </div>
         {loc && <OtherFields obj={asRecord(loc)} known={LOCATION_KNOWN} />}
+        <IssueList issues={issues} />
       </div>
     </div>
   );
 }
 
-function DateRangeRow({ label, range }: { label: string; range?: AtsDateRange }) {
+function DateRangeRow({
+  label,
+  range,
+  issues,
+}: {
+  label: string;
+  range?: AtsDateRange;
+  issues?: AtsIssue[];
+}) {
   return (
     <div className="flex gap-2 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
@@ -173,6 +231,7 @@ function DateRangeRow({ label, range }: { label: string; range?: AtsDateRange })
               : undefined
           }
         />
+        <IssueList issues={issues} />
       </div>
     </div>
   );
@@ -203,9 +262,11 @@ function OtherFields({
 
 function Section({
   title,
+  issues,
   children,
 }: {
   title: string;
+  issues?: AtsIssue[];
   children: ReactNode;
 }) {
   return (
@@ -213,6 +274,7 @@ function Section({
       <h3 className="border-b border-neutral-200 dark:border-neutral-800 pb-1 text-sm font-semibold">
         {title}
       </h3>
+      <IssueList issues={issues} />
       {children}
     </section>
   );
@@ -272,15 +334,20 @@ const KNOWN_TOP_LEVEL = [
 ];
 
 export default function AtsResult({ result }: Props) {
+  const [showIssues, setShowIssues] = useState(true);
+
   if (!result) return null;
   if ("error" in result)
     return <p className="text-sm text-red-600">{String(result.error)}</p>;
 
   const { data, meta } = result;
   const contact = data.contact ?? { emails: [], phoneNumbers: [], websites: [] };
+  const contactIssues = reviewContact(contact);
   const person = data.person ?? { name: {} };
+  const personIssues = reviewPerson(person);
   const education = data.education ?? [];
   const workExperience = data.workExperience ?? [];
+  const workReview = reviewWorkExperiences(workExperience);
   const projects = data.projects ?? [];
   const skills = data.skills ?? [];
   const achievements = data.achievements ?? [];
@@ -290,60 +357,79 @@ export default function AtsResult({ result }: Props) {
   );
 
   return (
+    <ShowIssuesContext.Provider value={showIssues}>
     <div className="space-y-6">
-      <h2 className="text-sm font-semibold">
-        Raw json from resume parser
-      </h2>
-      <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-2 rounded">
-        {JSON.stringify(result, null, 2)}
-      </pre>
-
-      <hr />
-
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">
           Here is what your resume looks like when parsed
         </h2>
-        {meta?.document != null && (
-          <span className="text-xs text-neutral-500">
-            <GenericValue value={meta.document} />
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {meta?.document != null && (
+            <span className="text-xs text-neutral-500">
+              <GenericValue value={meta.document} />
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowIssues((v) => !v)}
+            className="rounded border border-neutral-300 dark:border-neutral-700 px-2 py-1 text-xs text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+          >
+            {showIssues ? "Hide errors" : "Show errors"}
+          </button>
+        </div>
       </div>
 
-      <Section title="Contact & personal info">
+      <Section title="Personal info">
         <div className="space-y-1.5">
           <div className="flex gap-2 text-sm">
             <div className="w-32 shrink-0 text-neutral-500">Name</div>
             <div className="min-w-0 space-y-0.5">
-              <SubField label="First" value={person.name?.given} />
-              <SubField label="Middle" value={person.name?.middle} />
-              <SubField label="Last" value={person.name?.family} />
+              <SubField
+                label="First"
+                value={person.name?.given}
+                issues={personIssues.fields.given}
+              />
+              <SubField
+                label="Middle"
+                value={person.name?.middle}
+                issues={personIssues.fields.middle}
+              />
+              <SubField
+                label="Last"
+                value={person.name?.family}
+                issues={personIssues.fields.family}
+              />
               <OtherFields
                 obj={asRecord(person.name)}
                 known={["given", "middle", "family"]}
               />
             </div>
           </div>
-          <LocationRow label="Location" loc={person.location} />
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            <Field
-              label="Emails"
-              value={contact.emails.length ? contact.emails : undefined}
-            />
-            <Field
-              label="Phone numbers"
-              value={
-                contact.phoneNumbers.length ? contact.phoneNumbers : undefined
-              }
-            />
-            <Field
-              label="Websites"
-              value={contact.websites.length ? contact.websites : undefined}
-            />
-          </div>
+          <LocationRow label="Location" loc={person.location} issues={personIssues.fields.location}/>
         </div>
         <OtherFields obj={asRecord(person)} known={["name", "location"]} />
+      </Section>
+
+      <Section title="Contact" issues={contactIssues.section}>
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          <Field
+            label="Emails"
+            value={contact.emails.length ? contact.emails : undefined}
+            issues={contactIssues.fields.emails}
+          />
+          <Field
+            label="Phone numbers"
+            value={
+              contact.phoneNumbers.length ? contact.phoneNumbers : undefined
+            }
+            issues={contactIssues.fields.phoneNumbers}
+          />
+          <Field
+            label="Websites"
+            value={contact.websites.length ? contact.websites : undefined}
+            issues={contactIssues.fields.websites}
+          />
+        </div>
         <OtherFields
           obj={asRecord(contact)}
           known={["emails", "phoneNumbers", "websites"]}
@@ -385,34 +471,48 @@ export default function AtsResult({ result }: Props) {
         )}
       </Section>
 
-      <Section title={`Work experience (${workExperience.length})`}>
+      <Section
+        title={`Work experience (${workExperience.length})`}
+        issues={workReview.section}
+      >
         {workExperience.length === 0 ? (
           <Empty />
         ) : (
           <div className="space-y-2">
-            {workExperience.map((we, i) => (
-              <Card key={i}>
-                <div className="text-sm font-medium">
-                  {we.jobTitle || <Empty />}
-                </div>
-                <Field label="Organization" value={we.organization} />
-                <Field label="Employment type" value={we.employmentType} />
-                <DateRangeRow label="Dates" range={we.dateRange} />
-                <LocationRow label="Location" loc={we.location} />
-                <Field label="Description" value={we.description} />
-                <OtherFields
-                  obj={asRecord(we)}
-                  known={[
-                    "organization",
-                    "jobTitle",
-                    "description",
-                    "dateRange",
-                    "location",
-                    "employmentType",
-                  ]}
-                />
-              </Card>
-            ))}
+            {workExperience.map((we, i) => {
+              const weIssues = workReview.entries[i];
+              return (
+                <Card key={i}>
+                  <div className="text-sm font-medium">
+                    {we.jobTitle || <Empty />}
+                  </div>
+                  <Field label="Organization" value={we.organization} />
+                  <Field label="Employment type" value={we.employmentType} />
+                  <DateRangeRow
+                    label="Dates"
+                    range={we.dateRange}
+                    issues={weIssues.dateRange}
+                  />
+                  <LocationRow label="Location" loc={we.location} />
+                  <Field
+                    label="Description"
+                    value={we.description}
+                    issues={weIssues.description}
+                  />
+                  <OtherFields
+                    obj={asRecord(we)}
+                    known={[
+                      "organization",
+                      "jobTitle",
+                      "description",
+                      "dateRange",
+                      "location",
+                      "employmentType",
+                    ]}
+                  />
+                </Card>
+              );
+            })}
           </div>
         )}
       </Section>
@@ -505,6 +605,16 @@ export default function AtsResult({ result }: Props) {
           </pre>
         </details>
       )}
+
+      <hr />
+
+      <h2 className="text-sm font-semibold">
+        Raw json from resume parser
+      </h2>
+      <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-2 rounded">
+        {JSON.stringify(result, null, 2)}
+      </pre>
     </div>
+    </ShowIssuesContext.Provider>
   );
 }
