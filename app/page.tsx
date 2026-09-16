@@ -25,6 +25,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
 
   const [resumeText, setResumeText] = useState("");
+  const [resumePdf, setResumePdf] = useState<File | null>(null);
 
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
@@ -162,6 +163,8 @@ export default function Home() {
           <InputSection
             resumeText={resumeText}
             setResumeText={setResumeText}
+            resumePdf={resumePdf}
+            setResumePdf={setResumePdf}
             disabled={running}
           />
 
