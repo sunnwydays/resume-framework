@@ -44,25 +44,6 @@ function formatDatePoint(d?: { date: string; precision: string }): string {
   });
 }
 
-function formatDateRange(range?: AtsDateRange): string {
-  if (!range) return "";
-  const start = formatDatePoint(range.start);
-  const end = formatDatePoint(range.end);
-  const duration =
-    range.durationMonths != null ? `${range.durationMonths} mo` : "";
-  const span = start || end ? `${start || "?"} - ${end || "Present (no end)"}` : "";
-  return [span, duration && `(${duration})`].filter(Boolean).join(" ");
-}
-
-function locationLine(loc?: AtsLocation): string {
-  if (!loc) return "";
-  return (
-    loc.formatted ||
-    loc.raw ||
-    [loc.city, loc.state, loc.country].filter(Boolean).join(", ")
-  );
-}
-
 // ---- generic renderers, used directly and by <OtherFields> ----
 
 function Empty() {
@@ -95,26 +76,104 @@ function GenericValue({ value }: { value: unknown }) {
   }
   const entries = Object.entries(value as Record<string, unknown>);
   return (
-    <dl className="space-y-0.5 border-l border-neutral-200 dark:border-neutral-800 pl-2">
+    <div className="space-y-0.5 border-l border-neutral-200 dark:border-neutral-800 pl-2">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2">
-          <dt className="shrink-0 text-neutral-500">{labelize(k)}:</dt>
-          <dd className="min-w-0">
+          <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
+          <div className="min-w-0">
             <GenericValue value={v} />
-          </dd>
+          </div>
         </div>
       ))}
-    </dl>
+    </div>
   );
 }
 
 function Field({ label, value }: { label: string; value: unknown }) {
   return (
     <div className="flex gap-2 text-sm">
-      <dt className="w-32 shrink-0 text-neutral-500">{label}</dt>
-      <dd className="min-w-0">
+      <div className="w-32 shrink-0 text-neutral-500">{label}</div>
+      <div className="min-w-0">
         <GenericValue value={value} />
-      </dd>
+      </div>
+    </div>
+  );
+}
+
+// Smaller nested label/value pair, used inside a Field's value to break a
+// structured value (location, date range) into its individual source fields
+// instead of collapsing them into one display string.
+function SubField({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div className="flex gap-2">
+      <div className="w-28 shrink-0 text-neutral-500">{label}:</div>
+      <div className="min-w-0">
+        <GenericValue value={value} />
+      </div>
+    </div>
+  );
+}
+
+const LOCATION_KNOWN = ["city", "state", "country", "countryCode", "formatted", "raw"];
+
+function LocationRow({ label, loc }: { label: string; loc?: AtsLocation }) {
+  return (
+    <div className="flex gap-2 text-sm">
+      <div className="w-32 shrink-0 text-neutral-500">{label}</div>
+      <div className="min-w-0 space-y-1">
+        <div>
+          <GenericValue value={loc?.formatted || loc?.raw} />
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500">
+          <span>
+            City: <GenericValue value={loc?.city} />
+          </span>
+          <span>
+            State: <GenericValue value={loc?.state} />
+          </span>
+          <span>
+            Country: <GenericValue value={loc?.country} />
+          </span>
+          <span>
+            Country code: <GenericValue value={loc?.countryCode} />
+          </span>
+        </div>
+        {loc && <OtherFields obj={asRecord(loc)} known={LOCATION_KNOWN} />}
+      </div>
+    </div>
+  );
+}
+
+function DateRangeRow({ label, range }: { label: string; range?: AtsDateRange }) {
+  return (
+    <div className="flex gap-2 text-sm">
+      <div className="w-32 shrink-0 text-neutral-500">{label}</div>
+      <div className="min-w-0 space-y-0.5">
+        <SubField
+          label="Start"
+          value={
+            range?.start?.date
+              ? `${formatDatePoint(range.start)} (${range.start.precision})`
+              : undefined
+          }
+        />
+        <SubField
+          label="End"
+          value={
+            range?.end?.date
+              ? `${formatDatePoint(range.end)} (${range.end.precision})`
+              : undefined
+          }
+        />
+        <SubField
+          label="Duration"
+          value={
+            range?.durationMonths != null
+              ? `${range.durationMonths} mo`
+              : undefined
+          }
+        />
+      </div>
     </div>
   );
 }
@@ -132,10 +191,10 @@ function OtherFields({
     <div className="mt-1.5 space-y-1 border-t border-dashed border-neutral-200 dark:border-neutral-800 pt-1.5 text-xs text-neutral-500">
       {rest.map(([k, v]) => (
         <div key={k} className="flex gap-2">
-          <dt className="shrink-0">{labelize(k)}:</dt>
-          <dd className="min-w-0">
+          <div className="shrink-0">{labelize(k)}:</div>
+          <div className="min-w-0">
             <GenericValue value={v} />
-          </dd>
+          </div>
         </div>
       ))}
     </div>
@@ -185,10 +244,10 @@ function SkillPill({ skill }: { skill: AtsSkill }) {
           <div className="space-y-0.5">
             {extra.map(([k, v]) => (
               <div key={k} className="flex gap-2">
-                <dt className="shrink-0 text-neutral-500">{labelize(k)}:</dt>
-                <dd className="min-w-0">
+                <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
+                <div className="min-w-0">
                   <GenericValue value={v} />
-                </dd>
+                </div>
               </div>
             ))}
           </div>
@@ -226,10 +285,6 @@ export default function AtsResult({ result }: Props) {
   const skills = data.skills ?? [];
   const achievements = data.achievements ?? [];
 
-  const fullName = [person.name?.given, person.name?.middle, person.name?.family]
-    .filter(Boolean)
-    .join(" ");
-
   const otherTopLevel = Object.entries(asRecord(data)).filter(
     ([k]) => !KNOWN_TOP_LEVEL.includes(k)
   );
@@ -257,29 +312,36 @@ export default function AtsResult({ result }: Props) {
       </div>
 
       <Section title="Contact & personal info">
-        <div className="grid gap-1.5 sm:grid-cols-2">
-          <Field label="Name" value={fullName} />
-          <Field label="Location" value={locationLine(person.location)} />
-          <Field
-            label="Emails"
-            value={contact.emails.length ? contact.emails : undefined}
-          />
-          <Field
-            label="Phone numbers"
-            value={
-              contact.phoneNumbers.length
-                ? contact.phoneNumbers.map((p) => p.formatted || p.raw)
-                : undefined
-            }
-          />
-          <Field
-            label="Websites"
-            value={
-              contact.websites.length
-                ? contact.websites.map((w) => `${w.type}: ${w.url}`)
-                : undefined
-            }
-          />
+        <div className="space-y-1.5">
+          <div className="flex gap-2 text-sm">
+            <div className="w-32 shrink-0 text-neutral-500">Name</div>
+            <div className="min-w-0 space-y-0.5">
+              <SubField label="First" value={person.name?.given} />
+              <SubField label="Middle" value={person.name?.middle} />
+              <SubField label="Last" value={person.name?.family} />
+              <OtherFields
+                obj={asRecord(person.name)}
+                known={["given", "middle", "family"]}
+              />
+            </div>
+          </div>
+          <LocationRow label="Location" loc={person.location} />
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            <Field
+              label="Emails"
+              value={contact.emails.length ? contact.emails : undefined}
+            />
+            <Field
+              label="Phone numbers"
+              value={
+                contact.phoneNumbers.length ? contact.phoneNumbers : undefined
+              }
+            />
+            <Field
+              label="Websites"
+              value={contact.websites.length ? contact.websites : undefined}
+            />
+          </div>
         </div>
         <OtherFields obj={asRecord(person)} known={["name", "location"]} />
         <OtherFields
@@ -298,16 +360,14 @@ export default function AtsResult({ result }: Props) {
                 <div className="text-sm font-medium">
                   {ed.institution || <Empty />}
                 </div>
-                <Field
-                  label="Qualification"
-                  value={ed.qualification || ed.level}
-                />
+                <Field label="Qualification" value={ed.qualification} />
+                <Field label="Level" value={ed.level} />
                 <Field
                   label="Field(s) of study"
                   value={ed.fieldsOfStudy}
                 />
-                <Field label="Dates" value={formatDateRange(ed.dateRange)} />
-                <Field label="Location" value={locationLine(ed.location)} />
+                <DateRangeRow label="Dates" range={ed.dateRange} />
+                <LocationRow label="Location" loc={ed.location} />
                 <OtherFields
                   obj={asRecord(ed)}
                   known={[
@@ -334,11 +394,11 @@ export default function AtsResult({ result }: Props) {
               <Card key={i}>
                 <div className="text-sm font-medium">
                   {we.jobTitle || <Empty />}
-                  {we.organization ? ` — ${we.organization}` : ""}
                 </div>
+                <Field label="Organization" value={we.organization} />
                 <Field label="Employment type" value={we.employmentType} />
-                <Field label="Dates" value={formatDateRange(we.dateRange)} />
-                <Field label="Location" value={locationLine(we.location)} />
+                <DateRangeRow label="Dates" range={we.dateRange} />
+                <LocationRow label="Location" loc={we.location} />
                 <Field label="Description" value={we.description} />
                 <OtherFields
                   obj={asRecord(we)}
@@ -367,7 +427,7 @@ export default function AtsResult({ result }: Props) {
                 <div className="text-sm font-medium">
                   {p.title || <Empty />}
                 </div>
-                <Field label="Dates" value={formatDateRange(p.dateRange)} />
+                <DateRangeRow label="Dates" range={p.dateRange} />
                 <Field label="Description" value={p.description} />
                 <OtherFields
                   obj={asRecord(p)}
@@ -379,7 +439,7 @@ export default function AtsResult({ result }: Props) {
         )}
       </Section>
 
-      <Section title={`Skills (${skills.length})`}>
+      <Section title={`Skills (${skills.length}) - hover to see more details`}>
         {skills.length === 0 ? (
           <Empty />
         ) : (
