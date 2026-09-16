@@ -9,7 +9,6 @@ interface Props {
   setResumeText: (v: string) => void;
   resumePdf: File | null;
   setResumePdf: (v: File) => void;
-  atsResult: AtsParseResponse | null;
   setAtsResult: (v: AtsParseResponse | null) => void;
   disabled: boolean;
 }
@@ -21,7 +20,6 @@ export default function InputSection({
   setResumeText,
   resumePdf,
   setResumePdf,
-  atsResult,
   setAtsResult,
   disabled,
 }: Props) {

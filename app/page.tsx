@@ -29,7 +29,6 @@ export default function Home() {
             setResumeText={setResumeText}
             resumePdf={resumePdf}
             setResumePdf={setResumePdf}
-            atsResult={atsResult}
             setAtsResult={setAtsResult}
             disabled={false}
           />
