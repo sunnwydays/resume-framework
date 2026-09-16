@@ -1,145 +1,108 @@
 # CLAUDE.md
 
 Agent-facing context for this codebase. Read this before making changes —
-it covers the architecture, the pipeline contract, and decisions that aren't
-obvious from the code alone.
+it covers the architecture and decisions that aren't obvious from the code
+alone.
 
 ## What this is
 
-A Next.js app that runs a 3-agent resume review loop against the Anthropic
-API: **Reviser** (rewrites), **Sentiment Checker** (tone gate), **Recruiter**
-(scored approval gate). The loop runs client-side; each agent call is one
-request to `/api/agent`, which proxies to `messages.create` with structured
-outputs (`output_config.format: json_schema`) so every agent response is
-schema-validated JSON, not freeform text to parse.
+A Next.js app, currently at **Stage 1 of a planned multi-stage redesign**:
+an ATS resume parser. The user pastes resume text or uploads a PDF, the app
+sends it server-side to Affinda's resume-parsing API, and displays both the
+raw JSON and a formatted breakdown of what was extracted. See
+`README.md` for user-facing usage.
 
-Full plan/history: none checked in — this file + the code is the source of
-truth. See `README.md` for user-facing usage.
+The app previously had a client-driven 3-agent review pipeline (Reviser /
+Sentiment Checker / Recruiter, calling the Anthropic API) layered on top of
+this. That pipeline and all its supporting UI/lib code were removed
+2026-09-16 to simplify the app down to just Stage 1. It is fully documented
+for recreation in `docs/archived-review-pipeline.md` — read that before
+rebuilding anything resembling it, rather than re-deriving the design from
+scratch. The literal code is recoverable from git history if needed
+(`git log --all --full-history -- lib/pipeline.ts`, pre-removal commit).
+
+## Planned stages (design decisions live in project memory, not here)
+
+1. **ATS Parser** (this stage) — parse + display, transparency-first, with
+   a planned quality gate before proceeding (not built yet — currently just
+   parses and displays, no gate).
+2. **Crafting Bench** — AI suggests edits (doesn't auto-apply), modular
+   content blocks, banked content.
+3. **Fine Revision** — a narrow JD-keyword pass after Stage 2 (not yet
+   designed in detail).
 
 ## Request flow
 
 ```
-Browser (app/page.tsx, React state machine)
- └─ lib/pipeline.ts: runPipeline() — async generator, yields PipelineEvent
-     ├─ POST /api/agent      (per agent call: Reviser / Sentiment / Recruiter /
-     │                         keyword-extraction / gap-analysis)
-     └─ POST /api/fetch-jd   (server-side JD URL fetch, avoids browser CORS)
+Browser (app/page.tsx)
+ ├─ components/InputSection.tsx — resume text/PDF input, triggers the parse
+ │   └─ POST /api/ats-parse       (server-side Affinda call)
+ └─ components/AtsResult.tsx     — renders the parsed result (raw JSON +
+                                    formatted breakdown)
 ```
 
-`runPipeline` is the only place that sequences agent calls. The API routes
-are dumb proxies — `/api/agent` takes `{model, system, user, schema}` and
-returns `{data}` or `{error}`; it does not know about the resume domain.
+`app/page.tsx` just holds the `resumeText` / `resumePdf` / `atsResult`
+state and renders these two components. There's no pipeline orchestrator at
+this stage — `InputSection` calls `/api/ats-parse` directly.
 
-## Pipeline contract (`lib/pipeline.ts`)
+## `app/api/ats-parse/route.ts`
 
-Pre-processing (once per fresh run, skipped on a feedback re-run via
-`resumeFrom`):
-1. **Keyword extraction** — 10-15 JD keywords + required skills, fed into
-   every later Reviser/Recruiter call so they don't re-derive them each
-   iteration.
-2. **Gap analysis** — compares resume+extra details to the JD:
-   present-and-strong / undersold / missing / irrelevant, plus a strategic
-   brief. This is the Reviser's brief, not a blank rewrite instruction.
+Accepts multipart form data (`file` or `text`), forwards it to
+`https://resume-parser.us1.affinda.com/v1/resumes/parse` with
+`AFFINDA_API_KEY` (server-side env var — never sent to the browser), and
+returns Affinda's JSON response as-is (or `{error}` on failure). No
+normalization/reshaping happens here; `AtsResult.tsx` renders whatever
+shape comes back, falling back to a generic recursive renderer
+(`GenericValue`/`OtherFields`) for any field it doesn't have a dedicated
+layout for — this is deliberate so unexpected Affinda fields still show up
+instead of silently vanishing.
 
-Loop (`iteration` 1..`settings.maxIterations`):
-1. **Reviser** writes the full resume JSON. Context includes: JD keywords,
-   gap brief, its own previous resume + diff summary of what changed last
-   time, the recruiter's structured critique from last iteration (see
-   below), and an **aggressiveness directive** keyed to iteration number
-   (iteration 1 = free restructuring, final iterations = surgical only —
-   see `aggressivenessDirective` in `lib/prompts.ts`). This exists because
-   `temperature`/sampling params are rejected outright on current Claude
-   models, so "cool down over iterations" has to be prompt-injected instead.
-2. **Sentiment Checker** scores tone/vibe match. If `tone_ok: false`, the
-   Reviser reruns once with the sentiment issues + suggested replacements.
-3. **Style rules** (`lib/styleRules.ts`) run as a deterministic
-   post-processing pass — regex-based em-dash/semicolon rewriting and
-   bullet truncation. This is the code-enforced backstop behind the
-   prompt-injected style directives; every fix is logged as a `StyleFix` for
-   the UI audit trail.
-4. **Recruiter** returns a structured critique, not freeform notes:
-   overall scores (jd_alignment/clarity/impact/ats_keywords), **per-section
-   scores with indexed weak items**, missing keywords, weak bullets,
-   structural issues, critical flags. See `RECRUITER_SCHEMA` in
-   `lib/schemas.ts`. This structure is what lets the Reviser make surgical
-   edits on iteration 2+ instead of re-guessing what to fix.
-5. **Approval is enforced in code, not by the model's own `approved` field.**
-   `runPipeline` overwrites `recruiter.approved` based on
-   `all four scores >= 7 && critical_flags.length === 0`. Don't trust the
-   model's self-reported `approved` — always recompute it.
+## Types (`lib/types.ts`)
 
-`diffResumes` (`lib/diff.ts`) produces the section/bullet-level diff between
-iterations, used both for the UI's "changes from previous version" and as
-the "what you changed last iteration" text fed back to the Reviser.
+`Ats*` types describe the Affinda response shape, typed strictly only for
+the fields `AtsResult.tsx` actually reads (contact, person, education,
+workExperience, projects, skills, achievements, rawText); everything else
+is `[key: string]: unknown` and falls through to the generic renderer.
+`AtsParseResponse = AtsParseResult | { error: string }`.
 
-## Prompt assembly (`lib/prompts.ts`)
+## Components
 
-- Four sliders (0..1 floats, 0.5 = neutral) map to concrete directives via
-  `sliderDirectives()`. The **Honesty slider is 3-tiered, not 2**: <0.34
-  literal, 0.34-0.66 exaggerated (stretches must be tagged `[assumed]`),
-  >=0.67 fabrication unlocked (invented details must be tagged
-  `[fabricated]`). `fabricationUnlocked(settings)` checks the top tier.
-- Style toggles (em-dash/semicolon/max-length/custom rule) are injected as
-  "mandatory" directives AND enforced again in code by `styleRules.ts` — two
-  layers because the model doesn't always comply with prompt-only rules.
-- `settings.userSystemPrompt`, if set, **replaces** the default
-  Reviser/Sentiment base prompt. It does **not** touch the Recruiter prompt
-  (`recruiterPrompt()` never reads `userSystemPrompt`) — the recruiter gate
-  is intentionally not user-configurable, matching the original product
-  spec's guardrail. Don't wire `userSystemPrompt` into `recruiterPrompt`.
-- `PRESETS` (industry dropdown) set the recruiter's scoring lens
-  (`recruiterLens`) and a default vibe seed, overridden by
-  `settings.vibePrompt` if the user typed one (`effectiveVibe()`).
-
-## Schemas (`lib/schemas.ts`)
-
-Every agent has a matching JSON Schema used as `output_config.format`. If
-you add a field to an agent's return shape, update the schema AND the
-matching type in `lib/types.ts` — they're not derived from each other.
-Schemas use `additionalProperties: false` + `required` throughout, which the
-API requires for structured outputs.
-
-## API routes
-
-- `app/api/agent/route.ts` — reads the API key from the `x-anthropic-key`
-  request header (never from env, never persisted server-side). Retries
-  once with an explicit schema-reminder suffix if the model's JSON fails to
-  parse (`SyntaxError` only — other errors propagate). Maps
-  `Anthropic.APIError` subclasses to user-facing messages.
-- `app/api/fetch-jd/route.ts` — server-side fetch + regex-based HTML-to-text
-  (no DOM parser dependency). Returns a 422 with a "paste instead" message if
-  extracted text is under 200 chars (catches JS-rendered job pages).
+- **`components/InputSection.tsx`** — text/PDF radio toggle, textarea or
+  file upload, "Run ATS parse" button (posts `FormData` to
+  `/api/ats-parse`), and a dev-only "Load ats sample" button that loads
+  `lib/mocks/affindaSample.json` without hitting the API.
+- **`components/AtsResult.tsx`** — renders the raw JSON dump, then a
+  formatted breakdown by section (contact/personal, education, work
+  experience, projects, skills as hoverable pills, achievements), with a
+  generic fallback renderer for anything not explicitly laid out.
 
 ## Known constraints / don't re-litigate these
 
-- **Model IDs**: `claude-opus-4-8` / `claude-sonnet-5` / `claude-haiku-4-5`
-  (`lib/types.ts` MODELS). The original product spec named
-  `claude-sonnet-4-6`/`claude-opus-4-6` — those are superseded; don't revert.
-- **No `temperature`/`top_p`/`top_k`** on current-generation models — sending
-  them 400s. Aggressiveness/creativity control is prompt-injected via
-  `aggressivenessDirective`, not sampling params.
-- **`max_tokens: 16000`, non-streaming** in `/api/agent` — fine for
-  structured-output JSON responses of this size; if you raise it much past
-  ~16k you'll need to switch to streaming per the Anthropic SDK's guidance.
-- PDF export (`lib/export.ts` `downloadPdf`) temporarily hides flag markers
-  (`showFlags`) before capturing the DOM node — there's a 50ms `setTimeout`
-  to let React re-render first. If flags show up in exported PDFs, that
-  timing race is the first place to look.
-- `pdfjs-dist` is pinned to `4.10.38` (not latest) — v5+ requires Node 22,
-  this project targets Node 20.
+- **API key handling**: `AFFINDA_API_KEY` is a server-side env var
+  (`.env.local`, gitignored) — not user-supplied, not client-side. This is
+  the current policy for new integrations generally (server secrets are
+  fine), a deliberate reversal of an earlier "never persist a key
+  server-side" stance from when the app had a client-supplied Anthropic
+  key.
+- **`lib/mocks/affindaSample.json`** — a canned Affinda response used only
+  by the dev "Load ats sample" button in `InputSection.tsx`, not otherwise
+  wired into anything.
+- If you're about to add back tone/style/scoring logic, fabrication
+  sliders, PDF export, or an iteration loop, check
+  `docs/archived-review-pipeline.md` first — that design already exists and
+  was deliberately scoped out, not abandoned.
 
 ## Extending this
 
-- **New agent step**: add its prompt builder to `lib/prompts.ts`, its schema
-  to `lib/schemas.ts`, its type to `lib/types.ts`, and call it from
-  `runPipeline` in `lib/pipeline.ts`, yielding a new `PipelineEvent` variant
-  if the UI needs to show it.
-- **New slider/toggle**: add to `Settings` in `lib/types.ts` +
-  `DEFAULT_SETTINGS`. There is currently no settings sidebar UI — settings
-  are edited by hand in `DEFAULT_SETTINGS` (or via `localStorage`, see
-  `lib/storage.ts`) until one is rebuilt. Wire the directive into
-  `sliderDirectives()`/`styleRuleDirectives()` in `lib/prompts.ts`, and if it
-  needs code enforcement (like the toggles), add it to `lib/styleRules.ts`.
-- **New export format**: `lib/export.ts` is the only place exports live;
-  both current formats strip `[assumed]/[fabricated]/[TRIMMED]` via
-  `stripFlags()` — reuse that for any new format.
+- **Stage 1 gate / heuristic parser / overlay**: not built yet. See project
+  memory (`redesign-stage1-ats-parser`, `redesign-stage1-kickoff-prompt`)
+  for the reference-parser set (Affinda + a second engine API + an in-house
+  heuristic), the "pass" definition (structural completeness across
+  references, not exact match), and what's already been decided vs. still
+  open.
+- **New Affinda field to surface explicitly**: add it to the relevant `Ats*`
+  interface in `lib/types.ts` and a dedicated `Field`/`Section` in
+  `AtsResult.tsx` — anything not added still appears via the generic
+  fallback, so this is a display upgrade, not a correctness fix.
+- **New API integration**: use a server-side env var for its key
+  (`process.env.*`, never a client header) per the current API-key policy.

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Resume Review Agent",
   description:
-    "Multi-agent resume review: Reviser, Sentiment Checker, and Recruiter iterate until your resume passes.",
+    "Parse your resume the way an ATS would, and see exactly what it extracts.",
 };
 
 export default function RootLayout({
