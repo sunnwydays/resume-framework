@@ -14,7 +14,7 @@ export default function Home() {
     <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-6">
       <header className="mb-6">
         <h1 className="text-xl font-bold tracking-tight">
-          Resume Review Agent
+          Resume Framework
         </h1>
         <p className="text-sm text-neutral-500">
           Parse your resume the way an ATS would, and see exactly what it

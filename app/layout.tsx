@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Review Agent",
+  title: "Resume Framework",
   description:
     "Parse your resume the way an ATS would, and see exactly what it extracts.",
 };
