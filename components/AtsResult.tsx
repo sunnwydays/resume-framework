@@ -134,12 +134,12 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
   const { showIssues, showTips } = useContext(ShowIssuesContext);
   if (!showIssues || !issues || issues.length === 0) return null;
   return (
-    <div className="mt-1 space-y-1">
+    <div className="mt-1.5 space-y-1">
       {issues.map((issue, i) => (
-        <div key={i} className={`flex gap-1.5 text-xs ${ISSUE_STYLES[issue.severity]}`}>
+        <div key={i} className={`flex gap-1.5 text-xs leading-snug ${ISSUE_STYLES[issue.severity]}`}>
           <span aria-hidden="true">&#8594;</span>
-          <div>
-            {issueMessage(issue)}
+          <div className="space-y-0.5">
+            <div>{issueMessage(issue)}</div>
             {showTips && issue.evidence && (
               <div className="text-neutral-500">Found: {issue.evidence}</div>
             )}
@@ -196,25 +196,59 @@ function SeverityCountsLine({ counts }: { counts: SectionScore["counts"] }) {
   );
 }
 
+interface BreakdownRow {
+  key: string;
+  label: ReactNode;
+  counts: SectionScore["counts"];
+  penalty: number;
+}
+
+// Fixed column widths so a long label wraps instead of squeezing the counts.
+function BreakdownTable({ title, rows }: { title: string; rows: BreakdownRow[] }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="text-xs font-medium text-neutral-500">{title}</div>
+      <table className="w-full table-fixed text-xs">
+        <colgroup>
+          <col className="w-[40%]" />
+          <col />
+          <col className="w-10" />
+        </colgroup>
+        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 border-y border-neutral-200 dark:border-neutral-800">
+          {rows.map((row) => (
+            <tr key={row.key} className="align-top">
+              <td className="py-2 pr-4 text-neutral-500">{row.label}</td>
+              <td className="py-2">
+                <SeverityCountsLine counts={row.counts} />
+              </td>
+              <td className={`py-2 text-right tabular-nums ${row.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                {row.penalty > 0 ? `-${row.penalty}` : "0"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ScoreCard({ grade }: { grade: ResumeGrade }) {
   const tone = TONE_STYLES[grade.band.tone];
   // The score itself isn't floored, but a bar can't be less than empty.
   const fillPercent = Math.max(0, Math.min(100, grade.score));
 
   return (
-    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 sm:p-6 space-y-6">
+    <div className="rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-5 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-            ATS parse score
-          </div>
+          <div className="text-sm font-medium text-neutral-500">ATS parse score</div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className={`text-5xl sm:text-6xl font-bold leading-none tabular-nums ${tone.text}`}>
+            <span className={`text-5xl font-semibold leading-none tracking-tight tabular-nums ${tone.text}`}>
               {grade.score < 0 ? `-${-grade.score}` : grade.score}
             </span>
             <span className="text-sm text-neutral-500">/ 100</span>
           </div>
-          <div className={`mt-1.5 text-sm font-semibold ${tone.text}`}>
+          <div className={`mt-2 text-sm font-medium ${tone.text}`}>
             {grade.band.label}
           </div>
         </div>
@@ -230,54 +264,32 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
         />
       </div>
 
-      <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          By section &middot; click to jump
-        </div>
-        <table className="w-full text-xs">
-          <tbody>
-            {grade.sections.map((section) => (
-              <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
-                <td className="py-2 pr-3 text-neutral-500 whitespace-nowrap">
-                  <a
-                    href={`#${sectionId(section.label)}`}
-                    className="hover:underline hover:text-neutral-900 dark:hover:text-neutral-100"
-                  >
-                    {section.label}
-                  </a>
-                </td>
-                <td className="py-2 w-full">
-                  <SeverityCountsLine counts={section.counts} />
-                </td>
-                <td className={`py-2 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
-                  {section.penalty > 0 ? `-${section.penalty}` : "0"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <BreakdownTable
+        title="By section (click to jump)"
+        rows={grade.sections.map((section) => ({
+          key: section.label,
+          label: (
+            <a
+              href={`#${sectionId(section.label)}`}
+              className="hover:underline hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {section.label}
+            </a>
+          ),
+          counts: section.counts,
+          penalty: section.penalty,
+        }))}
+      />
 
-      <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          By issue type
-        </div>
-        <table className="w-full text-xs">
-          <tbody>
-            {grade.byCode.map((c) => (
-              <tr key={c.code} className="border-t border-neutral-200 dark:border-neutral-800">
-                <td className="py-2 pr-3 text-neutral-500 whitespace-nowrap">{DEFAULT_ISSUE_MESSAGES[c.code]}</td>
-                <td className="py-2 w-full">
-                  <SeverityCountsLine counts={c.counts} />
-                </td>
-                <td className={`py-2 pl-3 text-right tabular-nums ${c.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
-                  {c.penalty > 0 ? `-${c.penalty}` : "0"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <BreakdownTable
+        title="By issue type"
+        rows={grade.byCode.map((c) => ({
+          key: c.code,
+          label: DEFAULT_ISSUE_MESSAGES[c.code],
+          counts: c.counts,
+          penalty: c.penalty,
+        }))}
+      />
     </div>
   );
 }
@@ -424,29 +436,65 @@ function OtherFields({
 
 function Section({
   title,
+  count,
+  description,
   id,
   issues,
   children,
 }: {
   title: string;
+  count?: number;
+  description?: string;
   id?: string;
   issues?: AtsIssue[];
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="space-y-3 scroll-mt-6">
-      <h3 className="border-b border-neutral-200 dark:border-neutral-800 pb-2 text-base font-semibold tracking-tight">
-        {title}
-      </h3>
+    <section id={id} className="space-y-4 scroll-mt-8">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 pb-2">
+        <h3 className="text-base font-semibold tracking-tight">
+          {title}
+          {count !== undefined && (
+            <span className="ml-2 font-normal tabular-nums text-neutral-400 dark:text-neutral-600">
+              {count}
+            </span>
+          )}
+        </h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+            {description}
+          </p>
+        )}
+      </div>
       <IssueList issues={issues} />
       {children}
     </section>
   );
 }
 
-function Card({ children }: { children: ReactNode }) {
+// One education / work / project entry. Siblings are separated by hairlines
+// rather than boxed, so the section heading's rule stays the only frame.
+function EntryList({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 space-y-1.5 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700">
+    <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+      {children}
+    </div>
+  );
+}
+
+function Entry({
+  title,
+  issues,
+  children,
+}: {
+  title?: string;
+  issues?: AtsIssue[];
+  children: ReactNode;
+}) {
+  return (
+    <div className="py-4 first:pt-0 last:pb-0 space-y-1.5">
+      <div className="text-sm font-semibold">{title || <Empty />}</div>
+      <IssueList issues={issues} />
       {children}
     </div>
   );
@@ -461,11 +509,11 @@ function SkillPill({ skill }: { skill: AtsSkill }) {
 
   return (
     <div className="relative group">
-      <span className="rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs transition-colors group-hover:border-neutral-400 dark:group-hover:border-neutral-500">
+      <span className="inline-block rounded-full border border-neutral-300 dark:border-neutral-700 bg-surface px-2.5 py-0.5 text-xs transition-colors group-hover:border-neutral-500 dark:group-hover:border-neutral-500">
         {skill.text || skill.name}
       </span>
       {hasDetails && (
-        <div className="absolute left-0 top-full z-10 mt-1.5 hidden w-64 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 text-xs shadow-lg group-hover:block">
+        <div className="absolute left-0 top-full z-10 mt-1.5 hidden w-64 rounded-md border border-neutral-200 dark:border-neutral-700 bg-surface p-3 text-xs shadow-md group-hover:block">
           <div className="mb-1.5 font-semibold">{skill.name}</div>
           <div className="space-y-1">
             {extra.map(([k, v]) => (
@@ -494,10 +542,40 @@ function ToggleButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-neutral-300 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900"
+      className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-surface px-2.5 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 transition-colors hover:border-neutral-500 hover:text-neutral-900 dark:hover:border-neutral-500 dark:hover:text-neutral-100"
     >
       {children}
     </button>
+  );
+}
+
+const preCls =
+  "max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-3 text-xs leading-relaxed";
+
+// Collapsible row in the "Raw output" section. The raw JSON is `open` by
+// default since showing the unmodified parser response is the point of Stage 1.
+function RawDetails({
+  summary,
+  open,
+  children,
+}: {
+  summary: string;
+  open?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={open} className="group py-3 first:pt-0 last:pb-0">
+      <summary className="flex list-none cursor-pointer select-none items-center gap-2 text-sm font-medium hover:text-neutral-600 dark:hover:text-neutral-300 [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden="true"
+          className="text-neutral-400 transition-transform group-open:rotate-90"
+        >
+          &#9656;
+        </span>
+        {summary}
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
   );
 }
 
@@ -522,7 +600,7 @@ export default function AtsResult({ result }: Props) {
   if (!result) return null;
   if ("error" in result)
     return (
-      <p className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+      <p className="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3.5 py-3 text-sm text-red-700 dark:text-red-400">
         {String(result.error)}
       </p>
     );
@@ -565,342 +643,324 @@ export default function AtsResult({ result }: Props) {
 
   return (
     <ShowIssuesContext.Provider value={{ showIssues, showTips }}>
-    <div className="space-y-10">
-        <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Here is what your resume looks like when parsed
-        </h2>
-        <div className="flex items-center gap-2 shrink-0">
-          {showIssues && (
-            <ToggleButton onClick={() => setShowTips((v) => !v)}>
-              {showTips ? "Hide tips" : "Show tips"}
+      <div className="space-y-10 border-t border-neutral-200 dark:border-neutral-800 pt-12">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Here is what your resume looks like when parsed
+          </h2>
+          <div className="flex items-center gap-2 shrink-0">
+            {showIssues && (
+              <ToggleButton onClick={() => setShowTips((v) => !v)}>
+                {showTips ? "Hide tips" : "Show tips"}
+              </ToggleButton>
+            )}
+            <ToggleButton onClick={() => setShowIssues((v) => !v)}>
+              {showIssues ? "Hide errors" : "Show errors"}
             </ToggleButton>
-          )}
-          <ToggleButton onClick={() => setShowIssues((v) => !v)}>
-            {showIssues ? "Hide errors" : "Show errors"}
-          </ToggleButton>
+          </div>
         </div>
-      </div>
 
-      <ScoreCard grade={grade} />
+        <ScoreCard grade={grade} />
 
-      <Section
-        title="Parse quality"
-        id={sectionId("Parse quality")}
-        issues={[...metaIssues, ...rawTextIssues]}
-      >
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field
-            label="Classification"
-            value={
-              meta?.document?.classification
-                ? `${meta.document.classification.label ?? "unknown"} (${
-                    typeof meta.document.classification.confidence === "number"
-                      ? meta.document.classification.confidence.toFixed(2)
-                      : "?"
-                  })`
-                : undefined
-            }
-          />
-          <Field
-            label="Extraction quality"
-            value={
-              meta?.document?.extractionQuality
-                ? `${meta.document.extractionQuality.band ?? "unknown"} (${
-                    typeof meta.document.extractionQuality.score === "number"
-                      ? meta.document.extractionQuality.score.toFixed(2)
-                      : "?"
-                  })`
-                : undefined
-            }
-          />
-        </div>
-      </Section>
-
-      <Section title="Personal info" id={sectionId("Personal info")}>
-        <div className="space-y-2">
-          <div className="flex gap-3 text-sm">
-            <div className="w-32 shrink-0 text-neutral-500">Name</div>
-            <div className="min-w-0 space-y-1">
-              <SubField
-                label="First"
-                value={person.name?.given}
-                issues={personIssues.fields.given}
-              />
-              <SubField
-                label="Middle"
-                value={person.name?.middle}
-                issues={personIssues.fields.middle}
-              />
-              <SubField
-                label="Last"
-                value={person.name?.family}
-                issues={personIssues.fields.family}
-              />
-              <OtherFields
-                obj={asRecord(person.name)}
-                known={["given", "middle", "family"]}
-              />
-            </div>
-          </div>
-          <LocationRow label="Location" loc={person.location} issues={personIssues.fields.location}/>
-        </div>
-        <OtherFields obj={asRecord(person)} known={["name", "location"]} />
-      </Section>
-
-      <Section title="Contact" id={sectionId("Contact")} issues={contactIssues.section}>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field
-            label="Emails"
-            value={contact.emails.length ? contact.emails : undefined}
-            issues={contactIssues.fields.emails}
-          />
-          <Field
-            label="Phone numbers"
-            value={
-              contact.phoneNumbers.length ? contact.phoneNumbers : undefined
-            }
-            issues={contactIssues.fields.phoneNumbers}
-          />
-          <Field
-            label="Websites"
-            value={contact.websites.length ? contact.websites : undefined}
-            issues={contactIssues.fields.websites}
-          />
-        </div>
-        <OtherFields
-          obj={asRecord(contact)}
-          known={["emails", "phoneNumbers", "websites"]}
-        />
-      </Section>
-
-      <Section
-        title={`Education (${education.length})`}
-        id={sectionId("Education")}
-        issues={educationReview.section}
-      >
-        {education.length === 0 ? (
-          <Empty />
-        ) : (
-          <div className="space-y-3">
-            {education.map((ed, i) => {
-              const edIssues = educationReview.entries[i];
-              return (
-                <Card key={i}>
-                  <div className="text-sm font-semibold">
-                    {ed.institution || <Empty />}
-                  </div>
-                  <IssueList issues={edIssues.institution} />
-                  <Field
-                    label="Qualification"
-                    value={ed.qualification}
-                    issues={edIssues.qualification}
-                  />
-                  <Field label="Level" value={ed.level} issues={edIssues.level} />
-                  <Field
-                    label="Field(s) of study"
-                    value={ed.fieldsOfStudy}
-                    issues={edIssues.fieldsOfStudy}
-                  />
-                  <DateRangeRow
-                    label="Dates"
-                    range={ed.dateRange}
-                    issues={edIssues.dateRange}
-                  />
-                  <LocationRow label="Location" loc={ed.location} />
-                  <Field label="Grade" value={ed.grade} issues={edIssues.grade} />
-                  <OtherFields
-                    obj={asRecord(ed)}
-                    known={[
-                      "institution",
-                      "level",
-                      "qualification",
-                      "fieldsOfStudy",
-                      "dateRange",
-                      "location",
-                      "grade",
-                    ]}
-                  />
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        title={`Work experience (${workExperience.length})`}
-        id={sectionId("Work experience")}
-        issues={workReview.section}
-      >
-        {workExperience.length === 0 ? (
-          <Empty />
-        ) : (
-          <div className="space-y-3">
-            {workExperience.map((we, i) => {
-              const weIssues = workReview.entries[i];
-              return (
-                <Card key={i}>
-                  <div className="text-sm font-semibold">
-                    {we.jobTitle || <Empty />}
-                  </div>
-                  <IssueList issues={weIssues.jobTitle} />
-                  <Field
-                    label="Organization"
-                    value={we.organization}
-                    issues={weIssues.organization}
-                  />
-                  <Field label="Employment type" value={we.employmentType} />
-                  <DateRangeRow
-                    label="Dates"
-                    range={we.dateRange}
-                    issues={weIssues.dateRange}
-                  />
-                  <LocationRow label="Location" loc={we.location} />
-                  <Field
-                    label="Description"
-                    value={we.description}
-                    issues={weIssues.description}
-                  />
-                  <OtherFields
-                    obj={asRecord(we)}
-                    known={[
-                      "organization",
-                      "jobTitle",
-                      "description",
-                      "dateRange",
-                      "location",
-                      "employmentType",
-                    ]}
-                  />
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        title={`Projects (${projects.length})`}
-        id={sectionId("Projects")}
-        issues={projectReview.section}
-      >
-        {projects.length === 0 ? (
-          <Empty />
-        ) : (
-          <div className="space-y-3">
-            {projects.map((p, i) => {
-              const pIssues = projectReview.entries[i];
-              return (
-                <Card key={i}>
-                  <div className="text-sm font-semibold">
-                    {p.title || <Empty />}
-                  </div>
-                  <IssueList issues={pIssues.title} />
-                  <DateRangeRow
-                    label="Dates"
-                    range={p.dateRange}
-                    issues={pIssues.dateRange}
-                  />
-                  <Field
-                    label="Description"
-                    value={p.description}
-                    issues={pIssues.description}
-                  />
-                  <OtherFields
-                    obj={asRecord(p)}
-                    known={["title", "description", "dateRange"]}
-                  />
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-
-      <Section title={`Skills (${skills.length}) - hover to see more details, skills section not automatically reviewed for issues`}>
-        {skills.length === 0 ? (
-          <Empty />
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {skills.map((s, i) => (
-              <SkillPill key={i} skill={s} />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        title={`Achievements (${achievements.length})`}
-        id={sectionId("Achievements")}
-        issues={achievementsReview.section}
-      >
-        {achievements.length === 0 ? (
-          <Empty />
-        ) : (
-          <ul className="list-disc list-inside space-y-1 text-sm">
-            {achievements.map((a, i) => (
-              <li key={i}>
-                {a}
-                <IssueList issues={achievementsReview.entries[i]} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {otherTopLevel.length > 0 && (
-        <Section title="Other extracted data">
-          <div className="space-y-2">
-            {otherTopLevel.map(([k, v]) => (
-              <Field key={k} label={labelize(k)} value={v} />
-            ))}
+        <Section
+          title="Parse quality"
+          id={sectionId("Parse quality")}
+          issues={[...metaIssues, ...rawTextIssues]}
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Field
+              label="Classification"
+              value={
+                meta?.document?.classification
+                  ? `${meta.document.classification.label ?? "unknown"} (${
+                      typeof meta.document.classification.confidence === "number"
+                        ? meta.document.classification.confidence.toFixed(2)
+                        : "?"
+                    })`
+                  : undefined
+              }
+            />
+            <Field
+              label="Extraction quality"
+              value={
+                meta?.document?.extractionQuality
+                  ? `${meta.document.extractionQuality.band ?? "unknown"} (${
+                      typeof meta.document.extractionQuality.score === "number"
+                        ? meta.document.extractionQuality.score.toFixed(2)
+                        : "?"
+                    })`
+                  : undefined
+              }
+            />
           </div>
         </Section>
-      )}
 
-      {meta && Object.keys(meta).length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
-            Parse metadata
-          </summary>
-          <div className="mt-3">
-            <GenericValue value={meta} />
+        <Section title="Personal info" id={sectionId("Personal info")}>
+          <div className="space-y-2">
+            <div className="flex gap-3 text-sm">
+              <div className="w-32 shrink-0 text-neutral-500">Name</div>
+              <div className="min-w-0 space-y-1">
+                <SubField
+                  label="First"
+                  value={person.name?.given}
+                  issues={personIssues.fields.given}
+                />
+                <SubField
+                  label="Middle"
+                  value={person.name?.middle}
+                  issues={personIssues.fields.middle}
+                />
+                <SubField
+                  label="Last"
+                  value={person.name?.family}
+                  issues={personIssues.fields.family}
+                />
+                <OtherFields
+                  obj={asRecord(person.name)}
+                  known={["given", "middle", "family"]}
+                />
+              </div>
+            </div>
+            <LocationRow label="Location" loc={person.location} issues={personIssues.fields.location}/>
           </div>
-        </details>
-      )}
+          <OtherFields obj={asRecord(person)} known={["name", "location"]} />
+        </Section>
 
-      {typeof data.rawText === "string" && data.rawText && (
-        <details className="text-sm">
-          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
-            Raw extracted text
-          </summary>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-neutral-100 dark:bg-neutral-900 p-3 text-xs">
-            {data.rawText}
-          </pre>
-        </details>
-      )}
+        <Section title="Contact" id={sectionId("Contact")} issues={contactIssues.section}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Field
+              label="Emails"
+              value={contact.emails.length ? contact.emails : undefined}
+              issues={contactIssues.fields.emails}
+            />
+            <Field
+              label="Phone numbers"
+              value={
+                contact.phoneNumbers.length ? contact.phoneNumbers : undefined
+              }
+              issues={contactIssues.fields.phoneNumbers}
+            />
+            <Field
+              label="Websites"
+              value={contact.websites.length ? contact.websites : undefined}
+              issues={contactIssues.fields.websites}
+            />
+          </div>
+          <OtherFields
+            obj={asRecord(contact)}
+            known={["emails", "phoneNumbers", "websites"]}
+          />
+        </Section>
 
-      {typeof data.redactedText === "string" && data.redactedText && (
-        <details className="text-sm">
-          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
-            Redacted text
-          </summary>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-neutral-100 dark:bg-neutral-900 p-3 text-xs">
-            {data.redactedText}
-          </pre>
-        </details>
-      )}
+        <Section
+          title="Education"
+          count={education.length}
+          id={sectionId("Education")}
+          issues={educationReview.section}
+        >
+          {education.length === 0 ? (
+            <Empty />
+          ) : (
+            <EntryList>
+              {education.map((ed, i) => {
+                const edIssues = educationReview.entries[i];
+                return (
+                  <Entry key={i} title={ed.institution} issues={edIssues.institution}>
+                    <Field
+                      label="Qualification"
+                      value={ed.qualification}
+                      issues={edIssues.qualification}
+                    />
+                    <Field label="Level" value={ed.level} issues={edIssues.level} />
+                    <Field
+                      label="Field(s) of study"
+                      value={ed.fieldsOfStudy}
+                      issues={edIssues.fieldsOfStudy}
+                    />
+                    <DateRangeRow
+                      label="Dates"
+                      range={ed.dateRange}
+                      issues={edIssues.dateRange}
+                    />
+                    <LocationRow label="Location" loc={ed.location} />
+                    <Field label="Grade" value={ed.grade} issues={edIssues.grade} />
+                    <OtherFields
+                      obj={asRecord(ed)}
+                      known={[
+                        "institution",
+                        "level",
+                        "qualification",
+                        "fieldsOfStudy",
+                        "dateRange",
+                        "location",
+                        "grade",
+                      ]}
+                    />
+                  </Entry>
+                );
+              })}
+            </EntryList>
+          )}
+        </Section>
 
-      <div className="border-t border-neutral-200 dark:border-neutral-800 pt-8 space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Raw json from resume parser
-        </h2>
-        <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-3 rounded-lg">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        <Section
+          title="Work experience"
+          count={workExperience.length}
+          id={sectionId("Work experience")}
+          issues={workReview.section}
+        >
+          {workExperience.length === 0 ? (
+            <Empty />
+          ) : (
+            <EntryList>
+              {workExperience.map((we, i) => {
+                const weIssues = workReview.entries[i];
+                return (
+                  <Entry key={i} title={we.jobTitle} issues={weIssues.jobTitle}>
+                    <Field
+                      label="Organization"
+                      value={we.organization}
+                      issues={weIssues.organization}
+                    />
+                    <Field label="Employment type" value={we.employmentType} />
+                    <DateRangeRow
+                      label="Dates"
+                      range={we.dateRange}
+                      issues={weIssues.dateRange}
+                    />
+                    <LocationRow label="Location" loc={we.location} />
+                    <Field
+                      label="Description"
+                      value={we.description}
+                      issues={weIssues.description}
+                    />
+                    <OtherFields
+                      obj={asRecord(we)}
+                      known={[
+                        "organization",
+                        "jobTitle",
+                        "description",
+                        "dateRange",
+                        "location",
+                        "employmentType",
+                      ]}
+                    />
+                  </Entry>
+                );
+              })}
+            </EntryList>
+          )}
+        </Section>
+
+        <Section
+          title="Projects"
+          count={projects.length}
+          id={sectionId("Projects")}
+          issues={projectReview.section}
+        >
+          {projects.length === 0 ? (
+            <Empty />
+          ) : (
+            <EntryList>
+              {projects.map((p, i) => {
+                const pIssues = projectReview.entries[i];
+                return (
+                  <Entry key={i} title={p.title} issues={pIssues.title}>
+                    <DateRangeRow
+                      label="Dates"
+                      range={p.dateRange}
+                      issues={pIssues.dateRange}
+                    />
+                    <Field
+                      label="Description"
+                      value={p.description}
+                      issues={pIssues.description}
+                    />
+                    <OtherFields
+                      obj={asRecord(p)}
+                      known={["title", "description", "dateRange"]}
+                    />
+                  </Entry>
+                );
+              })}
+            </EntryList>
+          )}
+        </Section>
+
+        <Section
+          title="Skills"
+          count={skills.length}
+          description="Hover a skill for details. This section isn't reviewed for issues."
+        >
+          {skills.length === 0 ? (
+            <Empty />
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map((s, i) => (
+                <SkillPill key={i} skill={s} />
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title="Achievements"
+          count={achievements.length}
+          id={sectionId("Achievements")}
+          issues={achievementsReview.section}
+        >
+          {achievements.length === 0 ? (
+            <Empty />
+          ) : (
+            <ul className="list-disc pl-5 space-y-1.5 text-sm">
+              {achievements.map((a, i) => (
+                <li key={i}>
+                  {a}
+                  <IssueList issues={achievementsReview.entries[i]} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        {otherTopLevel.length > 0 && (
+          <Section title="Other extracted data">
+            <div className="space-y-2">
+              {otherTopLevel.map(([k, v]) => (
+                <Field key={k} label={labelize(k)} value={v} />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        <Section title="Raw output">
+          <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            {meta && Object.keys(meta).length > 0 && (
+              <RawDetails summary="Parse metadata">
+                <div className="text-sm">
+                  <GenericValue value={meta} />
+                </div>
+              </RawDetails>
+            )}
+
+            {typeof data.rawText === "string" && data.rawText && (
+              <RawDetails summary="Raw extracted text">
+                <pre className={preCls}>{data.rawText}</pre>
+              </RawDetails>
+            )}
+
+            {typeof data.redactedText === "string" && data.redactedText && (
+              <RawDetails summary="Redacted text">
+                <pre className={preCls}>{data.redactedText}</pre>
+              </RawDetails>
+            )}
+
+            <RawDetails summary="Raw JSON from resume parser" open>
+              <pre className={preCls}>{JSON.stringify(result, null, 2)}</pre>
+            </RawDetails>
+          </div>
+        </Section>
       </div>
-    </div>
     </ShowIssuesContext.Provider>
   );
 }
