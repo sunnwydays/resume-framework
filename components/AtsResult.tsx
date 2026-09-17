@@ -1,6 +1,17 @@
 "use client";
 
-import { AtsIssue, reviewContact, reviewPerson, reviewWorkExperiences } from "@/lib/atsReview";
+import {
+  AtsIssue,
+  issueMessage,
+  reviewAchievements,
+  reviewContact,
+  reviewEducation,
+  reviewMeta,
+  reviewPerson,
+  reviewProjects,
+  reviewRawText,
+  reviewWorkExperiences,
+} from "@/lib/atsReview";
 import {
   AtsDateRange,
   AtsLocation,
@@ -107,7 +118,7 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
     <div className="mt-0.5 space-y-0.5">
       {issues.map((issue, i) => (
         <div key={i} className={`text-xs ${ISSUE_STYLES[issue.severity]}`}>
-          {issue.message}
+          {issueMessage(issue)}
           {issue.evidence && (
             <div className="text-neutral-500">Found: {issue.evidence}</div>
           )}
@@ -342,15 +353,20 @@ export default function AtsResult({ result }: Props) {
 
   const { data, meta } = result;
   const contact = data.contact ?? { emails: [], phoneNumbers: [], websites: [] };
-  const contactIssues = reviewContact(contact);
+  const contactIssues = reviewContact(contact, data.rawText ?? "");
   const person = data.person ?? { name: {} };
   const personIssues = reviewPerson(person);
   const education = data.education ?? [];
+  const educationReview = reviewEducation(education);
   const workExperience = data.workExperience ?? [];
   const workReview = reviewWorkExperiences(workExperience);
   const projects = data.projects ?? [];
+  const projectReview = reviewProjects(projects);
   const skills = data.skills ?? [];
   const achievements = data.achievements ?? [];
+  const achievementsReview = reviewAchievements(achievements);
+  const metaIssues = reviewMeta(meta);
+  const rawTextIssues = reviewRawText(data.rawText ?? "");
 
   const otherTopLevel = Object.entries(asRecord(data)).filter(
     ([k]) => !KNOWN_TOP_LEVEL.includes(k)
@@ -364,11 +380,6 @@ export default function AtsResult({ result }: Props) {
           Here is what your resume looks like when parsed
         </h2>
         <div className="flex items-center gap-3">
-          {meta?.document != null && (
-            <span className="text-xs text-neutral-500">
-              <GenericValue value={meta.document} />
-            </span>
-          )}
           <button
             type="button"
             onClick={() => setShowIssues((v) => !v)}
@@ -378,6 +389,35 @@ export default function AtsResult({ result }: Props) {
           </button>
         </div>
       </div>
+
+      <Section title="Parse quality" issues={[...metaIssues, ...rawTextIssues]}>
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          <Field
+            label="Classification"
+            value={
+              meta?.document?.classification
+                ? `${meta.document.classification.label ?? "unknown"} (${
+                    typeof meta.document.classification.confidence === "number"
+                      ? meta.document.classification.confidence.toFixed(2)
+                      : "?"
+                  })`
+                : undefined
+            }
+          />
+          <Field
+            label="Extraction quality"
+            value={
+              meta?.document?.extractionQuality
+                ? `${meta.document.extractionQuality.band ?? "unknown"} (${
+                    typeof meta.document.extractionQuality.score === "number"
+                      ? meta.document.extractionQuality.score.toFixed(2)
+                      : "?"
+                  })`
+                : undefined
+            }
+          />
+        </div>
+      </Section>
 
       <Section title="Personal info">
         <div className="space-y-1.5">
@@ -436,37 +476,55 @@ export default function AtsResult({ result }: Props) {
         />
       </Section>
 
-      <Section title={`Education (${education.length})`}>
+      <Section
+        title={`Education (${education.length})`}
+        issues={educationReview.section}
+      >
         {education.length === 0 ? (
           <Empty />
         ) : (
           <div className="space-y-2">
-            {education.map((ed, i) => (
-              <Card key={i}>
-                <div className="text-sm font-medium">
-                  {ed.institution || <Empty />}
-                </div>
-                <Field label="Qualification" value={ed.qualification} />
-                <Field label="Level" value={ed.level} />
-                <Field
-                  label="Field(s) of study"
-                  value={ed.fieldsOfStudy}
-                />
-                <DateRangeRow label="Dates" range={ed.dateRange} />
-                <LocationRow label="Location" loc={ed.location} />
-                <OtherFields
-                  obj={asRecord(ed)}
-                  known={[
-                    "institution",
-                    "level",
-                    "qualification",
-                    "fieldsOfStudy",
-                    "dateRange",
-                    "location",
-                  ]}
-                />
-              </Card>
-            ))}
+            {education.map((ed, i) => {
+              const edIssues = educationReview.entries[i];
+              return (
+                <Card key={i}>
+                  <div className="text-sm font-medium">
+                    {ed.institution || <Empty />}
+                  </div>
+                  <IssueList issues={edIssues.institution} />
+                  <Field
+                    label="Qualification"
+                    value={ed.qualification}
+                    issues={edIssues.qualification}
+                  />
+                  <Field label="Level" value={ed.level} issues={edIssues.level} />
+                  <Field
+                    label="Field(s) of study"
+                    value={ed.fieldsOfStudy}
+                    issues={edIssues.fieldsOfStudy}
+                  />
+                  <DateRangeRow
+                    label="Dates"
+                    range={ed.dateRange}
+                    issues={edIssues.dateRange}
+                  />
+                  <LocationRow label="Location" loc={ed.location} />
+                  <Field label="Grade" value={ed.grade} issues={edIssues.grade} />
+                  <OtherFields
+                    obj={asRecord(ed)}
+                    known={[
+                      "institution",
+                      "level",
+                      "qualification",
+                      "fieldsOfStudy",
+                      "dateRange",
+                      "location",
+                      "grade",
+                    ]}
+                  />
+                </Card>
+              );
+            })}
           </div>
         )}
       </Section>
@@ -486,7 +544,12 @@ export default function AtsResult({ result }: Props) {
                   <div className="text-sm font-medium">
                     {we.jobTitle || <Empty />}
                   </div>
-                  <Field label="Organization" value={we.organization} />
+                  <IssueList issues={weIssues.jobTitle} />
+                  <Field
+                    label="Organization"
+                    value={we.organization}
+                    issues={weIssues.organization}
+                  />
                   <Field label="Employment type" value={we.employmentType} />
                   <DateRangeRow
                     label="Dates"
@@ -517,29 +580,44 @@ export default function AtsResult({ result }: Props) {
         )}
       </Section>
 
-      <Section title={`Projects (${projects.length})`}>
+      <Section
+        title={`Projects (${projects.length})`}
+        issues={projectReview.section}
+      >
         {projects.length === 0 ? (
           <Empty />
         ) : (
           <div className="space-y-2">
-            {projects.map((p, i) => (
-              <Card key={i}>
-                <div className="text-sm font-medium">
-                  {p.title || <Empty />}
-                </div>
-                <DateRangeRow label="Dates" range={p.dateRange} />
-                <Field label="Description" value={p.description} />
-                <OtherFields
-                  obj={asRecord(p)}
-                  known={["title", "description", "dateRange"]}
-                />
-              </Card>
-            ))}
+            {projects.map((p, i) => {
+              const pIssues = projectReview.entries[i];
+              return (
+                <Card key={i}>
+                  <div className="text-sm font-medium">
+                    {p.title || <Empty />}
+                  </div>
+                  <IssueList issues={pIssues.title} />
+                  <DateRangeRow
+                    label="Dates"
+                    range={p.dateRange}
+                    issues={pIssues.dateRange}
+                  />
+                  <Field
+                    label="Description"
+                    value={p.description}
+                    issues={pIssues.description}
+                  />
+                  <OtherFields
+                    obj={asRecord(p)}
+                    known={["title", "description", "dateRange"]}
+                  />
+                </Card>
+              );
+            })}
           </div>
         )}
       </Section>
 
-      <Section title={`Skills (${skills.length}) - hover to see more details`}>
+      <Section title={`Skills (${skills.length}) - hover to see more details, skills section not automatically reviewed for issues`}>
         {skills.length === 0 ? (
           <Empty />
         ) : (
@@ -551,13 +629,19 @@ export default function AtsResult({ result }: Props) {
         )}
       </Section>
 
-      <Section title={`Achievements (${achievements.length})`}>
+      <Section
+        title={`Achievements (${achievements.length})`}
+        issues={achievementsReview.section}
+      >
         {achievements.length === 0 ? (
           <Empty />
         ) : (
           <ul className="list-disc list-inside space-y-0.5 text-sm">
             {achievements.map((a, i) => (
-              <li key={i}>{a}</li>
+              <li key={i}>
+                {a}
+                <IssueList issues={achievementsReview.entries[i]} />
+              </li>
             ))}
           </ul>
         )}

@@ -43,6 +43,8 @@ export interface AtsEducation {
   fieldsOfStudy?: string[];
   dateRange?: AtsDateRange;
   location?: AtsLocation;
+  grade?: { metric?: string; value?: string };
+  minors?: string[];
 }
 
 export interface AtsWorkExperience {
@@ -78,9 +80,17 @@ export interface AtsResumeData {
   [key: string]: unknown;
 }
 
+export interface AtsMeta {
+  document?: {
+    classification?: { confidence?: number; label?: string; modelVersion?: string };
+    extractionQuality?: { band?: string; score?: number };
+  };
+  [key: string]: unknown;
+}
+
 export interface AtsParseResult {
   data: AtsResumeData;
-  meta?: Record<string, unknown>;
+  meta?: AtsMeta;
 }
 
 export type AtsParseResponse = AtsParseResult | { error: string };
