@@ -20,19 +20,19 @@ export interface AtsLocation {
 }
 
 export interface AtsContact {
-  emails: string[];
-  phoneNumbers: {
+  emails?: string[];
+  phoneNumbers?: {
     raw: string;
     formatted: string;
     nationalNumber: string;
     countryCode: string;
     callingCode: number;
   }[];
-  websites: { url: string; domain: string; type: string }[];
+  websites?: { url: string; domain: string; type: string }[];
 }
 
 export interface AtsPerson {
-  name: { given?: string; middle?: string; family?: string };
+  name?: { given?: string; middle?: string; family?: string } | null;
   location?: AtsLocation;
 }
 

@@ -140,13 +140,14 @@ export function reviewPerson(person: AtsPerson): SectionReview<PersonIssues> {
   // missing location or city
   const fields: PersonIssues = {};
   const review: SectionReview<PersonIssues> = emptySection(fields);
+  const name = person.name ?? {};
 
-  if (!person.name.given) {
+  if (!name.given) {
     add(fields, "given", { code: "MISSING", severity: "critical" });
   }
 
   for (const field of ["given", "middle", "family"] as const) {
-    const value = person.name[field];
+    const value = name[field];
     if (!value) continue;
 
     const bad = unexpectedSymbols(value);
@@ -174,18 +175,18 @@ export function reviewPerson(person: AtsPerson): SectionReview<PersonIssues> {
   }
 
   // some people may not have a family name but most do
-  if (!person.name.family) {
+  if (!name.family) {
     add(fields, "family", { code: "MISSING", severity: "critical" });
   }
 
-  if (person.name.middle) {
-    const givenMultipleWords = (person.name.given?.split(" ").length ?? 0) > 1;
-    const familyMultipleWords = (person.name.family?.split(" ").length ?? 0) > 1;
+  if (name.middle) {
+    const givenMultipleWords = (name.given?.split(" ").length ?? 0) > 1;
+    const familyMultipleWords = (name.family?.split(" ").length ?? 0) > 1;
 
     if (givenMultipleWords || familyMultipleWords) {
       const evidence = [
-        givenMultipleWords && `given name: ${snippet(person.name.given!)}`,
-        familyMultipleWords && `family name: ${snippet(person.name.family!)}`,
+        givenMultipleWords && `given name: ${snippet(name.given!)}`,
+        familyMultipleWords && `family name: ${snippet(name.family!)}`,
       ]
         .filter(Boolean)
         .join(", ");
@@ -311,7 +312,7 @@ function compareEmailToRaw(email: string, headerBlock: string): AtsIssue[] {
   return issues;
 }
 
-function reviewPhoneNumber(phone: AtsContact["phoneNumbers"][number], headerBlock: string): AtsIssue[] {
+function reviewPhoneNumber(phone: NonNullable<AtsContact["phoneNumbers"]>[number], headerBlock: string): AtsIssue[] {
   const issues: AtsIssue[] = [];
 
   const rawDigits = phone.raw.replace(/\D/g, "");
@@ -349,7 +350,7 @@ function lastPathSegment(domain: string): string {
   return parts[parts.length - 1] ?? domain;
 }
 
-function reviewWebsite(site: AtsContact["websites"][number], headerBlock: string): AtsIssue[] {
+function reviewWebsite(site: NonNullable<AtsContact["websites"]>[number], headerBlock: string): AtsIssue[] {
   const issues: AtsIssue[] = [];
 
   try {
@@ -390,10 +391,14 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
   const fields: ContactIssues = {};
   const review: SectionReview<ContactIssues> = emptySection(fields);
 
+  const emails = contact.emails ?? [];
+  const phoneNumbers = contact.phoneNumbers ?? [];
+  const websites = contact.websites ?? [];
+
   const headerBlock = rawText.split("\n").slice(0, HEADER_LINE_COUNT).join("\n");
 
   // Icon glyphs glued to a specific email are already reported
-  const emailIconWords = new Set(contact.emails.flatMap(findIconWords));
+  const emailIconWords = new Set(emails.flatMap(findIconWords));
   const headerIconWords = findIconWords(headerBlock).filter((w) => !emailIconWords.has(w));
   if (headerIconWords.length > 0) {
     review.section.push({
@@ -404,47 +409,47 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
     });
   }
 
-  if (contact.emails.length === 0) {
+  if (emails.length === 0) {
     add(fields, "emails", {
       code: "MISSING",
       severity: "critical",
     });
   } else {
-    for (const email of contact.emails) {
+    for (const email of emails) {
       for (const issue of compareEmailToRaw(email, headerBlock)) {
         add(fields, "emails", issue);
       }
     }
   }
 
-  if (contact.phoneNumbers.length === 0) {
+  if (phoneNumbers.length === 0) {
     add(fields, "phoneNumbers", {
       code: "MISSING",
       severity: "critical",
     });
   } else {
-    for (const phone of contact.phoneNumbers) {
+    for (const phone of phoneNumbers) {
       for (const issue of reviewPhoneNumber(phone, headerBlock)) {
         add(fields, "phoneNumbers", issue);
       }
     }
   }
 
-  if (contact.websites.length === 0) {
+  if (websites.length === 0) {
     add(fields, "websites", {
       code: "MISSING",
       severity: "info",
       fix: "Add your LinkedIn, portfolio site, or project URLs.",
     });
   } else {
-    for (const site of contact.websites) {
+    for (const site of websites) {
       for (const issue of reviewWebsite(site, headerBlock)) {
         add(fields, "websites", issue);
       }
     }
 
     const seenUrls = new Set<string>();
-    for (const site of contact.websites) {
+    for (const site of websites) {
       if (seenUrls.has(site.url)) {
         add(fields, "websites", {
           code: "DUPLICATE",
@@ -456,7 +461,7 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
       seenUrls.add(site.url);
     }
 
-    if (!contact.websites.some((s) => s.type === "linkedin")) {
+    if (!websites.some((s) => s.type === "linkedin")) {
       add(fields, "websites", {
         code: "MISSING",
         severity: "info",

@@ -352,9 +352,13 @@ export default function AtsResult({ result }: Props) {
     return <p className="text-sm text-red-600">{String(result.error)}</p>;
 
   const { data, meta } = result;
-  const contact = data.contact ?? { emails: [], phoneNumbers: [], websites: [] };
+  const contact = {
+    emails: data.contact?.emails ?? [],
+    phoneNumbers: data.contact?.phoneNumbers ?? [],
+    websites: data.contact?.websites ?? [],
+  };
   const contactIssues = reviewContact(contact, data.rawText ?? "");
-  const person = data.person ?? { name: {} };
+  const person = { name: data.person?.name ?? {}, location: data.person?.location };
   const personIssues = reviewPerson(person);
   const education = data.education ?? [];
   const educationReview = reviewEducation(education);
