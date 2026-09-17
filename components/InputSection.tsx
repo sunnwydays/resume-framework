@@ -102,7 +102,7 @@ export default function InputSection({
         <div className="space-y-2">
           <button
             type="button"
-            className="text-xs text-indigo-600 hover:underline disabled:opacity-50"
+            className="text-lg text-indigo-600 hover:underline disabled:opacity-50"
             disabled={disabled}
             onClick={() => fileRef.current?.click()}
           >
