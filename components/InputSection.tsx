@@ -26,6 +26,13 @@ export default function InputSection({
   const fileRef = useRef<HTMLInputElement>(null);
   const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("text");
   const [loading, setLoading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  function handleDroppedFile(f: File | undefined) {
+    if (f && f.type === "application/pdf") {
+      setResumePdf(f);
+    }
+  }
 
   const inputCls =
     "w-full rounded border border-neutral-300 dark:border-neutral-700 bg-transparent px-2 py-1.5 text-sm";
@@ -100,14 +107,32 @@ export default function InputSection({
         </div>
       ) : (
         <div className="space-y-2">
-          <button
-            type="button"
-            className="text-lg text-indigo-600 hover:underline disabled:opacity-50"
-            disabled={disabled}
-            onClick={() => fileRef.current?.click()}
+          <div
+            className={`w-full rounded border-2 border-dashed px-4 py-10 text-center transition-colors ${
+              isDragOver
+                ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                : "border-neutral-300 dark:border-neutral-700"
+            } ${disabled ? "opacity-50" : "cursor-pointer"}`}
+            onClick={() => !disabled && fileRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!disabled) setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (disabled) return;
+              handleDroppedFile(e.dataTransfer.files?.[0]);
+            }}
           >
-            Upload PDF
-          </button>
+            <p className="text-sm">
+              Drag and drop your resume PDF here, or{" "}
+              <span className="text-indigo-600 hover:underline">
+                click to browse
+              </span>
+            </p>
+          </div>
           <input
             ref={fileRef}
             type="file"
