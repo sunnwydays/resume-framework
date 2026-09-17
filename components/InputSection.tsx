@@ -118,8 +118,10 @@ export default function InputSection({
       )}
       <button
         type="button"
-        className="text-xs text-indigo-600 hover:underline disabled:opacity-50"
-        disabled={disabled || (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())}
+        className="text-md text-indigo-600 hover:underline disabled:opacity-50"
+        disabled={
+          disabled || (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())
+        }
         onClick={runAtsParse}
       >
         Run ATS parse
@@ -129,7 +131,7 @@ export default function InputSection({
 
       <button
         type="button"
-        className="text-xs text-indigo-600 hover:underline disabled:opacity-50 block"
+        className="text-md text-indigo-600 hover:underline disabled:opacity-50 block"
         onClick={() => setAtsResult(sample)}
       >
         Load ats sample (dev)
