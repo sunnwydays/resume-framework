@@ -136,14 +136,17 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
   return (
     <div className="mt-0.5 space-y-0.5">
       {issues.map((issue, i) => (
-        <div key={i} className={`text-xs ${ISSUE_STYLES[issue.severity]}`}>
-          {issueMessage(issue)}
-          {showTips && issue.evidence && (
-            <div className="text-neutral-500">Found: {issue.evidence}</div>
-          )}
-          {showTips && issue.fix && (
-            <div className="text-neutral-500">{issue.fix}</div>
-          )}
+        <div key={i} className={`flex gap-1 text-xs ${ISSUE_STYLES[issue.severity]}`}>
+          <span aria-hidden="true">&#8594;</span>
+          <div>
+            {issueMessage(issue)}
+            {showTips && issue.evidence && (
+              <div className="text-neutral-500">Found: {issue.evidence}</div>
+            )}
+            {showTips && issue.fix && (
+              <div className="text-neutral-500">{issue.fix}</div>
+            )}
+          </div>
         </div>
       ))}
     </div>
