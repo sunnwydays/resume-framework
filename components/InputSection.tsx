@@ -1,6 +1,6 @@
 "use client";
 
-import sample from "@/lib/mocks/affindaSample.json"
+import sample from "@/lib/mocks/affindaSample.json";
 import { AtsParseResponse } from "@/lib/types";
 import { useRef, useState } from "react";
 
@@ -81,14 +81,23 @@ export default function InputSection({
       </div>
 
       {resumeFormat === "text" ? (
-        <textarea
-          className={inputCls}
-          rows={12}
-          placeholder="Paste your resume text here"
-          value={resumeText}
-          disabled={disabled}
-          onChange={(e) => setResumeText(e.target.value)}
-        />
+        <div>
+          <textarea
+            className={inputCls}
+            rows={12}
+            placeholder="Paste your resume text here"
+            value={resumeText}
+            disabled={disabled}
+            onChange={(e) => setResumeText(e.target.value)}
+          />
+          <p className="text-xs">
+            Note: copy paste from PDF (or other document) renders differently
+            from uploading the document directly. Text is quicker to iterate,
+            but it might not be accurate. Parsing text seems to render a little
+            better than PDF, but PDF is ultimately what you&apos;re submitting
+            to the company.
+          </p>
+        </div>
       ) : (
         <div className="space-y-2">
           <button
