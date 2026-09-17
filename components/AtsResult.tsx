@@ -442,7 +442,7 @@ function Section({
   return (
     <section id={id} className={`space-y-4 ${SCROLL_MARGIN}`}>
       <div className="border-b border-neutral-200 dark:border-neutral-800 pb-2">
-        <h3 className="text-base font-semibold tracking-tight">
+        <h3 className="text-lg font-semibold tracking-tight">
           {title}
           {count !== undefined && (
             <span className="ml-2 font-normal tabular-nums text-neutral-400 dark:text-neutral-600">
