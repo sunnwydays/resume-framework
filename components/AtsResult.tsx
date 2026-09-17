@@ -95,7 +95,7 @@ function GenericValue({ value }: { value: unknown }) {
   }
   if (Array.isArray(value)) {
     return (
-      <ul className="list-disc list-inside space-y-0.5">
+      <ul className="list-disc list-inside space-y-1">
         {value.map((item, i) => (
           <li key={i}>
             <GenericValue value={item} />
@@ -106,7 +106,7 @@ function GenericValue({ value }: { value: unknown }) {
   }
   const entries = Object.entries(value as Record<string, unknown>);
   return (
-    <div className="space-y-0.5 border-l border-neutral-200 dark:border-neutral-800 pl-2">
+    <div className="space-y-1 border-l-2 border-neutral-200 dark:border-neutral-800 pl-3">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2">
           <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
@@ -134,9 +134,9 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
   const { showIssues, showTips } = useContext(ShowIssuesContext);
   if (!showIssues || !issues || issues.length === 0) return null;
   return (
-    <div className="mt-0.5 space-y-0.5">
+    <div className="mt-1 space-y-1">
       {issues.map((issue, i) => (
-        <div key={i} className={`flex gap-1 text-xs ${ISSUE_STYLES[issue.severity]}`}>
+        <div key={i} className={`flex gap-1.5 text-xs ${ISSUE_STYLES[issue.severity]}`}>
           <span aria-hidden="true">&#8594;</span>
           <div>
             {issueMessage(issue)}
@@ -202,17 +202,19 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
   const fillPercent = Math.max(0, Math.min(100, grade.score));
 
   return (
-    <div className="rounded border border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 sm:p-6 space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <div className="text-xs text-neutral-500">ATS parse score</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className={`text-5xl font-semibold leading-none ${tone.text}`}>
+          <div className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            ATS parse score
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className={`text-5xl sm:text-6xl font-bold leading-none tabular-nums ${tone.text}`}>
               {grade.score < 0 ? `-${-grade.score}` : grade.score}
             </span>
             <span className="text-sm text-neutral-500">/ 100</span>
           </div>
-          <div className={`mt-1 text-sm font-medium ${tone.text}`}>
+          <div className={`mt-1.5 text-sm font-semibold ${tone.text}`}>
             {grade.band.label}
           </div>
         </div>
@@ -223,18 +225,20 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
 
       <div className={`h-1.5 w-full overflow-hidden rounded-full ${tone.track}`}>
         <div
-          className={`h-full rounded-full ${tone.fill}`}
+          className={`h-full rounded-full transition-[width] ${tone.fill}`}
           style={{ width: `${fillPercent}%` }}
         />
       </div>
 
-      <div>
-        <div className="text-sm font-medium text-neutral-400">By section / Clickable Table of Contents</div>
+      <div className="space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          By section &middot; click to jump
+        </div>
         <table className="w-full text-xs">
           <tbody>
             {grade.sections.map((section) => (
               <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
-                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">
+                <td className="py-2 pr-3 text-neutral-500 whitespace-nowrap">
                   <a
                     href={`#${sectionId(section.label)}`}
                     className="hover:underline hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -242,10 +246,10 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
                     {section.label}
                   </a>
                 </td>
-                <td className="py-1 w-full">
+                <td className="py-2 w-full">
                   <SeverityCountsLine counts={section.counts} />
                 </td>
-                <td className={`py-1 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                <td className={`py-2 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
                   {section.penalty > 0 ? `-${section.penalty}` : "0"}
                 </td>
               </tr>
@@ -254,17 +258,19 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
         </table>
       </div>
 
-      <div>
-        <div className="text-sm font-medium text-neutral-400">By issue type</div>
+      <div className="space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          By issue type
+        </div>
         <table className="w-full text-xs">
           <tbody>
             {grade.byCode.map((c) => (
               <tr key={c.code} className="border-t border-neutral-200 dark:border-neutral-800">
-                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{DEFAULT_ISSUE_MESSAGES[c.code]}</td>
-                <td className="py-1 w-full">
+                <td className="py-2 pr-3 text-neutral-500 whitespace-nowrap">{DEFAULT_ISSUE_MESSAGES[c.code]}</td>
+                <td className="py-2 w-full">
                   <SeverityCountsLine counts={c.counts} />
                 </td>
-                <td className={`py-1 pl-3 text-right tabular-nums ${c.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                <td className={`py-2 pl-3 text-right tabular-nums ${c.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
                   {c.penalty > 0 ? `-${c.penalty}` : "0"}
                 </td>
               </tr>
@@ -286,7 +292,7 @@ function Field({
   issues?: AtsIssue[];
 }) {
   return (
-    <div className="flex gap-2 text-sm">
+    <div className="flex gap-3 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
       <div className="min-w-0">
         <GenericValue value={value} />
@@ -323,13 +329,13 @@ const LOCATION_KNOWN = ["city", "state", "country", "countryCode", "formatted", 
 
 function LocationRow({ label, loc, issues }: { label: string; loc?: AtsLocation; issues?: AtsIssue[] }) {
   return (
-    <div className="flex gap-2 text-sm">
+    <div className="flex gap-3 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
-      <div className="min-w-0 space-y-1">
+      <div className="min-w-0 space-y-1.5">
         <div>
           <GenericValue value={loc?.formatted || loc?.raw} />
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-500">
           <span>
             City: <GenericValue value={loc?.city} />
           </span>
@@ -360,9 +366,9 @@ function DateRangeRow({
   issues?: AtsIssue[];
 }) {
   return (
-    <div className="flex gap-2 text-sm">
+    <div className="flex gap-3 text-sm">
       <div className="w-32 shrink-0 text-neutral-500">{label}</div>
-      <div className="min-w-0 space-y-0.5">
+      <div className="min-w-0 space-y-1">
         <SubField
           label="Start"
           value={
@@ -403,7 +409,7 @@ function OtherFields({
   const rest = Object.entries(obj).filter(([k]) => !known.includes(k));
   if (rest.length === 0) return null;
   return (
-    <div className="mt-1.5 space-y-1 border-t border-dashed border-neutral-200 dark:border-neutral-800 pt-1.5 text-xs text-neutral-500">
+    <div className="mt-2 space-y-1.5 border-t border-dashed border-neutral-200 dark:border-neutral-800 pt-2 text-xs text-neutral-500">
       {rest.map(([k, v]) => (
         <div key={k} className="flex gap-2">
           <div className="shrink-0">{labelize(k)}:</div>
@@ -428,8 +434,8 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="space-y-2 scroll-mt-4">
-      <h3 className="border-b border-neutral-200 dark:border-neutral-800 pb-1 text-sm font-semibold">
+    <section id={id} className="space-y-3 scroll-mt-6">
+      <h3 className="border-b border-neutral-200 dark:border-neutral-800 pb-2 text-base font-semibold tracking-tight">
         {title}
       </h3>
       <IssueList issues={issues} />
@@ -440,7 +446,7 @@ function Section({
 
 function Card({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded border border-neutral-200 dark:border-neutral-800 p-2.5 space-y-1">
+    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 space-y-1.5 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700">
       {children}
     </div>
   );
@@ -455,13 +461,13 @@ function SkillPill({ skill }: { skill: AtsSkill }) {
 
   return (
     <div className="relative group">
-      <span className="rounded-full border border-neutral-300 dark:border-neutral-700 px-2 py-0.5 text-xs">
+      <span className="rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs transition-colors group-hover:border-neutral-400 dark:group-hover:border-neutral-500">
         {skill.text || skill.name}
       </span>
       {hasDetails && (
-        <div className="absolute left-0 top-full z-10 mt-1 hidden w-64 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-xs shadow-lg group-hover:block">
-          <div className="mb-1 font-medium">{skill.name}</div>
-          <div className="space-y-0.5">
+        <div className="absolute left-0 top-full z-10 mt-1.5 hidden w-64 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 text-xs shadow-lg group-hover:block">
+          <div className="mb-1.5 font-semibold">{skill.name}</div>
+          <div className="space-y-1">
             {extra.map(([k, v]) => (
               <div key={k} className="flex gap-2">
                 <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
@@ -474,6 +480,24 @@ function SkillPill({ skill }: { skill: AtsSkill }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ToggleButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-md border border-neutral-300 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -497,7 +521,11 @@ export default function AtsResult({ result }: Props) {
 
   if (!result) return null;
   if ("error" in result)
-    return <p className="text-sm text-red-600">{String(result.error)}</p>;
+    return (
+      <p className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+        {String(result.error)}
+      </p>
+    );
 
   const { data, meta } = result;
   const contact = {
@@ -537,28 +565,20 @@ export default function AtsResult({ result }: Props) {
 
   return (
     <ShowIssuesContext.Provider value={{ showIssues, showTips }}>
-    <div className="space-y-6">
-        <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">
+    <div className="space-y-10">
+        <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold tracking-tight">
           Here is what your resume looks like when parsed
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           {showIssues && (
-            <button
-              type="button"
-              onClick={() => setShowTips((v) => !v)}
-              className="rounded border border-neutral-300 dark:border-neutral-700 px-2 py-1 text-xs text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-            >
+            <ToggleButton onClick={() => setShowTips((v) => !v)}>
               {showTips ? "Hide tips" : "Show tips"}
-            </button>
+            </ToggleButton>
           )}
-          <button
-            type="button"
-            onClick={() => setShowIssues((v) => !v)}
-            className="rounded border border-neutral-300 dark:border-neutral-700 px-2 py-1 text-xs text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-          >
+          <ToggleButton onClick={() => setShowIssues((v) => !v)}>
             {showIssues ? "Hide errors" : "Show errors"}
-          </button>
+          </ToggleButton>
         </div>
       </div>
 
@@ -569,7 +589,7 @@ export default function AtsResult({ result }: Props) {
         id={sectionId("Parse quality")}
         issues={[...metaIssues, ...rawTextIssues]}
       >
-        <div className="grid gap-1.5 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <Field
             label="Classification"
             value={
@@ -598,10 +618,10 @@ export default function AtsResult({ result }: Props) {
       </Section>
 
       <Section title="Personal info" id={sectionId("Personal info")}>
-        <div className="space-y-1.5">
-          <div className="flex gap-2 text-sm">
+        <div className="space-y-2">
+          <div className="flex gap-3 text-sm">
             <div className="w-32 shrink-0 text-neutral-500">Name</div>
-            <div className="min-w-0 space-y-0.5">
+            <div className="min-w-0 space-y-1">
               <SubField
                 label="First"
                 value={person.name?.given}
@@ -629,7 +649,7 @@ export default function AtsResult({ result }: Props) {
       </Section>
 
       <Section title="Contact" id={sectionId("Contact")} issues={contactIssues.section}>
-        <div className="grid gap-1.5 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <Field
             label="Emails"
             value={contact.emails.length ? contact.emails : undefined}
@@ -662,12 +682,12 @@ export default function AtsResult({ result }: Props) {
         {education.length === 0 ? (
           <Empty />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {education.map((ed, i) => {
               const edIssues = educationReview.entries[i];
               return (
                 <Card key={i}>
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-semibold">
                     {ed.institution || <Empty />}
                   </div>
                   <IssueList issues={edIssues.institution} />
@@ -716,12 +736,12 @@ export default function AtsResult({ result }: Props) {
         {workExperience.length === 0 ? (
           <Empty />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {workExperience.map((we, i) => {
               const weIssues = workReview.entries[i];
               return (
                 <Card key={i}>
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-semibold">
                     {we.jobTitle || <Empty />}
                   </div>
                   <IssueList issues={weIssues.jobTitle} />
@@ -768,12 +788,12 @@ export default function AtsResult({ result }: Props) {
         {projects.length === 0 ? (
           <Empty />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {projects.map((p, i) => {
               const pIssues = projectReview.entries[i];
               return (
                 <Card key={i}>
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-semibold">
                     {p.title || <Empty />}
                   </div>
                   <IssueList issues={pIssues.title} />
@@ -802,7 +822,7 @@ export default function AtsResult({ result }: Props) {
         {skills.length === 0 ? (
           <Empty />
         ) : (
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {skills.map((s, i) => (
               <SkillPill key={i} skill={s} />
             ))}
@@ -818,7 +838,7 @@ export default function AtsResult({ result }: Props) {
         {achievements.length === 0 ? (
           <Empty />
         ) : (
-          <ul className="list-disc list-inside space-y-0.5 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm">
             {achievements.map((a, i) => (
               <li key={i}>
                 {a}
@@ -831,7 +851,7 @@ export default function AtsResult({ result }: Props) {
 
       {otherTopLevel.length > 0 && (
         <Section title="Other extracted data">
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {otherTopLevel.map(([k, v]) => (
               <Field key={k} label={labelize(k)} value={v} />
             ))}
@@ -841,10 +861,10 @@ export default function AtsResult({ result }: Props) {
 
       {meta && Object.keys(meta).length > 0 && (
         <details className="text-sm">
-          <summary className="cursor-pointer font-semibold">
+          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
             Parse metadata
           </summary>
-          <div className="mt-2">
+          <div className="mt-3">
             <GenericValue value={meta} />
           </div>
         </details>
@@ -852,10 +872,10 @@ export default function AtsResult({ result }: Props) {
 
       {typeof data.rawText === "string" && data.rawText && (
         <details className="text-sm">
-          <summary className="cursor-pointer font-semibold">
+          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
             Raw extracted text
           </summary>
-          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-neutral-100 dark:bg-neutral-900 p-2 text-xs">
+          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-neutral-100 dark:bg-neutral-900 p-3 text-xs">
             {data.rawText}
           </pre>
         </details>
@@ -863,23 +883,23 @@ export default function AtsResult({ result }: Props) {
 
       {typeof data.redactedText === "string" && data.redactedText && (
         <details className="text-sm">
-          <summary className="cursor-pointer font-semibold">
+          <summary className="cursor-pointer font-semibold hover:text-neutral-600 dark:hover:text-neutral-300">
             Redacted text
           </summary>
-          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-neutral-100 dark:bg-neutral-900 p-2 text-xs">
+          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-neutral-100 dark:bg-neutral-900 p-3 text-xs">
             {data.redactedText}
           </pre>
         </details>
       )}
 
-      <hr />
-
-      <h2 className="text-sm font-semibold">
-        Raw json from resume parser
-      </h2>
-      <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-2 rounded">
-        {JSON.stringify(result, null, 2)}
-      </pre>
+      <div className="border-t border-neutral-200 dark:border-neutral-800 pt-8 space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">
+          Raw json from resume parser
+        </h2>
+        <pre className="text-xs overflow-auto max-h-96 bg-neutral-100 dark:bg-neutral-900 p-3 rounded-lg">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      </div>
     </div>
     </ShowIssuesContext.Provider>
   );
