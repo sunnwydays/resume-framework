@@ -48,6 +48,13 @@ function labelize(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+// Derives a stable anchor id from a grade section label (e.g. "Work
+// experience" -> "section-work-experience") so the ScoreCard's "By
+// section" rows can link straight to the matching <Section> below.
+function sectionId(label: string): string {
+  return `section-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   if (typeof value === "string") return value.trim().length === 0;
@@ -219,12 +226,19 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
       </div>
 
       <div>
-        <div className="text-sm font-medium text-neutral-400">By section</div>
+        <div className="text-sm font-medium text-neutral-400">By section / Clickable Table of Contents</div>
         <table className="w-full text-xs">
           <tbody>
             {grade.sections.map((section) => (
               <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
-                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{section.label}</td>
+                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">
+                  <a
+                    href={`#${sectionId(section.label)}`}
+                    className="hover:underline hover:text-neutral-900 dark:hover:text-neutral-100"
+                  >
+                    {section.label}
+                  </a>
+                </td>
                 <td className="py-1 w-full">
                   <SeverityCountsLine counts={section.counts} />
                 </td>
@@ -401,15 +415,17 @@ function OtherFields({
 
 function Section({
   title,
+  id,
   issues,
   children,
 }: {
   title: string;
+  id?: string;
   issues?: AtsIssue[];
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-2">
+    <section id={id} className="space-y-2 scroll-mt-4">
       <h3 className="border-b border-neutral-200 dark:border-neutral-800 pb-1 text-sm font-semibold">
         {title}
       </h3>
@@ -545,7 +561,11 @@ export default function AtsResult({ result }: Props) {
 
       <ScoreCard grade={grade} />
 
-      <Section title="Parse quality" issues={[...metaIssues, ...rawTextIssues]}>
+      <Section
+        title="Parse quality"
+        id={sectionId("Parse quality")}
+        issues={[...metaIssues, ...rawTextIssues]}
+      >
         <div className="grid gap-1.5 sm:grid-cols-2">
           <Field
             label="Classification"
@@ -574,7 +594,7 @@ export default function AtsResult({ result }: Props) {
         </div>
       </Section>
 
-      <Section title="Personal info">
+      <Section title="Personal info" id={sectionId("Personal info")}>
         <div className="space-y-1.5">
           <div className="flex gap-2 text-sm">
             <div className="w-32 shrink-0 text-neutral-500">Name</div>
@@ -605,7 +625,7 @@ export default function AtsResult({ result }: Props) {
         <OtherFields obj={asRecord(person)} known={["name", "location"]} />
       </Section>
 
-      <Section title="Contact" issues={contactIssues.section}>
+      <Section title="Contact" id={sectionId("Contact")} issues={contactIssues.section}>
         <div className="grid gap-1.5 sm:grid-cols-2">
           <Field
             label="Emails"
@@ -633,6 +653,7 @@ export default function AtsResult({ result }: Props) {
 
       <Section
         title={`Education (${education.length})`}
+        id={sectionId("Education")}
         issues={educationReview.section}
       >
         {education.length === 0 ? (
@@ -686,6 +707,7 @@ export default function AtsResult({ result }: Props) {
 
       <Section
         title={`Work experience (${workExperience.length})`}
+        id={sectionId("Work experience")}
         issues={workReview.section}
       >
         {workExperience.length === 0 ? (
@@ -737,6 +759,7 @@ export default function AtsResult({ result }: Props) {
 
       <Section
         title={`Projects (${projects.length})`}
+        id={sectionId("Projects")}
         issues={projectReview.section}
       >
         {projects.length === 0 ? (
@@ -786,6 +809,7 @@ export default function AtsResult({ result }: Props) {
 
       <Section
         title={`Achievements (${achievements.length})`}
+        id={sectionId("Achievements")}
         issues={achievementsReview.section}
       >
         {achievements.length === 0 ? (
