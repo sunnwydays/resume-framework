@@ -1,7 +1,7 @@
 // Turns the issues found by atsReview.ts into a single score out of 100.
 // atsReview finds problems; this file only scores them.
 
-import { AtsIssue, FieldIssues, SectionReview } from "./atsReview";
+import { AtsIssue, FieldIssues, IssueCode, SectionReview } from "./atsReview";
 
 export type Severity = AtsIssue["severity"];
 
@@ -33,12 +33,19 @@ export interface SectionScore {
   penalty: number;
 }
 
+export interface CodeScore {
+  code: IssueCode;
+  counts: SeverityCounts;
+  penalty: number;
+}
+
 export interface ResumeGrade {
   score: number;            // 100 - penalty, deliberately not clamped
   band: GradeBand;
   counts: SeverityCounts;   // totals across all sections
   penalty: number;
   sections: SectionScore[]; // in the order given to gradeSections
+  byCode: CodeScore[];      // sorted by penalty desc, ties broken by code
 }
 
 // Person/contact reviews: section-level issues + one list per field.
@@ -81,6 +88,20 @@ function penaltyFor(counts: SeverityCounts): number {
   );
 }
 
+// Only codes that actually occurred are included. Sorted by penalty desc
+// (biggest score impact first), ties broken alphabetically for stability.
+function countByCode(issues: AtsIssue[]): CodeScore[] {
+  const byCode = new Map<IssueCode, SeverityCounts>();
+  for (const issue of issues) {
+    const counts = byCode.get(issue.code) ?? { critical: 0, minor: 0, info: 0 };
+    counts[issue.severity]++;
+    byCode.set(issue.code, counts);
+  }
+  return [...byCode.entries()]
+    .map(([code, counts]) => ({ code, counts, penalty: penaltyFor(counts) }))
+    .sort((a, b) => b.penalty - a.penalty || a.code.localeCompare(b.code));
+}
+
 export function gradeSections(
   sections: { label: string; issues: AtsIssue[] }[]
 ): ResumeGrade {
@@ -89,10 +110,12 @@ export function gradeSections(
     return { label, counts, penalty: penaltyFor(counts) };
   });
 
-  const counts = countBySeverity(sections.flatMap((s) => s.issues));
+  const allIssues = sections.flatMap((s) => s.issues);
+  const counts = countBySeverity(allIssues);
   const penalty = penaltyFor(counts);
+  const byCode = countByCode(allIssues);
   const score = 100 - penalty;
   const band = GRADE_BANDS.find((b) => score >= b.min) ?? GRADE_BANDS[GRADE_BANDS.length - 1];
 
-  return { score, band, counts, penalty, sections: scored };
+  return { score, band, counts, penalty, sections: scored, byCode };
 }

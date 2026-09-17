@@ -30,7 +30,7 @@ export type IssueCode =
   | "LOW_CONFIDENCE"
   | "MALFORMED_BLOCK";
 
-const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
+export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   MISSING: "Missing",
   ICON_LIGATURE: "Icon-font glyph name found in the parsed text",
   WRONG_SPLIT: "Value is split incorrectly",

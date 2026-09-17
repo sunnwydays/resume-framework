@@ -12,6 +12,7 @@ import {
 } from "@/lib/atsGrade";
 import {
   AtsIssue,
+  DEFAULT_ISSUE_MESSAGES,
   issueMessage,
   reviewAchievements,
   reviewContact,
@@ -217,21 +218,43 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
         />
       </div>
 
-      <table className="w-full text-xs">
-        <tbody>
-          {grade.sections.map((section) => (
-            <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
-              <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{section.label}</td>
-              <td className="py-1 w-full">
-                <SeverityCountsLine counts={section.counts} />
-              </td>
-              <td className={`py-1 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
-                {section.penalty > 0 ? `-${section.penalty}` : "0"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div>
+        <div className="text-sm font-medium text-neutral-400">By section</div>
+        <table className="w-full text-xs">
+          <tbody>
+            {grade.sections.map((section) => (
+              <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
+                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{section.label}</td>
+                <td className="py-1 w-full">
+                  <SeverityCountsLine counts={section.counts} />
+                </td>
+                <td className={`py-1 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                  {section.penalty > 0 ? `-${section.penalty}` : "0"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div className="text-sm font-medium text-neutral-400">By issue type</div>
+        <table className="w-full text-xs">
+          <tbody>
+            {grade.byCode.map((c) => (
+              <tr key={c.code} className="border-t border-neutral-200 dark:border-neutral-800">
+                <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{DEFAULT_ISSUE_MESSAGES[c.code]}</td>
+                <td className="py-1 w-full">
+                  <SeverityCountsLine counts={c.counts} />
+                </td>
+                <td className={`py-1 pl-3 text-right tabular-nums ${c.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                  {c.penalty > 0 ? `-${c.penalty}` : "0"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
