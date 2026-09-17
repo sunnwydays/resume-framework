@@ -16,7 +16,7 @@ export const SEVERITY_PENALTY: Record<Severity, number> = {
 // Highest `min` first; the first band with `min <= score` wins. The score
 // isn't floored, so the last band also catches negatives.
 export const GRADE_BANDS = [
-  { min: 90, label: "ATS-ready", tone: "good" },
+  { min: 85, label: "ATS-ready", tone: "good" },
   { min: 70, label: "Needs fixes", tone: "warn" },
   { min: 40, label: "Significant issues", tone: "bad" },
   { min: -Infinity, label: "Likely misparsed", tone: "bad" },

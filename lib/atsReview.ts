@@ -172,6 +172,19 @@ export function reviewPerson(person: AtsPerson): SectionReview<PersonIssues> {
         evidence: snippet(value, "end"),
       });
     }
+
+    // Given/family names are almost never a single letter
+    // Mismatched capitalization or an unusual font (e.g. small caps) can make 
+    // name one character early, e.g. "Rob W Ang" -> given "R", middle "obw".
+    if (field !== "middle" && value.trim().length === 1) {
+      add(fields, field, {
+        code: "WRONG_SPLIT",
+        severity: "minor",
+        message: `${field === "given" ? "Given" : "Family"} name is a single letter`,
+        fix: "Unusual capitalization or font formatting (e.g. small caps) can cause the name to be split at the wrong point. Use normally-capitalized text.",
+        evidence: value,
+      });
+    }
   }
 
   // some people may not have a family name but most do
@@ -718,10 +731,21 @@ export function reviewEducationEntry(ed: AtsEducation): EducationIssues {
   }
 
   if (!ed.fieldsOfStudy || ed.fieldsOfStudy.length === 0) {
+    // No field of study in high school
     add(fields, "fieldsOfStudy", {
       code: "MISSING",
+      severity: "info",
+      fix: "Write your major/field of study near the degree, if post-secondary.",
+    });
+  }
+
+  if (ed.qualification?.trim() && endsOnStopword(ed.qualification)) {
+    add(fields, "qualification", {
+      code: "TRUNCATED",
       severity: "minor",
-      fix: "Write your major/field of study near the degree.",
+      message: "Qualification looks cut off mid-phrase",
+      fix: 'Keep the full degree title on one line (e.g. "Bachelor of Computer Engineering"), separate from the institution name.',
+      evidence: snippet(ed.qualification, "end"),
     });
   }
 
@@ -914,7 +938,7 @@ export function reviewRawText(rawText: string): AtsIssue[] {
 // -----------  Parse metadata  -----------
 
 const CLASSIFICATION_CONFIDENCE = { low: 0.5, moderate: 0.7 };
-const EXTRACTION_QUALITY = { critical: 0.7, minor: 0.85 };
+const EXTRACTION_QUALITY = { critical: 0.7, minor: 0.8 };
 
 export function reviewMeta(meta: AtsMeta | undefined): AtsIssue[] {
   const issues: AtsIssue[] = [];
@@ -991,7 +1015,7 @@ export function reviewMeta(meta: AtsMeta | undefined): AtsIssue[] {
     if (!scoreIssueAdded && extractionQuality.band && extractionQuality.band !== "high") {
       issues.push({
         code: "LOW_CONFIDENCE",
-        severity: "minor",
+        severity: "info",
         message: `Extraction quality band reported as "${extractionQuality.band}"`,
       });
     }
