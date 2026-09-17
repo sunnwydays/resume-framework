@@ -65,16 +65,35 @@ workExperience, projects, skills, achievements, rawText); everything else
 is `[key: string]: unknown` and falls through to the generic renderer.
 `AtsParseResponse = AtsParseResult | { error: string }`.
 
+## Review + grade (`lib/atsReview.ts`, `lib/atsGrade.ts`)
+
+- **`lib/atsReview.ts`** — pure rule functions (`reviewPerson`,
+  `reviewContact`, `reviewEducation`, `reviewWorkExperiences`,
+  `reviewProjects`, `reviewAchievements`, `reviewRawText`, `reviewMeta`)
+  that inspect the parsed data and return `AtsIssue`s tagged
+  `critical | minor | info`, keyed by section/field/entry. `AtsResult.tsx`
+  calls these at render time and shows the issues inline next to each
+  field.
+- **`lib/atsGrade.ts`** — turns those issues into a score: 100 minus
+  `SEVERITY_PENALTY` per issue (critical 10, minor 3, info 1), every
+  occurrence counts, **not floored** (negative scores are intentional).
+  `GRADE_BANDS` maps the score to a label/tone. `flattenSectionReview` /
+  `flattenEntriesReview` adapt the review shapes; `gradeSections` produces
+  the total plus a per-section breakdown. To change the weights or bands,
+  edit those two constants — nothing else hardcodes them.
+
 ## Components
 
 - **`components/InputSection.tsx`** — text/PDF radio toggle, textarea or
   file upload, "Run ATS parse" button (posts `FormData` to
   `/api/ats-parse`), and a dev-only "Load ats sample" button that loads
   `lib/mocks/affindaSample.json` without hitting the API.
-- **`components/AtsResult.tsx`** — renders the raw JSON dump, then a
+- **`components/AtsResult.tsx`** — renders a `ScoreCard` (grade from
+  `lib/atsGrade.ts`, not affected by the "Hide errors" toggle), then a
   formatted breakdown by section (contact/personal, education, work
-  experience, projects, skills as hoverable pills, achievements), with a
-  generic fallback renderer for anything not explicitly laid out.
+  experience, projects, skills as hoverable pills, achievements) with
+  inline issues, a generic fallback renderer for anything not explicitly
+  laid out, and the raw JSON dump at the bottom.
 
 ## Known constraints / don't re-litigate these
 

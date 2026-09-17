@@ -1,6 +1,16 @@
 "use client";
 
 import {
+  flattenEntriesReview,
+  flattenSectionReview,
+  gradeSections,
+  GradeTone,
+  ResumeGrade,
+  SectionScore,
+  Severity,
+  SEVERITY_PENALTY,
+} from "@/lib/atsGrade";
+import {
   AtsIssue,
   issueMessage,
   reviewAchievements,
@@ -128,6 +138,100 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ---- score card ----
+
+const TONE_STYLES: Record<GradeTone, { text: string; fill: string; track: string }> = {
+  good: {
+    text: "text-emerald-600 dark:text-emerald-400",
+    fill: "bg-emerald-500",
+    track: "bg-emerald-100 dark:bg-emerald-950",
+  },
+  warn: {
+    text: "text-amber-600 dark:text-amber-400",
+    fill: "bg-amber-500",
+    track: "bg-amber-100 dark:bg-amber-950",
+  },
+  bad: {
+    text: "text-red-600 dark:text-red-400",
+    fill: "bg-red-500",
+    track: "bg-red-100 dark:bg-red-950",
+  },
+};
+
+const SEVERITIES: Severity[] = ["critical", "minor", "info"];
+
+// "3 critical [-30] · 4 minor [-12]", omitting severities with no issues.
+function SeverityCountsLine({ counts }: { counts: SectionScore["counts"] }) {
+  const parts = SEVERITIES.filter((s) => counts[s] > 0);
+  if (parts.length === 0) {
+    return <span className="text-neutral-400 dark:text-neutral-600">No issues</span>;
+  }
+  return (
+    <>
+      {parts.map((s, i) => (
+        <span key={s}>
+          {i > 0 && <span className="text-neutral-400 dark:text-neutral-600"> · </span>}
+          <span className={ISSUE_STYLES[s]}>
+            {counts[s]} {s}
+          </span>{" "}
+          <span className="text-neutral-500">[-{counts[s] * SEVERITY_PENALTY[s]}]</span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+function ScoreCard({ grade }: { grade: ResumeGrade }) {
+  const tone = TONE_STYLES[grade.band.tone];
+  // The score itself isn't floored, but a bar can't be less than empty.
+  const fillPercent = Math.max(0, Math.min(100, grade.score));
+
+  return (
+    <div className="rounded border border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          <div className="text-xs text-neutral-500">ATS parse score</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className={`text-5xl font-semibold leading-none ${tone.text}`}>
+              {grade.score < 0 ? `-${-grade.score}` : grade.score}
+            </span>
+            <span className="text-sm text-neutral-500">/ 100</span>
+          </div>
+          <div className={`mt-1 text-sm font-medium ${tone.text}`}>
+            {grade.band.label}
+          </div>
+        </div>
+        <div className="text-sm">
+          <SeverityCountsLine counts={grade.counts} />
+        </div>
+      </div>
+
+      <div className={`h-1.5 w-full overflow-hidden rounded-full ${tone.track}`}>
+        <div
+          className={`h-full rounded-full ${tone.fill}`}
+          style={{ width: `${fillPercent}%` }}
+        />
+      </div>
+
+      <table className="w-full text-xs">
+        <tbody>
+          {grade.sections.map((section) => (
+            <tr key={section.label} className="border-t border-neutral-200 dark:border-neutral-800">
+              <td className="py-1 pr-3 text-neutral-500 whitespace-nowrap">{section.label}</td>
+              <td className="py-1 w-full">
+                <SeverityCountsLine counts={section.counts} />
+              </td>
+              <td className={`py-1 pl-3 text-right tabular-nums ${section.penalty > 0 ? "" : "text-neutral-400 dark:text-neutral-600"}`}>
+                {section.penalty > 0 ? `-${section.penalty}` : "0"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -374,6 +478,17 @@ export default function AtsResult({ result }: Props) {
   const metaIssues = reviewMeta(meta);
   const rawTextIssues = reviewRawText(data.rawText ?? "");
 
+  // Same order as the sections below so the breakdown reads top-to-bottom.
+  const grade = gradeSections([
+    { label: "Parse quality", issues: [...metaIssues, ...rawTextIssues] },
+    { label: "Personal info", issues: flattenSectionReview(personIssues) },
+    { label: "Contact", issues: flattenSectionReview(contactIssues) },
+    { label: "Education", issues: flattenEntriesReview(educationReview) },
+    { label: "Work experience", issues: flattenEntriesReview(workReview) },
+    { label: "Projects", issues: flattenEntriesReview(projectReview) },
+    { label: "Achievements", issues: flattenEntriesReview(achievementsReview) },
+  ]);
+
   const otherTopLevel = Object.entries(asRecord(data)).filter(
     ([k]) => !KNOWN_TOP_LEVEL.includes(k)
   );
@@ -404,6 +519,8 @@ export default function AtsResult({ result }: Props) {
           </button>
         </div>
       </div>
+
+      <ScoreCard grade={grade} />
 
       <Section title="Parse quality" issues={[...metaIssues, ...rawTextIssues]}>
         <div className="grid gap-1.5 sm:grid-cols-2">
