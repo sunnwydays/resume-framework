@@ -107,22 +107,23 @@ const ISSUE_STYLES: Record<AtsIssue["severity"], string> = {
   info: "text-neutral-500",
 };
 
-// Lets the "Show/Hide errors" toggle in AtsResult reach every IssueList
-// without threading a prop through Field/DateRangeRow at each call site.
-const ShowIssuesContext = createContext(true);
+// Lets the "Hide errors" / "Hide tips" toggles in AtsResult reach every
+// IssueList without threading props through Field/DateRangeRow at each call
+// site. "Tips" are an issue's evidence/fix detail lines, not the message itself.
+const ShowIssuesContext = createContext({ showIssues: true, showTips: true });
 
 function IssueList({ issues }: { issues?: AtsIssue[] }) {
-  const showIssues = useContext(ShowIssuesContext);
+  const { showIssues, showTips } = useContext(ShowIssuesContext);
   if (!showIssues || !issues || issues.length === 0) return null;
   return (
     <div className="mt-0.5 space-y-0.5">
       {issues.map((issue, i) => (
         <div key={i} className={`text-xs ${ISSUE_STYLES[issue.severity]}`}>
           {issueMessage(issue)}
-          {issue.evidence && (
+          {showTips && issue.evidence && (
             <div className="text-neutral-500">Found: {issue.evidence}</div>
           )}
-          {issue.fix && (
+          {showTips && issue.fix && (
             <div className="text-neutral-500">{issue.fix}</div>
           )}
         </div>
@@ -346,6 +347,7 @@ const KNOWN_TOP_LEVEL = [
 
 export default function AtsResult({ result }: Props) {
   const [showIssues, setShowIssues] = useState(true);
+  const [showTips, setShowTips] = useState(true);
 
   if (!result) return null;
   if ("error" in result)
@@ -377,13 +379,22 @@ export default function AtsResult({ result }: Props) {
   );
 
   return (
-    <ShowIssuesContext.Provider value={showIssues}>
+    <ShowIssuesContext.Provider value={{ showIssues, showTips }}>
     <div className="space-y-6">
         <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">
           Here is what your resume looks like when parsed
         </h2>
         <div className="flex items-center gap-3">
+          {showIssues && (
+            <button
+              type="button"
+              onClick={() => setShowTips((v) => !v)}
+              className="rounded border border-neutral-300 dark:border-neutral-700 px-2 py-1 text-xs text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+            >
+              {showTips ? "Hide tips" : "Show tips"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowIssues((v) => !v)}
