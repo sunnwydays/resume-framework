@@ -35,15 +35,19 @@ scratch. The literal code is recoverable from git history if needed
 
 ```
 Browser (app/page.tsx)
+ ├─ components/SectionNav.tsx    — sticky jump-to-section nav (rail on lg+,
+ │                                  strip below), badges from the report
  ├─ components/InputSection.tsx — resume text/PDF input, triggers the parse
  │   └─ POST /api/ats-parse       (server-side Affinda call)
  └─ components/AtsResult.tsx     — renders the parsed result (raw JSON +
                                     formatted breakdown)
 ```
 
-`app/page.tsx` just holds the `resumeText` / `resumePdf` / `atsResult`
-state and renders these two components. There's no pipeline orchestrator at
-this stage — `InputSection` calls `/api/ats-parse` directly.
+`app/page.tsx` holds the `resumeText` / `resumePdf` / `atsResult` state,
+derives `report = buildAtsReport(atsResult)` once (`lib/atsReport.ts`), and
+passes it to both `SectionNav` and `AtsResult` so the nav badges and the
+breakdown read the same numbers. There's no pipeline orchestrator at this
+stage — `InputSection` calls `/api/ats-parse` directly.
 
 ## `app/api/ats-parse/route.ts`
 
@@ -65,15 +69,21 @@ workExperience, projects, skills, achievements, rawText); everything else
 is `[key: string]: unknown` and falls through to the generic renderer.
 `AtsParseResponse = AtsParseResult | { error: string }`.
 
-## Review + grade (`lib/atsReview.ts`, `lib/atsGrade.ts`)
+## Review + grade (`lib/atsReview.ts`, `lib/atsGrade.ts`, `lib/atsReport.ts`)
 
 - **`lib/atsReview.ts`** — pure rule functions (`reviewPerson`,
   `reviewContact`, `reviewEducation`, `reviewWorkExperiences`,
   `reviewProjects`, `reviewAchievements`, `reviewRawText`, `reviewMeta`)
   that inspect the parsed data and return `AtsIssue`s tagged
   `critical | minor | info`, keyed by section/field/entry. `AtsResult.tsx`
-  calls these at render time and shows the issues inline next to each
-  field.
+  shows the issues inline next to each field.
+- **`lib/atsReport.ts`** — `buildAtsReport(result)` runs every review rule
+  and `gradeSections` once and returns everything in one `AtsReport`
+  object; `page.tsx` calls it and hands the report down. Also owns
+  `sectionId(label)`, the anchor-id convention (`section-work-experience`)
+  shared by `<Section id>`, the score card's "By section" links, and
+  `SectionNav`. The section label list in `buildAtsReport` is the one
+  place that fixes section order.
 - **`lib/atsGrade.ts`** — turns those issues into a score: 100 minus
   `SEVERITY_PENALTY` per issue (critical 10, minor 3, info 1), every
   occurrence counts, **not floored** (negative scores are intentional).
@@ -93,7 +103,21 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   formatted breakdown by section (contact/personal, education, work
   experience, projects, skills as hoverable pills, achievements) with
   inline issues, a generic fallback renderer for anything not explicitly
-  laid out, and the raw JSON dump at the bottom.
+  laid out, and the raw JSON dump at the bottom. Takes the `report` from
+  `page.tsx` rather than computing it. Exports `TONE_STYLES` (grade colors)
+  and `SCROLL_MARGIN` (so anchor targets clear the mobile nav strip).
+- **`components/SectionNav.tsx`** — one item per section (`Upload`, `Score`,
+  then the graded sections, `Skills`, `Raw output`). Sticky left rail on
+  `lg+` (grid placement is passed in via `railClassName`), sticky
+  horizontally-scrolling strip below `lg`. Before a parse only `Upload` is a
+  live link. After a parse: score number tinted by band, entry counts for
+  list sections, and a red/amber dot for sections with critical/minor
+  issues. Scroll-spy is a rAF-throttled scroll listener, not
+  IntersectionObserver, so the last item can become active at page bottom.
+  Two gotchas already hit: don't wrap the component in a `div` in
+  `page.tsx` (sticky can't stick past its parent), and don't
+  `scrollIntoView` the active pill (Chrome scrolls the page to a sticky
+  child's static position) — it sets `scrollLeft` by hand.
 
 ## Known constraints / don't re-litigate these
 

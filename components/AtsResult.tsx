@@ -1,39 +1,32 @@
 "use client";
 
 import {
-  flattenEntriesReview,
-  flattenSectionReview,
-  gradeSections,
   GradeTone,
   ResumeGrade,
   SectionScore,
   Severity,
   SEVERITY_PENALTY,
 } from "@/lib/atsGrade";
-import {
-  AtsIssue,
-  DEFAULT_ISSUE_MESSAGES,
-  issueMessage,
-  reviewAchievements,
-  reviewContact,
-  reviewEducation,
-  reviewMeta,
-  reviewPerson,
-  reviewProjects,
-  reviewRawText,
-  reviewWorkExperiences,
-} from "@/lib/atsReview";
+import { AtsReport, sectionId } from "@/lib/atsReport";
+import { AtsIssue, DEFAULT_ISSUE_MESSAGES, issueMessage } from "@/lib/atsReview";
 import {
   AtsDateRange,
   AtsLocation,
   AtsParseResponse,
   AtsSkill,
 } from "@/lib/types";
+import { SCORE_ID } from "@/components/SectionNav";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 interface Props {
   result: AtsParseResponse | null;
+  // buildAtsReport(result) when result is a successful parse; null otherwise.
+  report: AtsReport | null;
 }
+
+// Anchor targets sit under the sticky nav strip below lg, so give them
+// enough scroll margin to clear it; the rail on lg+ doesn't overlap anything.
+export const SCROLL_MARGIN = "scroll-mt-16 lg:scroll-mt-8";
 
 // Anything not explicitly rendered is surfaced by <OtherFields>
 
@@ -46,13 +39,6 @@ function asRecord(value: unknown): Record<string, unknown> {
 function labelize(key: string): string {
   const spaced = key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-// Derives a stable anchor id from a grade section label (e.g. "Work
-// experience" -> "section-work-experience") so the ScoreCard's "By
-// section" rows can link straight to the matching <Section> below.
-function sectionId(label: string): string {
-  return `section-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
 function isEmptyValue(value: unknown): boolean {
@@ -155,7 +141,8 @@ function IssueList({ issues }: { issues?: AtsIssue[] }) {
 
 // ---- score card ----
 
-const TONE_STYLES: Record<GradeTone, { text: string; fill: string; track: string }> = {
+// Exported so SectionNav can tint its score badge the same way.
+export const TONE_STYLES: Record<GradeTone, { text: string; fill: string; track: string }> = {
   good: {
     text: "text-emerald-600 dark:text-emerald-400",
     fill: "bg-emerald-500",
@@ -238,7 +225,10 @@ function ScoreCard({ grade }: { grade: ResumeGrade }) {
   const fillPercent = Math.max(0, Math.min(100, grade.score));
 
   return (
-    <div className="rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-5 sm:p-6 space-y-6">
+    <div
+      id={SCORE_ID}
+      className={`rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-5 sm:p-6 space-y-6 ${SCROLL_MARGIN}`}
+    >
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <div className="text-sm font-medium text-neutral-500">ATS parse score</div>
@@ -450,7 +440,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="space-y-4 scroll-mt-8">
+    <section id={id} className={`space-y-4 ${SCROLL_MARGIN}`}>
       <div className="border-b border-neutral-200 dark:border-neutral-800 pb-2">
         <h3 className="text-base font-semibold tracking-tight">
           {title}
@@ -593,49 +583,37 @@ const KNOWN_TOP_LEVEL = [
   "redactedText",
 ];
 
-export default function AtsResult({ result }: Props) {
+export default function AtsResult({ result, report }: Props) {
   const [showIssues, setShowIssues] = useState(true);
   const [showTips, setShowTips] = useState(true);
 
   if (!result) return null;
-  if ("error" in result)
+  if ("error" in result || !report)
     return (
       <p className="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3.5 py-3 text-sm text-red-700 dark:text-red-400">
-        {String(result.error)}
+        {"error" in result ? String(result.error) : "No report for this result"}
       </p>
     );
 
   const { data, meta } = result;
-  const contact = {
-    emails: data.contact?.emails ?? [],
-    phoneNumbers: data.contact?.phoneNumbers ?? [],
-    websites: data.contact?.websites ?? [],
-  };
-  const contactIssues = reviewContact(contact, data.rawText ?? "");
-  const person = { name: data.person?.name ?? {}, location: data.person?.location };
-  const personIssues = reviewPerson(person);
-  const education = data.education ?? [];
-  const educationReview = reviewEducation(education);
-  const workExperience = data.workExperience ?? [];
-  const workReview = reviewWorkExperiences(workExperience);
-  const projects = data.projects ?? [];
-  const projectReview = reviewProjects(projects);
-  const skills = data.skills ?? [];
-  const achievements = data.achievements ?? [];
-  const achievementsReview = reviewAchievements(achievements);
-  const metaIssues = reviewMeta(meta);
-  const rawTextIssues = reviewRawText(data.rawText ?? "");
-
-  // Same order as the sections below so the breakdown reads top-to-bottom.
-  const grade = gradeSections([
-    { label: "Parse quality", issues: [...metaIssues, ...rawTextIssues] },
-    { label: "Personal info", issues: flattenSectionReview(personIssues) },
-    { label: "Contact", issues: flattenSectionReview(contactIssues) },
-    { label: "Education", issues: flattenEntriesReview(educationReview) },
-    { label: "Work experience", issues: flattenEntriesReview(workReview) },
-    { label: "Projects", issues: flattenEntriesReview(projectReview) },
-    { label: "Achievements", issues: flattenEntriesReview(achievementsReview) },
-  ]);
+  const {
+    contact,
+    contactIssues,
+    person,
+    personIssues,
+    education,
+    educationReview,
+    workExperience,
+    workReview,
+    projects,
+    projectReview,
+    skills,
+    achievements,
+    achievementsReview,
+    metaIssues,
+    rawTextIssues,
+    grade,
+  } = report;
 
   const otherTopLevel = Object.entries(asRecord(data)).filter(
     ([k]) => !KNOWN_TOP_LEVEL.includes(k)
@@ -890,6 +868,7 @@ export default function AtsResult({ result }: Props) {
         <Section
           title="Skills"
           count={skills.length}
+          id={sectionId("Skills")}
           description="Hover a skill for details. This section isn't reviewed for issues."
         >
           {skills.length === 0 ? (
@@ -933,7 +912,7 @@ export default function AtsResult({ result }: Props) {
           </Section>
         )}
 
-        <Section title="Raw output">
+        <Section title="Raw output" id={sectionId("Raw output")}>
           <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {meta && Object.keys(meta).length > 0 && (
               <RawDetails summary="Parse metadata">
