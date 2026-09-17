@@ -30,7 +30,7 @@ export type IssueCode =
   | "LOW_CONFIDENCE"
   | "MALFORMED_BLOCK";
 
-const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
+export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   MISSING: "Missing",
   ICON_LIGATURE: "Icon-font glyph name found in the parsed text",
   WRONG_SPLIT: "Value is split incorrectly",
@@ -50,7 +50,7 @@ export function issueMessage(issue: AtsIssue): string {
 }
 
 // Issues keyed by field name; a field with no issues is just absent.
-type FieldIssues<K extends string> = Partial<Record<K, AtsIssue[]>>;
+export type FieldIssues<K extends string> = Partial<Record<K, AtsIssue[]>>;
 
 // Append an issue to a field's list, creating the list on first use.
 // Multiple rules can hit the same field, so never assign the array directly.
