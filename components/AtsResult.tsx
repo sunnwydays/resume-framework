@@ -96,7 +96,7 @@ function GenericValue({ value }: { value: unknown }) {
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2">
           <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
-          <div className="min-w-0">
+          <div className="min-w-0 break-words">
             <GenericValue value={v} />
           </div>
         </div>
@@ -503,13 +503,13 @@ function SkillPill({ skill }: { skill: AtsSkill }) {
         {skill.text || skill.name}
       </span>
       {hasDetails && (
-        <div className="absolute left-0 top-full z-10 mt-1.5 hidden w-64 rounded-md border border-neutral-200 dark:border-neutral-700 bg-surface p-3 text-xs shadow-md group-hover:block">
+        <div className="absolute left-0 top-full z-10 mt-1.5 hidden w-64 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 text-xs shadow-md group-hover:block">
           <div className="mb-1.5 font-semibold">{skill.name}</div>
           <div className="space-y-1">
             {extra.map(([k, v]) => (
               <div key={k} className="flex gap-2">
                 <div className="shrink-0 text-neutral-500">{labelize(k)}:</div>
-                <div className="min-w-0">
+                <div className="min-w-0 break-words">
                   <GenericValue value={v} />
                 </div>
               </div>
