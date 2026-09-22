@@ -24,7 +24,7 @@ export default function InputSection({
   disabled,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("text");
+  const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("pdf");
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
