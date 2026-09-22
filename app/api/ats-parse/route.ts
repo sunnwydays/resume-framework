@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
+
+function getClientIp(req: NextRequest): string {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
 
 export async function POST(req: NextRequest) {
+  const { allowed, retryAfterSeconds } = checkRateLimit(getClientIp(req));
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: `This demo limits parses per visitor to protect the shared API key. You've hit that limit — try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
+      },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+
   let file: File | null;
   let text: string | null;
   try {
