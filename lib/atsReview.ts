@@ -369,12 +369,7 @@ function reviewPhoneNumber(phone: NonNullable<AtsContact["phoneNumbers"]>[number
   return issues;
 }
 
-function lastPathSegment(domain: string): string {
-  const parts = domain.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? domain;
-}
-
-function reviewWebsite(site: NonNullable<AtsContact["websites"]>[number], headerBlock: string): AtsIssue[] {
+function reviewWebsite(site: NonNullable<AtsContact["websites"]>[number], rawText: string): AtsIssue[] {
   const issues: AtsIssue[] = [];
 
   try {
@@ -388,11 +383,20 @@ function reviewWebsite(site: NonNullable<AtsContact["websites"]>[number], header
     });
   }
 
-  const squashedRaw = squash(headerBlock);
-  const squashedDomain = squash(site.domain);
-  const slug = squash(lastPathSegment(site.domain));
+  // Websites (project links especially) can appear anywhere in the resume,
+  // not just the header, so this checks the whole document rather than
+  // headerBlock. Trailing slash stripped since Affinda's `domain` sometimes
+  // carries one that the visible text never does (e.g. a LinkedIn URL).
+  // Deliberately no "last path segment" fallback: a resume that repeats a
+  // project's URL as visible text alongside the hyperlink should match on
+  // the full domain, and falling back to just the slug produced false
+  // negatives (e.g. "ecepathmaker" the slug matching "ecepathmaker.com"
+  // elsewhere in the doc, hiding a real case of a GitHub link that's only
+  // ever a hyperlink target, never visible text).
+  const squashedRaw = squash(rawText);
+  const squashedDomain = squash(site.domain).replace(/\/+$/, "");
 
-  if (!squashedRaw.includes(squashedDomain) && !squashedRaw.includes(slug)) {
+  if (!squashedRaw.includes(squashedDomain)) {
     issues.push({
       code: "NOT_IN_RAW_TEXT",
       severity: "info",
@@ -467,7 +471,7 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
     });
   } else {
     for (const site of websites) {
-      for (const issue of reviewWebsite(site, headerBlock)) {
+      for (const issue of reviewWebsite(site, rawText)) {
         add(fields, "websites", issue);
       }
     }
