@@ -10,16 +10,16 @@ export type Severity = AtsIssue["severity"];
 export const SEVERITY_PENALTY: Record<Severity, number> = {
   critical: 10,
   minor: 3,
-  info: 1,
+  info: 0,
 };
 
 // Highest `min` first; the first band with `min <= score` wins. The score
 // isn't floored, so the last band also catches negatives.
 export const GRADE_BANDS = [
   { min: 85, label: "ATS-ready", tone: "good" },
-  { min: 70, label: "Needs fixes", tone: "warn" },
+  { min: 70, label: "Recommend fixes", tone: "warn" },
   { min: 40, label: "Significant issues", tone: "bad" },
-  { min: -Infinity, label: "Likely misparsed", tone: "bad" },
+  { min: -Infinity, label: "Needs major, major cleanup", tone: "bad" },
 ] as const;
 
 export type GradeBand = (typeof GRADE_BANDS)[number];
