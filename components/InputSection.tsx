@@ -1,6 +1,6 @@
 "use client";
 
-import sample from "@/lib/mocks/affindaSample.json";
+import DevMockPanel from "@/components/DevMockPanel";
 import { AtsParseResponse } from "@/lib/types";
 import { useRef, useState } from "react";
 
@@ -181,15 +181,9 @@ export default function InputSection({
             Parsing&hellip;
           </p>
         )}
-
-        <button
-          type="button"
-          className="ml-auto text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
-          onClick={() => setAtsResult(sample)}
-        >
-          Load sample (dev)
-        </button>
       </div>
+
+      <DevMockPanel setAtsResult={setAtsResult} disabled={disabled} />
     </section>
   );
 }

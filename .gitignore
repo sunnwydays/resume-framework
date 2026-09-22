@@ -1,4 +1,4 @@
-/lib/mocks/affindaSample*.json
+/lib/mocks/*.json
 /resume_revision
 
 # dependencies
