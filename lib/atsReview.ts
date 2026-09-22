@@ -93,6 +93,35 @@ function findIconWords(value: string): string[] {
   return [...new Set(value.match(ICON_WORD_RE) ?? [])];
 }
 
+// URL/email-shaped tokens, so a real address like "github.com/user/repo"
+// isn't mistaken for an icon-font glyph name landing in running text.
+const URLISH_TOKEN_RE = /\b[\w.-]+@[\w.-]+\.\w+|\b(?:https?:\/\/)?[\w-]+(?:\.[\w-]+)+(?:\/\S*)?/gi;
+
+// Same icon words, anchored to the start of a token. Used to tell an icon
+// glued directly onto the front of a URL/email ("Envelopesunny@x.com" — the
+// actual glyph-extraction failure this check exists to catch) apart from a
+// domain that merely contains an icon word as a substring ("github.com").
+const ICON_WORD_PREFIX_RE = new RegExp(
+  `^(${[...ICON_WORDS].sort((a, b) => b.length - a.length).join("|")})`,
+  "i"
+);
+
+// Scans free-running text (as opposed to a single already-isolated field
+// value, e.g. one email) for icon-font glyph names. URL/email-shaped tokens
+// are blanked out first so a visible link like "github.com/..." isn't
+// flagged as a "github" icon glyph, unless an icon name is glued onto the
+// very front of the token with nothing else preceding it in the token —
+// that's the icon-glued-to-contact-info failure, kept intact.
+function findIconWordsInText(text: string): string[] {
+  const stripped = text.replace(URLISH_TOKEN_RE, (token) => {
+    const prefixMatch = token.match(ICON_WORD_PREFIX_RE);
+    if (!prefixMatch) return " ";
+    const rest = token.slice(prefixMatch[0].length);
+    return rest === "" || /^[./]/.test(rest) ? " " : token;
+  });
+  return findIconWords(stripped);
+}
+
 // Lowercase + drop all whitespace, so "su nny@x.com" still matches
 // "sunny@x.com" when checking whether a value appears in the raw text.
 function squash(value: string): string {
@@ -427,7 +456,7 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
 
   // Icon glyphs glued to a specific email are already reported
   const emailIconWords = new Set(emails.flatMap(findIconWords));
-  const headerIconWords = findIconWords(headerBlock).filter((w) => !emailIconWords.has(w));
+  const headerIconWords = findIconWordsInText(headerBlock).filter((w) => !emailIconWords.has(w));
   if (headerIconWords.length > 0) {
     review.section.push({
       code: "ICON_LIGATURE",
@@ -919,7 +948,7 @@ export function reviewRawText(rawText: string): AtsIssue[] {
     });
   }
 
-  const iconWords = findIconWords(bodyText);
+  const iconWords = findIconWordsInText(bodyText);
   if (iconWords.length > 0) {
     issues.push({
       code: "ICON_LIGATURE",
