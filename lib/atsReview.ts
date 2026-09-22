@@ -28,7 +28,8 @@ export type IssueCode =
   | "INVALID_FORMAT"
   | "NOT_IN_RAW_TEXT"
   | "LOW_CONFIDENCE"
-  | "MALFORMED_BLOCK";
+  | "MALFORMED_BLOCK"
+  | "GLYPH_DUPLICATION";
 
 export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   MISSING: "Missing",
@@ -43,6 +44,7 @@ export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   NOT_IN_RAW_TEXT: "Not found in the extracted raw text",
   LOW_CONFIDENCE: "Low confidence",
   MALFORMED_BLOCK: "This entry wasn't parsed correctly",
+  GLYPH_DUPLICATION: "Text repeated many times in a row in the extracted output",
 };
 
 export function issueMessage(issue: AtsIssue): string {
@@ -993,6 +995,29 @@ const LIGATURE_RE = new RegExp(`[${Object.keys(LIGATURES).join("")}]`, "g");
 // instead of producing a readable glyph name like the ones in ICON_WORDS.
 const PRIVATE_USE_RE = /[-]/;
 
+// A short line repeated back-to-back many times in a row is the signature
+// of a rendering trick that draws the same glyphs multiple times for a
+// visual effect -- e.g. a hand-rolled underline/outline built from several
+// stacked copies of the text (LaTeX's \contour, used this way, is one real
+// example) -- rather than genuine repeated content. Real resume content
+// essentially never repeats a whole line verbatim this many times in a row.
+const REPEATED_LINE_THRESHOLD = 4;
+
+function findRepeatedLineRuns(rawText: string): string[] {
+  const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const found = new Set<string>();
+  let run = 1;
+  for (let i = 1; i <= lines.length; i++) {
+    if (i < lines.length && lines[i] === lines[i - 1]) {
+      run++;
+    } else {
+      if (run >= REPEATED_LINE_THRESHOLD) found.add(lines[i - 1]);
+      run = 1;
+    }
+  }
+  return [...found];
+}
+
 // Whole-document checks, as opposed to the header-only icon-word scan in
 // reviewContact. Not tied to any one field, so this returns a flat list.
 export function reviewRawText(rawText: string): AtsIssue[] {
@@ -1039,6 +1064,16 @@ export function reviewRawText(rawText: string): AtsIssue[] {
       severity: "info",
       message: "Word(s) appear to be hyphenated across a line break in the extracted text",
       fix: 'A hyphenated line-wrap (e.g. "opti-\\nmization") can prevent keyword matching. Usually harmless, but worth checking near important keywords.',
+    });
+  }
+
+  const repeatedRuns = findRepeatedLineRuns(rawText);
+  if (repeatedRuns.length > 0) {
+    issues.push({
+      code: "GLYPH_DUPLICATION",
+      severity: "minor",
+      message: `Text repeated many times in a row in the extracted output: ${repeatedRuns.map((r) => `"${snippet(r)}"`).join(", ")}`,
+      fix: "Likely a decorative text effect drawing the same glyphs multiple times for a visual style (e.g. a hand-rolled underline built from stacked copies of the text, like LaTeX's \\contour). Use a plain underline or no special styling for that text instead.",
     });
   }
 
