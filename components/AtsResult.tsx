@@ -542,15 +542,41 @@ function ToggleButton({
 const preCls =
   "max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-3 text-xs leading-relaxed";
 
+// Copies `text` to the clipboard, showing brief "Copied" feedback. Lives
+// inside a <summary> in RawDetails, so clicks must not bubble up and toggle
+// the <details> open/closed.
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+      className="ml-auto shrink-0 rounded-md border border-neutral-300 dark:border-neutral-700 bg-surface px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 transition-colors hover:border-neutral-500 hover:text-neutral-900 dark:hover:border-neutral-500 dark:hover:text-neutral-100"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 // Collapsible row in the "Raw output" section. The raw JSON is `open` by
 // default since showing the unmodified parser response is the point of Stage 1.
 function RawDetails({
   summary,
   open,
+  copyText,
   children,
 }: {
   summary: string;
   open?: boolean;
+  copyText?: string;
   children: ReactNode;
 }) {
   return (
@@ -563,6 +589,7 @@ function RawDetails({
           &#9656;
         </span>
         {summary}
+        {copyText && <CopyButton text={copyText} />}
       </summary>
       <div className="mt-3">{children}</div>
     </details>
@@ -618,6 +645,7 @@ export default function AtsResult({ result, report }: Props) {
   const otherTopLevel = Object.entries(asRecord(data)).filter(
     ([k]) => !KNOWN_TOP_LEVEL.includes(k)
   );
+  const rawJson = JSON.stringify(result, null, 2);
 
   return (
     <ShowIssuesContext.Provider value={{ showIssues, showTips }}>
@@ -923,19 +951,23 @@ export default function AtsResult({ result, report }: Props) {
             )}
 
             {typeof data.rawText === "string" && data.rawText && (
-              <RawDetails summary="Raw extracted text">
+              <RawDetails summary="Raw extracted text" copyText={data.rawText}>
                 <pre className={preCls}>{data.rawText}</pre>
               </RawDetails>
             )}
 
             {typeof data.redactedText === "string" && data.redactedText && (
-              <RawDetails summary="Redacted text">
+              <RawDetails summary="Redacted text" copyText={data.redactedText}>
                 <pre className={preCls}>{data.redactedText}</pre>
               </RawDetails>
             )}
 
-            <RawDetails summary="Raw JSON from resume parser" open>
-              <pre className={preCls}>{JSON.stringify(result, null, 2)}</pre>
+            <RawDetails
+              summary="Raw JSON from resume parser"
+              open
+              copyText={rawJson}
+            >
+              <pre className={preCls}>{rawJson}</pre>
             </RawDetails>
           </div>
         </Section>
