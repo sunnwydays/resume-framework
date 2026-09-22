@@ -168,7 +168,8 @@ export default function InputSection({
           type="button"
           className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:disabled:hover:bg-neutral-100"
           disabled={
-            disabled || (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())
+            disabled ||
+            (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())
           }
           onClick={runAtsParse}
         >

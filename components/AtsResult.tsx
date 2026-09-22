@@ -49,7 +49,7 @@ function isEmptyValue(value: unknown): boolean {
   return false;
 }
 
-function formatDatePoint(d?: { date: string; precision: string }): string {
+function formatDatePoint(d?: { date?: string; precision?: string }): string {
   if (!d?.date) return "";
   const parsed = new Date(d.date);
   if (Number.isNaN(parsed.getTime())) return d.date;

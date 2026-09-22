@@ -5,8 +5,8 @@
 // other fields are set as unknown.
 
 export interface AtsDateRange {
-  start?: { date: string; precision: string };
-  end?: { date: string; precision: string };
+  start?: { date?: string; precision?: string };
+  end?: { date?: string; precision?: string; current?: boolean };
   durationMonths?: number;
 }
 
