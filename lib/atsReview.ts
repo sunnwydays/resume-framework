@@ -701,7 +701,7 @@ export function reviewProject(
     if (looksLikeBullet(title, list, index)) {
       add(fields, "title", {
         code: "MALFORMED_BLOCK",
-        severity: "critical",
+        severity: "minor",
         message: "This looks like a bullet point, not a project name",
         fix: "A bullet wrapped onto a new line, and the wrapped remainder got parsed as its own project entry. This isn't about the bullet character (that can be perfectly consistent) -- shorten or reword the bullet so it fits on one visual line, since a wrapped continuation can still be misread as a new heading.",
         evidence: snippet(title),
@@ -722,13 +722,16 @@ export function reviewProject(
     // These don't get a MALFORMED_BLOCK (that would double-count the same
     // root cause isProjectFragment already excuses from the missing-field
     // checks below) but are worth surfacing on the entry itself, not just
-    // in the section-level count, since the fix is concrete and specific.
+    // in the section-level count. No fix text recommends a specific layout
+    // fix here: folding the tech/link line into the title block or keeping
+    // everything in one heading has been tried and didn't reliably stop
+    // Affinda from splitting it into its own entry anyway.
     if (!project.description?.trim() && looksLikeBareDomainOrg(project.organization)) {
       add(fields, "title", {
         code: "DUPLICATE",
-        severity: "info",
+        severity: "minor",
         message: "This looks like a tech-stack/link line, not its own project",
-        fix: `Label it (e.g. "Tech: ${title}") directly under the real project's title instead of leaving it as its own unlabeled line.`,
+        fix: "This is likely a parser artifact rather than a formatting problem -- putting the tech/link line on its own line, in the title, or folded into the project's heading block can all still get split into a separate entry by the parser.",
         evidence: snippet(title),
       });
     }
@@ -736,7 +739,7 @@ export function reviewProject(
     if (!project.description?.trim() && isRepeatedTitleFragment(title, list, index)) {
       add(fields, "title", {
         code: "DUPLICATE",
-        severity: "info",
+        severity: "minor",
         message: "Repeats another entry's title with no new content",
         fix: "Keep the project's tech stack, link, and dates all in the same heading block as the title, rather than a second heading further down.",
         evidence: snippet(title),
@@ -781,7 +784,7 @@ export function reviewProjects(list: AtsProject[]): ProjectsReview {
       code: "DUPLICATE",
       severity: "info",
       message: `${fragmentCount} of ${list.length} project entries look like parser fragments (a tech-stack/link line, a repeated heading, or a wrapped bullet) rather than real projects.`,
-      fix: 'Put the tech stack and link on their own clearly separate line under the project title, prefixed with a label like "Tech:" so it can\'t be mistaken for a separate project heading (see the per-entry notes above for which fragment is which).',
+      fix: "See the per-entry notes above for which fragment is which -- some of these are parser artifacts that persist across reasonable layout changes rather than formatting issues you can reliably fix.",
     });
   }
 
