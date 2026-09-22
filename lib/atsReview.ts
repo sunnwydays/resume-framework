@@ -716,6 +716,30 @@ export function reviewProject(
         evidence: snippet(title),
       });
     }
+
+    // These don't get a MALFORMED_BLOCK (that would double-count the same
+    // root cause isProjectFragment already excuses from the missing-field
+    // checks below) but are worth surfacing on the entry itself, not just
+    // in the section-level count, since the fix is concrete and specific.
+    if (!project.description?.trim() && looksLikeBareDomainOrg(project.organization)) {
+      add(fields, "title", {
+        code: "DUPLICATE",
+        severity: "info",
+        message: "This looks like a tech-stack/link line, not its own project",
+        fix: `Label it (e.g. "Tech: ${title}") directly under the real project's title instead of leaving it as its own unlabeled line.`,
+        evidence: snippet(title),
+      });
+    }
+
+    if (!project.description?.trim() && isRepeatedTitleFragment(title, list, index)) {
+      add(fields, "title", {
+        code: "DUPLICATE",
+        severity: "info",
+        message: "Repeats another entry's title with no new content",
+        fix: "Keep the project's tech stack, link, and dates all in the same heading block as the title, rather than a second heading further down.",
+        evidence: snippet(title),
+      });
+    }
   }
 
   // Skip "missing description/date" penalties on entries that are really
@@ -755,7 +779,7 @@ export function reviewProjects(list: AtsProject[]): ProjectsReview {
       code: "DUPLICATE",
       severity: "info",
       message: `${fragmentCount} of ${list.length} project entries look like parser fragments (a tech-stack/link line, a repeated heading, or a wrapped bullet) rather than real projects.`,
-      fix: "Put the tech stack and link on their own clearly separate line under the project title.",
+      fix: 'Put the tech stack and link on their own clearly separate line under the project title, prefixed with a label like "Tech:" so it can\'t be mistaken for a separate project heading (see the per-entry notes above for which fragment is which).',
     });
   }
 
