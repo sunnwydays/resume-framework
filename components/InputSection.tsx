@@ -73,18 +73,18 @@ export default function InputSection({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => setResumeFormat("text")}
-            className={toggleCls(resumeFormat === "text")}
-          >
-            Text
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
             onClick={() => setResumeFormat("pdf")}
             className={toggleCls(resumeFormat === "pdf")}
           >
             PDF
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setResumeFormat("text")}
+            className={toggleCls(resumeFormat === "text")}
+          >
+            Text
           </button>
         </div>
       </div>
