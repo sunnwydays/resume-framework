@@ -60,6 +60,10 @@ export interface AtsProject {
   title?: string;
   description?: string;
   dateRange?: AtsDateRange;
+  // Affinda sometimes fills this with a bare domain rather than a company/
+  // org name when a project heading's tech-stack line gets split into its
+  // own entry (e.g. "github.com/user/repo"); used to detect that case.
+  organization?: string;
 }
 
 export interface AtsSkill {

@@ -642,6 +642,42 @@ function looksLikeBullet(title: string, list: AtsProject[], selfIndex: number): 
   );
 }
 
+// A no-description entry whose title exactly repeats another entry's title
+// (e.g. a project heading parsed twice, the second time carrying only a
+// date) is the same split-heading pattern as findSplitTitleMatch, just
+// without a separator to key off of.
+function isRepeatedTitleFragment(title: string, list: AtsProject[], selfIndex: number): boolean {
+  const squashedTitle = squash(title);
+  return list.some((other, j) => j !== selfIndex && other.title && squash(other.title) === squashedTitle);
+}
+
+// A bare domain ("github.com/user/repo", "example.com") rather than a real
+// org/company name in `organization` is a strong signal this entry is
+// really a "Tech stack | URL" line that got split off from a project
+// heading into its own entry.
+const BARE_DOMAIN_RE = /^[\w-]+(?:\.[\w-]+)+(?:\/\S*)?$/;
+
+function looksLikeBareDomainOrg(organization: string | undefined): boolean {
+  return !!organization && BARE_DOMAIN_RE.test(organization.trim());
+}
+
+// An entry that isn't a real (if incomplete) project, but noise from the
+// parser splitting one project heading into several entries: a wrapped
+// bullet mistaken for a title, a heading repeated with no new content, or a
+// tech-stack/link line with no description of its own. Missing-field
+// penalties are skipped for these (see reviewProject) since dinging them
+// for "no description" on top of already being flagged as malformed just
+// double-counts the same root cause.
+function isProjectFragment(project: AtsProject, index: number, list: AtsProject[]): boolean {
+  const title = project.title?.trim();
+  if (!title || project.description?.trim()) return false;
+  return (
+    looksLikeBullet(title, list, index) ||
+    isRepeatedTitleFragment(title, list, index) ||
+    looksLikeBareDomainOrg(project.organization)
+  );
+}
+
 // Per-entry rules only. Cross-entry rules (duplicate/split titles, the
 // section summary) live in reviewProjects, since they need the full list.
 export function reviewProject(
@@ -682,21 +718,28 @@ export function reviewProject(
     }
   }
 
-  if (!project.description || project.description.trim().length === 0) {
-    add(fields, "description", {
-      code: "MISSING",
-      severity: "minor",
-      fix: "Ensure consistent, simple formatting, or add 2-4 bullets.",
-    });
-  }
+  // Skip "missing description/date" penalties on entries that are really
+  // just noise from a parser split (see isProjectFragment) rather than an
+  // actual incomplete project — those already get one issue above (or are
+  // covered by the section-level count below), so this avoids charging the
+  // same root cause three times per fragment.
+  if (!isProjectFragment(project, index, list)) {
+    if (!project.description || project.description.trim().length === 0) {
+      add(fields, "description", {
+        code: "MISSING",
+        severity: "minor",
+        fix: "Ensure consistent, simple formatting, or add 2-4 bullets.",
+      });
+    }
 
-  if (!project.dateRange?.start?.date) {
-    add(fields, "dateRange", {
-      code: "MISSING",
-      severity: "minor",
-      message: "Missing start date",
-      fix: "Write a date on the same line as the project name.",
-    });
+    if (!project.dateRange?.start?.date) {
+      add(fields, "dateRange", {
+        code: "MISSING",
+        severity: "minor",
+        message: "Missing start date",
+        fix: "Write a date on the same line as the project name.",
+      });
+    }
   }
 
   return fields;
@@ -706,14 +749,13 @@ export function reviewProjects(list: AtsProject[]): ProjectsReview {
   const entries = list.map((p, i) => reviewProject(p, i, list));
   const section: AtsIssue[] = [];
 
-  const complete = list.filter(
-    (p) => p.title?.trim() && p.description?.trim()
-  ).length;
-  if (list.length > 1 && complete < list.length) {
+  const fragmentCount = list.filter((p, i) => isProjectFragment(p, i, list)).length;
+  if (fragmentCount > 0) {
     section.push({
       code: "DUPLICATE",
       severity: "info",
-      message: `${list.length} project entries parsed, but only ${complete} have both a name and a description. Parser likely split some projects into multiple entries.`,
+      message: `${fragmentCount} of ${list.length} project entries look like parser fragments (a tech-stack/link line, a repeated heading, or a wrapped bullet) rather than real projects.`,
+      fix: "Put the tech stack and link on their own clearly separate line under the project title.",
     });
   }
 
