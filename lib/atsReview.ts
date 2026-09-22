@@ -701,7 +701,7 @@ export function reviewProject(
         code: "MALFORMED_BLOCK",
         severity: "critical",
         message: "This looks like a bullet point, not a project name",
-        fix: "A bullet line became its own project entry. Start each line with a consistent bullet character.",
+        fix: "A bullet wrapped onto a new line, and the wrapped remainder got parsed as its own project entry. This isn't about the bullet character (that can be perfectly consistent) -- shorten or reword the bullet so it fits on one visual line, since a wrapped continuation can still be misread as a new heading.",
         evidence: snippet(title),
       });
     }
