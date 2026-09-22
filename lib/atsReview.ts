@@ -288,8 +288,19 @@ function compareEmailToRaw(email: string, headerBlock: string): AtsIssue[] {
     });
   }
 
-  const atIndex = headerBlock.indexOf(`@${email.split("@")[1] ?? ""}`);
+  const domain = email.split("@")[1] ?? "";
+  const atIndex = headerBlock.indexOf(`@${domain}`);
   if (atIndex === -1) {
+    // The parser itself sometimes reflows extra whitespace into its raw
+    // text (e.g. "sunny@gma il . com"), which defeats a literal substring
+    // search even though the address is genuinely present and unbroken in
+    // the source document. Only report the domain as missing if it can't
+    // be found even ignoring whitespace; when it can, the address is
+    // present, just reflowed, so there's nothing more to check
+    // positionally (the finer-grained checks below need a real index).
+    if (squash(headerBlock).includes(squash(`@${domain}`))) {
+      return issues;
+    }
     issues.push({
       code: "NOT_IN_RAW_TEXT",
       severity: "minor",
