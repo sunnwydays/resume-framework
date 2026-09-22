@@ -26,9 +26,19 @@ export default function Home() {
           header and content sharing the right column so they stay aligned. */}
       <div className="lg:grid lg:grid-cols-[10rem_minmax(0,48rem)] lg:gap-x-10">
         <header className="mb-12 lg:col-start-2">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Resume Framework
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              Resume Framework
+            </h1>
+            <a
+              href="https://github.com/sunnwydays/resume-framework"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 shrink-0 text-sm text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+            >
+              GitHub
+            </a>
+          </div>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-400">
             Stage 1 of 3. Parse your resume the way an ATS would, and see exactly
             what it extracts.
