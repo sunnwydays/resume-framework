@@ -94,6 +94,15 @@ is `[key: string]: unknown` and falls through to the generic renderer.
 
 ## Components
 
+- **`components/WhyThisExists.tsx`** — static "Why this exists" block in
+  the page header: a row of sourced ATS-filtering stat cards, then a
+  "What we learned digging into this" section with deeper, less-repeated
+  findings (the 7.4s figure is the *first skim* not total attention span;
+  ATS is a searchable database, not an auto-reject gate; headers/footers/
+  tables get silently dropped or scrambled; application volume, not bots,
+  explains most of the "vanished into a void" feeling). Keep every claim
+  linked to its source, and don't add the unsourced "75% auto-rejected"
+  myth back as a fact — it's called out explicitly as debunked.
 - **`components/InputSection.tsx`** — text/PDF radio toggle, textarea or
   file upload, "Run ATS parse" button (posts `FormData` to
   `/api/ats-parse`), and a dev-only "Load ats sample" button that loads
@@ -114,10 +123,14 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   list sections, and a red/amber dot for sections with critical/minor
   issues. Scroll-spy is a rAF-throttled scroll listener, not
   IntersectionObserver, so the last item can become active at page bottom.
-  Two gotchas already hit: don't wrap the component in a `div` in
-  `page.tsx` (sticky can't stick past its parent), and don't
-  `scrollIntoView` the active pill (Chrome scrolls the page to a sticky
-  child's static position) — it sets `scrollLeft` by hand.
+  Three gotchas already hit: don't wrap the component in a `div` in
+  `page.tsx` (sticky can't stick past its parent); the rail's grid
+  placement must start at `row-start-1` with `row-span-2` (spanning the
+  header's row too), not `row-start-2` — otherwise its sticky containing
+  block only begins at the content row, so it doesn't appear/stick until
+  you've scrolled down to Upload instead of being visible from page load;
+  and don't `scrollIntoView` the active pill (Chrome scrolls the page to a
+  sticky child's static position) — it sets `scrollLeft` by hand.
 
 ## Known constraints / don't re-litigate these
 

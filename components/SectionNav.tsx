@@ -13,6 +13,7 @@ interface Props {
 
 // Anchor ids that live outside the graded sections. The graded ones use
 // sectionId(label) so they stay in sync with the <Section id> in AtsResult.
+export const TOP_ID = "top";
 export const UPLOAD_ID = "upload";
 export const SCORE_ID = "score";
 
@@ -156,6 +157,12 @@ export default function SectionNav({ report, railClassName = "" }: Props) {
         aria-label="Page sections"
         className={`hidden lg:block sticky top-6 self-start ${railClassName}`}
       >
+        <a
+          href={`#${TOP_ID}`}
+          className="mb-6 block text-sm font-semibold tracking-tight text-neutral-900 transition-colors hover:text-neutral-600 dark:text-neutral-100 dark:hover:text-neutral-300"
+        >
+          Resume Framework
+        </a>
         <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
           On this page
         </div>
@@ -194,12 +201,20 @@ export default function SectionNav({ report, railClassName = "" }: Props) {
         </ul>
       </nav>
 
-      {/* < lg: sticky strip under the header, scrolls sideways */}
-      <div className="lg:hidden sticky top-0 z-20 -mx-5 sm:-mx-6 mb-10 border-b border-neutral-200 dark:border-neutral-800 bg-background/95 backdrop-blur">
-        <nav aria-label="Page sections">
+      {/* < lg: sticky strip under the header, scrolls sideways. The title
+          stays fixed at the left so it's always reachable; only the
+          section pills scroll. */}
+      <div className="lg:hidden sticky top-0 z-20 -mx-5 sm:-mx-6 mb-10 flex items-center gap-3 border-b border-neutral-200 pl-5 dark:border-neutral-800 sm:pl-6 bg-background/95 backdrop-blur">
+        <a
+          href={`#${TOP_ID}`}
+          className="shrink-0 py-2 text-xs font-semibold tracking-tight text-neutral-900 dark:text-neutral-100"
+        >
+          Resume Framework
+        </a>
+        <nav aria-label="Page sections" className="min-w-0 flex-1">
           <ul
             ref={stripRef}
-            className="relative flex gap-4 overflow-x-auto px-5 sm:px-6 text-xs whitespace-nowrap scrollbar-none"
+            className="relative flex gap-4 overflow-x-auto pr-5 sm:pr-6 text-xs whitespace-nowrap scrollbar-none"
           >
             {items.map((item) => {
               const current = active === item.id;
