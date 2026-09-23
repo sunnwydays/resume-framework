@@ -370,8 +370,8 @@ function compareEmailToRaw(email: string, headerBlock: string): AtsIssue[] {
 function reviewPhoneNumber(phone: NonNullable<AtsContact["phoneNumbers"]>[number], headerBlock: string): AtsIssue[] {
   const issues: AtsIssue[] = [];
 
-  const rawDigits = phone.raw.replace(/\D/g, "");
-  const nationalDigits = phone.nationalNumber.replace(/\D/g, "");
+  const rawDigits = (phone.raw ?? "").replace(/\D/g, "");
+  const nationalDigits = (phone.nationalNumber ?? "").replace(/\D/g, "");
   if (rawDigits.length < 7 || rawDigits.length > 15) {
     issues.push({
       code: "INVALID_FORMAT",
@@ -388,7 +388,7 @@ function reviewPhoneNumber(phone: NonNullable<AtsContact["phoneNumbers"]>[number
     });
   }
 
-  if (!squash(headerBlock).includes(squash(phone.raw))) {
+  if (!squash(headerBlock).includes(squash(phone.raw ?? ""))) {
     issues.push({
       code: "NOT_IN_RAW_TEXT",
       severity: "info",

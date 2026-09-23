@@ -1,6 +1,8 @@
 "use client";
 
 import DevMockPanel from "@/components/DevMockPanel";
+import SampleGallery from "@/components/SampleGallery";
+import { SampleResume } from "@/lib/samples";
 import { AtsParseResponse } from "@/lib/types";
 import { useRef, useState } from "react";
 
@@ -10,6 +12,7 @@ interface Props {
   resumePdf: File | null;
   setResumePdf: (v: File) => void;
   setAtsResult: (v: AtsParseResponse | null) => void;
+  onLoadSample: (sample: SampleResume) => void;
   disabled: boolean;
 }
 
@@ -21,6 +24,7 @@ export default function InputSection({
   resumePdf,
   setResumePdf,
   setAtsResult,
+  onLoadSample,
   disabled,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -182,6 +186,8 @@ export default function InputSection({
           </p>
         )}
       </div>
+
+      <SampleGallery onLoadSample={onLoadSample} disabled={disabled} />
 
       <DevMockPanel setAtsResult={setAtsResult} disabled={disabled} />
     </section>

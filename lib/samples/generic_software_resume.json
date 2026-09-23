@@ -1,0 +1,1752 @@
+{
+  "data": {
+    "achievements": [
+      "Core service for all recommendation"
+    ],
+    "associations": [],
+    "certifications": [],
+    "contact": {
+      "emails": [
+        "mail@website.com",
+        "sourabh@sourabhbajaj.com"
+      ],
+      "phoneNumbers": [
+        {
+          "raw": "+1-123-456-7890"
+        }
+      ],
+      "websites": [
+        {
+          "domain": "sourabhbajaj.com/",
+          "type": "other",
+          "url": "http://sourabhbajaj.com/"
+        }
+      ]
+    },
+    "education": [
+      {
+        "dateRange": {
+          "durationMonths": 17,
+          "end": {
+            "date": "2013-12-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2012-08-01",
+            "precision": "month"
+          }
+        },
+        "fieldsOfStudy": [
+          "Computer Science"
+        ],
+        "grade": {
+          "metric": "GPA",
+          "raw": "GPA: 4.00",
+          "value": 4
+        },
+        "institution": "Georgia Institute of Technology",
+        "level": "master",
+        "location": {
+          "raw": "Atlanta, GA"
+        },
+        "minors": [],
+        "qualification": "Master of Science"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 48,
+          "end": {
+            "date": "2012-07-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2008-08-01",
+            "precision": "month"
+          }
+        },
+        "fieldsOfStudy": [
+          "Electrical and Electronics"
+        ],
+        "grade": {
+          "metric": "GPA",
+          "raw": "GPA: 3.66",
+          "value": 3.66
+        },
+        "institution": "Birla Institute of Technology and Science",
+        "level": "bachelor",
+        "location": {
+          "city": "Pilāni",
+          "coordinates": {
+            "latitude": 28.36725,
+            "longitude": 75.60352
+          },
+          "country": "India",
+          "countryCode": "IN",
+          "formatted": "Pilāni, Rajasthan, India",
+          "raw": "Pilani, India",
+          "state": "Rajasthan"
+        },
+        "minors": [],
+        "qualification": "Bachelor of Engineering in Electrical and Electronics"
+      }
+    ],
+    "employmentMetrics": {
+      "averageTenureMonths": 59.3,
+      "currentRoleTenureMonths": 120,
+      "gaps": [],
+      "longestTenureMonths": 120,
+      "totalExperienceMonths": 178
+    },
+    "interests": [],
+    "languages": [],
+    "patents": [],
+    "person": {
+      "name": {
+        "family": "Bajaj",
+        "given": "Sourabh"
+      },
+      "nationalities": []
+    },
+    "preferredWorkLocations": [],
+    "projects": [
+      {
+        "description": "Open source python library for financial data analysis and machine learning for finance.",
+        "title": "QuantSoftware Toolkit"
+      },
+      {
+        "description": "Data Visualization of Git Log data using D3 to analyze project trends over time.",
+        "title": "Github Visualization"
+      },
+      {
+        "description": "Music and Movie recommender systems using collaborative filtering on public datasets.",
+        "title": "Recommendation System"
+      },
+      {
+        "title": "Programming Skills"
+      },
+      {
+        "title": "Languages : Scala, Python, Javascript, C++, SQL, Java Technologies : AWS, Play, React, Kafka, GCE"
+      }
+    ],
+    "publications": [],
+    "rawText": "Sourabh Bajaj Email : mail@website.com\nhttp://www.sourabhbajaj.com Mobile : +1-123-456-7890\nEducation\n• Georgia Institute of Technology Atlanta, GA\nMaster of Science in Computer Science; GPA: 4. 00 Aug. 2012 – Dec. 2013\n• Birla Institute of Technology and Science Pilani, India\nBachelor of Engineering in Electrical and Electronics; GPA: 3. 66 (9. 15/10. 0) Aug. 2008 – July. 2012\nExperience\n• Google Mountain View, CA\nSoftware Engineer Oct 2016 - Present\n◦ Tensorflow : TensorFlow is an open source software library for numerical computation using data flow graphs;\nprimarily used for training deep learning models.\n◦ Apache Beam : Apache Beam is a unified model for defining both batch and streaming data-parallel processing\npipelines, as well as a set of language-specific SDKs for constructing pipelines and runners.\n• Coursera Mountain View, CA\nSenior Software Engineer Jan 2014 - Oct 2016\n◦ Notifications : Service for sending email, push and in-app notifications. Involved in features such as delivery time\noptimization, tracking, queuing and A/B testing. Built an internal app to run batch campaigns for marketing etc.\n◦ Nostos : Bulk data processing and injection service from Hadoop to Cassandra and provides a thin REST layer on\ntop for serving offline computed data online.\n◦ Workflows : Dataduct an open source workflow framework to create and manage data pipelines leveraging\nreusables patterns to expedite developer productivity.\n◦ Data Collection : Designed the internal survey and crowd sourcing platfowm which allowed for creating various\ntasks for crowd sourding or embedding surveys across the Coursera platform.\n◦ Dev Environment : Analytics environment based on docker and AWS, standardized the python and R\ndependencies. Wrote the core libraries that are shared by all data scientists.\n◦ Data Warehousing : Setup, schema design and management of Amazon Redshift. Built an internal app for access\nto the data using a web interface. Dataduct integration for daily ETL injection into Redshift.\n◦ Recommendations : Core service for all recommendation systems at Coursesa, currently used on the homepage\nand throughout the content discovery process. Worked on both offline training and online serving.\n◦ Content Discovery : Improved content discovery by building a new onboarding experience on coursera. Using this\nto personalize the search and browse experience. Also worked on ranking and indexing improvements.\n◦ Course Dashboards : Instructor dashboards and learner surveying tools, which helped instructors run their class\nbetter by providing data on Assignments and Learner Activity.\n• Lucena Research Atlanta, GA\nData Scientist Summer 2012 and 2013\n◦ Portfolio Management : Created models for portfolio hedging, portfolio optimization and price forecasting. Also\ncreating a strategy backtesting engine used for simulating and backtesting strategies.\n◦ QuantDesk : Python backend for a web application used by hedge fund managers for portfolio management.\nProjects\n• QuantSoftware Toolkit : Open source python library for financial data analysis and machine learning for finance.\n• Github Visualization : Data Visualization of Git Log data using D3 to analyze project trends over time.\n• Recommendation System : Music and Movie recommender systems using collaborative filtering on public datasets.\nProgramming Skills\n• Languages : Scala, Python, Javascript, C++, SQL, Java Technologies : AWS, Play, React, Kafka, GCE",
+    "redactedText": "******* ***** Email : ****************\n*************************** Mobile : ***************\nEducation\n• Georgia Institute of Technology Atlanta, GA\nMaster of Science in Computer Science; GPA: 4. 00 Aug. 2012 – Dec. 2013\n• Birla Institute of Technology and Science Pilani, India\nBachelor of Engineering in Electrical and Electronics; GPA: ** ** *** **/10. 0) Aug. 2008 – July. 2012\nExperience\n• Google Mountain View, CA\nSoftware Engineer Oct 2016 - Present\n◦ Tensorflow : TensorFlow is an open source software library for numerical computation using data flow graphs;\nprimarily used for training deep learning models.\n◦ Apache Beam : Apache Beam is a unified model for defining both batch and streaming data-parallel processing\npipelines, as well as a set of language-specific SDKs for constructing pipelines and runners.\n• Coursera Mountain View, CA\nSenior Software Engineer Jan 2014 - Oct 2016\n◦ Notifications : Service for sending email, push and in-app notifications. Involved in features such as delivery time\noptimization, tracking, queuing and A/B testing. Built an internal app to run batch campaigns for marketing etc.\n◦ Nostos : Bulk data processing and injection service from Hadoop to Cassandra and provides a thin REST layer on\ntop for serving offline computed data online.\n◦ Workflows : Dataduct an open source workflow framework to create and manage data pipelines leveraging\nreusables patterns to expedite developer productivity.\n◦ Data Collection : Designed the internal survey and crowd sourcing platfowm which allowed for creating various\ntasks for crowd sourding or embedding surveys across the Coursera platform.\n◦ Dev Environment : Analytics environment based on docker and AWS, standardized the python and R\ndependencies. Wrote the core libraries that are shared by all data scientists.\n◦ Data Warehousing : Setup, schema design and management of Amazon Redshift. Built an internal app for access\nto the data using a web interface. Dataduct integration for daily ETL injection into Redshift.\n◦ Recommendations : Core service for all recommendation systems at Coursesa, currently used on the homepage\nand throughout the content discovery process. Worked on both offline training and online serving.\n◦ Content Discovery : Improved content discovery by building a new onboarding experience on coursera. Using this\nto personalize the search and browse experience. Also worked on ranking and indexing improvements.\n◦ Course Dashboards : Instructor dashboards and learner surveying tools, which helped instructors run their class\nbetter by providing data on Assignments and Learner Activity.\n• Lucena Research Atlanta, GA\nData Scientist Summer 2012 and 2013\n◦ Portfolio Management : Created models for portfolio hedging, portfolio optimization and price forecasting. Also\ncreating a strategy backtesting engine used for simulating and backtesting strategies.\n◦ QuantDesk : Python backend for a web application used by hedge fund managers for portfolio management.\nProjects\n• QuantSoftware Toolkit : Open source python library for financial data analysis and machine learning for finance.\n• Github Visualization : Data Visualization of Git Log data using D3 to analyze project trends over time.\n• Recommendation System : Music and Movie recommender systems using collaborative filtering on public datasets.\nProgramming Skills\n• Languages : Scala, Python, Javascript, C++, SQL, Java Technologies : AWS, Play, React, Kafka, GCE",
+    "referees": [],
+    "skills": [
+      {
+        "name": "Apache Kafka",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mbvtqgvge9",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Kafka"
+      },
+      {
+        "name": "Collaborative Filtering",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_79grtayzge",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "collaborative filtering"
+      },
+      {
+        "name": "Computer Science",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mwp7zh48rc",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Computer Science"
+      },
+      {
+        "name": "Data Analysis",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_tmdd79xe9g",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "data analysis"
+      },
+      {
+        "name": "Data Visualization",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_75khn77t73",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Data Visualization"
+      },
+      {
+        "name": "Electronics",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_txeyxv7tf6",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Electronics"
+      },
+      {
+        "name": "Extract Transform Load (ETL)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_aebp39ff7p",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "ETL"
+      },
+      {
+        "name": "Finance",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_fcsrbz7e7f",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "finance"
+      },
+      {
+        "name": "Git (Version Control System)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h8abcdpmm2",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Git"
+      },
+      {
+        "name": "Google Compute Engine (GCE)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_q5sjg4fgxs",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "GCE"
+      },
+      {
+        "name": "Java (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h6k9k3hm3f",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Java Technologies"
+      },
+      {
+        "name": "JavaScript (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nb3p6pg564",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Javascript"
+      },
+      {
+        "name": "Machine Learning",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_48gxta9wkj",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "machine learning"
+      },
+      {
+        "name": "Musician and Artist Management",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_a3xeaxtx2t",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Music"
+      },
+      {
+        "name": "React.js (Javascript Library)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mvrf4ykx7e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "React"
+      },
+      {
+        "name": "Recommender Systems",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_qrs5mrmyb9",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "recommender systems"
+      },
+      {
+        "name": "Scala (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_jc4dp5h8bp",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Scala"
+      },
+      {
+        "name": "SQL (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_rgfwa86y3z",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "SQL"
+      },
+      {
+        "name": "Visualization",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_kcamsnqtq8",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Visualization"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Amazon Redshift",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_eafxcwwmr5",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Amazon Redshift"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Amazon Web Services",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_e675p8fk2e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "AWS"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Analytics",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_pwsfwfazx2",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Analytics"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "Apache Beam",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_f9qaxvdrwr",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Apache Beam"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Apache Cassandra",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_sb2ef8zrk4",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Cassandra"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Apache Hadoop",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_2qgvanne52",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Hadoop"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Back End (Software Engineering)",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_jc3tr7c2pm",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Python backend"
+      },
+      {
+        "experienceMonths": 178,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "C++ (Programming Language)",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          },
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          },
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_8ye6g75ttz",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "C++"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Client Onboarding",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_4tqcdpvmha",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "onboarding experience"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Dashboard",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_4jqv5q7rsj",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "dashboards"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Data Collection",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_d3a7p5pax3",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Data Collection"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Data Pipelines",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_syfack2vf2",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "data pipelines"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Data Processing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_yvd7hpa4nv",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "data processing"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Data Warehousing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_kddwg6tak4",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Data Warehousing"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Database Schema",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_3hwn85bd84",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "schema design"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "Deep Learning",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_bdper9cz2q",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "deep learning models"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Development Environment",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_kktn84f7j6",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Dev Environment"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Docker (Software)",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_5z6g6h78dk",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "docker"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Indexing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_py8cd4c4wb",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "indexing"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Marketing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_bvmbymvtpw",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "marketing"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "Numerical Computing",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_33cqy24k65",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "numerical computation"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Portfolio Management",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_z77d3bckb8",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Portfolio Management"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Portfolio Optimization",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_8w7d4wp3cz",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "portfolio optimization"
+      },
+      {
+        "experienceMonths": 58,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Python (Programming Language)",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          },
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_zfg3qpjq2c",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "python"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "RESTful API",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_rx6h38e884",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "REST"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "Software Development Kits",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_wdztw7923w",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "SDKs"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Surveying",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_m3mgcf54d6",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "surveying"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Surveys",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_cnzq3tpmtn",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "surveys"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "TensorFlow",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_xx7w9b5mye",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Tensorflow"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "User Interface (UI)",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_cqdtz57ww6",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "web interface"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Warehousing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_cpcz85pfzp",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Warehousing"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Web Applications",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_m4zwcp62pw",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "web application"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Forecasting",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_jgs6av8xkp",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "common_skill"
+        },
+        "text": "price forecasting"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "Research",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_xmwkr79fdx",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "common_skill"
+        },
+        "text": "Research"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Analytics environment",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Analytics environment"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Bulk data processing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Bulk data processing"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "content discovery",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "content discovery"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Course Dashboards",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Course Dashboards"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "coursera",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "coursera"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "crowd sourcing platfowm",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "crowd sourcing platfowm"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "crowd sourding",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "crowd sourding"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "data flow graphs",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "data flow graphs"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "data-parallel processing pipelines",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "data-parallel processing pipelines"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Dataduct",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Dataduct"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Dataduct integration",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Dataduct integration"
+      },
+      {
+        "name": "Electrical and Electronics",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Electrical and Electronics"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "ETL injection",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "ETL injection"
+      },
+      {
+        "name": "financial data analysis",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "financial data analysis"
+      },
+      {
+        "name": "Git Log data",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Git Log data"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "language-specific",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "language-specific"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "learner surveying tools",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "learner surveying tools"
+      },
+      {
+        "name": "Movie recommender systems",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Movie recommender systems"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Nostos",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Nostos"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "online serving",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "online serving"
+      },
+      {
+        "experienceMonths": 120,
+        "lastUsed": {
+          "date": "2026-09-01",
+          "precision": "month"
+        },
+        "name": "open source software library",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "open source software library"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "open source workflow framework",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "open source workflow framework"
+      },
+      {
+        "name": "Play",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Play"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "portfolio hedging",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "portfolio hedging"
+      },
+      {
+        "name": "python library",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "python library"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "QuantDesk",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          },
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "QuantDesk"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "queuing",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "queuing"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "R dependencies",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "R dependencies"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "ranking and indexing improvements",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "ranking and indexing improvements"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "reusables patterns",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "reusables patterns"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "simulating and backtesting strategies",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "simulating and backtesting strategies"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2013-12-01",
+          "precision": "month"
+        },
+        "name": "strategy backtesting engine",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "strategy backtesting engine"
+      },
+      {
+        "experienceMonths": 34,
+        "lastUsed": {
+          "date": "2016-10-01",
+          "precision": "month"
+        },
+        "name": "Workflows",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Workflows"
+      }
+    ],
+    "workExperience": [
+      {
+        "dateRange": {
+          "durationMonths": 120,
+          "end": {
+            "current": true
+          },
+          "start": {
+            "date": "2016-10-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Tensorflow : TensorFlow is an open source software library for numerical computation using data flow graphs; primarily used for training deep learning models.\n• Apache Beam : Apache Beam is a unified model for defining both batch and streaming data-parallel processing pipelines, as well as a set of language-specific SDKs for constructing pipelines and runners.",
+        "employmentType": "full_time",
+        "jobTitle": "Software Engineer",
+        "location": {
+          "raw": "Mountain View, CA"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2134",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "213",
+              "name": "Information Technology Professionals"
+            },
+            "subMajorGroup": {
+              "code": "21",
+              "name": "SCIENCE, RESEARCH, ENGINEERING AND TECHNOLOGY PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Programmers and software development professionals "
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Software Engineer"
+        },
+        "organization": "Google"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 34,
+          "end": {
+            "date": "2016-10-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2014-01-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Notifications : Service for sending email, push and in-app notifications. Involved in features such as delivery time optimization, tracking, queuing and A/B testing. Built an internal app to run batch campaigns for marketing etc.\n• Nostos : Bulk data processing and injection service from Hadoop to Cassandra and provides a thin REST layer on top for serving offline computed data online.\n• Workflows : Dataduct an open source workflow framework to create and manage data pipelines leveraging reusables patterns to expedite developer productivity.\n• Data Collection : Designed the internal survey and crowd sourcing platfowm which allowed for creating various tasks for crowd sourding or embedding surveys across the Coursera platform.\n• Dev Environment : Analytics environment based on docker and AWS, standardized the python and R dependencies. Wrote the core libraries that are shared by all data scientists.\n• Data Warehousing : Setup, schema design and management of Amazon Redshift. Built an internal app for access to the data using a web interface. Dataduct integration for daily ETL injection into Redshift. systems at Coursesa, currently used on the homepage and throughout the content discovery process. Worked on both offline training and online serving.\n• Content Discovery : Improved content discovery by building a new onboarding experience on coursera. Using this to personalize the search and browse experience. Also worked on ranking and indexing improvements.\n• Course Dashboards : Instructor dashboards and learner surveying tools, which helped instructors run their class better by providing data on Assignments and Learner Activity.",
+        "employmentType": "full_time",
+        "jobTitle": "Senior Software Engineer",
+        "location": {
+          "raw": "Mountain View, CA"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2134",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "213",
+              "name": "Information Technology Professionals"
+            },
+            "subMajorGroup": {
+              "code": "21",
+              "name": "SCIENCE, RESEARCH, ENGINEERING AND TECHNOLOGY PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Programmers and software development professionals "
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Software Engineer"
+        },
+        "organization": "Coursera"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 24,
+          "end": {
+            "date": "2013-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2012-01-01",
+            "precision": "year"
+          }
+        },
+        "description": "• Portfolio Management : Created models for portfolio hedging, portfolio optimization and price forecasting. Also creating a strategy backtesting engine used for simulating and backtesting strategies.\n• QuantDesk Python backend for a web application used by hedge fund managers for portfolio management.",
+        "employmentType": "full_time",
+        "jobTitle": "Data Scientist",
+        "location": {
+          "raw": "Atlanta, GA"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2433",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "243",
+              "name": "Business, Research and Administrative Professionals"
+            },
+            "subMajorGroup": {
+              "code": "24",
+              "name": "BUSINESS, MEDIA AND PUBLIC SERVICE PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Actuaries, economists and statisticians"
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Data Scientist"
+        },
+        "organization": "Lucena Research"
+      }
+    ]
+  },
+  "meta": {
+    "document": {
+      "classification": {
+        "confidence": 0.7439,
+        "label": "resume",
+        "modelVersion": "document-domain-p1b-r2-clean-20260728"
+      },
+      "extractionQuality": {
+        "band": "high",
+        "score": 0.9442
+      }
+    },
+    "schemaVersion": "1.0",
+    "timing": {
+      "totalMs": 71.651424
+    }
+  }
+}

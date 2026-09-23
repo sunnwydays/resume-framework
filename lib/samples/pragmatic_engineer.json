@@ -1,0 +1,712 @@
+{
+  "data": {
+    "achievements": [],
+    "associations": [],
+    "certifications": [],
+    "contact": {
+      "emails": [
+        "resume@pragmaticengineer.com"
+      ],
+      "phoneNumbers": [],
+      "websites": [
+        {
+          "domain": "linkedin.com/in/gergelyorosz/",
+          "type": "linkedin",
+          "url": "https://www.linkedin.com/in/gergelyorosz/"
+        },
+        {
+          "domain": "github.com/gergelyorosz",
+          "type": "github",
+          "url": "https://github.com/gergelyorosz"
+        }
+      ]
+    },
+    "education": [
+      {
+        "dateRange": {
+          "durationMonths": 24,
+          "end": {
+            "date": "2014-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2013-01-01",
+            "precision": "year"
+          }
+        },
+        "fieldsOfStudy": [
+          "Computer Science"
+        ],
+        "institution": "University of Munich",
+        "level": "master",
+        "location": {
+          "coordinates": {
+            "latitude": 52.52437,
+            "longitude": 13.41053
+          },
+          "country": "Germany",
+          "countryCode": "DE",
+          "formatted": "Germany",
+          "raw": "Germany."
+        },
+        "minors": [],
+        "qualification": "M.Sc."
+      },
+      {
+        "dateRange": {
+          "durationMonths": 48,
+          "end": {
+            "date": "2013-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2010-01-01",
+            "precision": "year"
+          }
+        },
+        "fieldsOfStudy": [
+          "Computer Science"
+        ],
+        "institution": "University of Technology",
+        "level": "bachelor",
+        "location": {
+          "coordinates": {
+            "latitude": 47.49835,
+            "longitude": 19.04045
+          },
+          "country": "Hungary",
+          "countryCode": "HU",
+          "formatted": "Budapest, Hungary",
+          "raw": "Budapest.",
+          "state": "Budapest"
+        },
+        "minors": [],
+        "qualification": "B.Sc."
+      }
+    ],
+    "employmentMetrics": {
+      "averageTenureMonths": 42.3,
+      "currentRoleTenureMonths": 97,
+      "gaps": [],
+      "longestTenureMonths": 97,
+      "totalExperienceMonths": 154
+    },
+    "interests": [
+      "Listing interests can be a",
+      "conversation starter.",
+      "swimmer",
+      "science fiction novels",
+      "reading."
+    ],
+    "languages": [],
+    "patents": [],
+    "person": {
+      "location": {
+        "city": "Toronto",
+        "coordinates": {
+          "latitude": 43.70643,
+          "longitude": -79.39864
+        },
+        "country": "Canada",
+        "countryCode": "CA",
+        "formatted": "Toronto, Ontario, Canada",
+        "raw": "Toronto, Canada",
+        "state": "Ontario"
+      },
+      "name": {
+        "family": "Orosz",
+        "given": "Gergely"
+      },
+      "nationalities": []
+    },
+    "preferredWorkLocations": [],
+    "projects": [
+      {
+        "description": "Technical blogging",
+        "organization": "The Pragmatic Engineer"
+      },
+      {
+        "title": "stands out. Blogs and articles can also be projects"
+      },
+      {
+        "title": "Negotiation. See the source on Github"
+      },
+      {
+        "title": "Clean Code"
+      },
+      {
+        "title": "Other Sections"
+      },
+      {
+        "title": "for it. Sections I have seen include"
+      },
+      {
+        "organization": "if you have them, do show them off!",
+        "title": "● Patents"
+      }
+    ],
+    "publications": [],
+    "rawText": "Toronto, Canada\nresume@pragmaticengineer.com Gergely Orosz linkedin.com/in/gergelyorosz\ngithub.com/gergelyorosz\nWork Experience\nSenior Software Engineer Uber Sep 2018 – Present\nPayments team Amsterdam, Netherlands\n● Results, impact and your contribution.\n● Add at numbers to the impact, use active languages and mention specifics like the languages used.\n● The more recent the position, the more details you usually want to share.\n● Lorem ipsum dolor sit amet 40%, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore\nmagna aliqua.\n● Ut enim ad minim veniam 100, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.\nSoftware Engineer II Skyscanner 2017 – 2018\nCustomer Success team London, UK\n● Results, impact and your contribution\n● Lorem ipsum dolor sit amet 40%, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore\nmagna aliqua.\n● Ut enim ad minim veniam 100, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.\nSoftware Developer Skype 2015 – 2017\nLondon, UK\n● Results, impact and your contribution\n● As the position is more in the past, you'll want to be mindful on how much details you add, and what you call out.\nYou want to make sure there's space on all the key details on the first page.\nSoftware Developer Intern LogMeIn Summer 2014\nBudapest, Hungary\n● Results, impact and your contribution. The further in the past a position is, often the less important its details.\nEducation and Certifications\n● M.Sc. Computer Science, University of Munich, Germany. 2013 – 2014\n● B.Sc. Computer Science, University of Technology, Budapest. 2010 – 2013\n●\nTechnologies and Languages\n● Languages: Java, Go, Swift, Kotlin, {other languages}\n● Technologies: MySQL, Postgres, AWS, Git, {other technologies}\n● Other: Data structures and algorithms, {other relevant skills}\n\nProjects\n● Projects are worth mentioning when they are standout, and when they add to your resume. When you have strong\nand relevant work experience, they are less important. Describe the impact, the challenges and why the project\nstands out. Blogs and articles can also be projects.\n● Another project - Modern API design principles and concepts with Nodejs. Concepts include Caching and Content\nNegotiation. See the source on Github.\n● Technical blogging on The Pragmatic Engineer blog. Popular articles include a piece on Angular Material and one on\nClean Code.\nOther Sections\n● The above sections should cover most resumes. However, if you have something unique, consider adding a section\nfor it. Sections I have seen include:\n● Volunteer work - though I would suggest merging it under Projects and Volunteer Wor k or Extracurricular .\n● Patents - if you have them, do show them off!\n● Awards - these are especially relevant when you have less work experience, or when the award is truly outstanding.\n● Certifications and Courses - be mindful of where you are applying and how relevant these are. E.g. don't list a SEO\ncourse for a distributed systems engineering job. Also, projects show off skill far better than a course.\nInterests\n● Listing interests can be a conversation starter. Don't go overboard on this one though.\n● I am an avid masters swimmer and I have read most science fiction novels worth reading.",
+    "redactedText": "******** ******\n**************************** ******* ***** ****************************\n***********************\nWork Experience\nSenior Software Engineer Uber Sep 2018 – Present\nPayments team Amsterdam, Netherlands\n● Results, impact and your contribution.\n● Add at numbers to the impact, use active languages and mention specifics like the languages used.\n● The more recent the position, the more details you usually want to share.\n● Lorem ipsum dolor sit amet 40%, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore\nmagna aliqua.\n● Ut enim ad minim veniam 100, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.\nSoftware Engineer II Skyscanner 2017 – 2018\nCustomer Success team London, UK\n● Results, impact and your contribution\n● Lorem ipsum dolor sit amet 40%, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore\nmagna aliqua.\n● Ut enim ad minim veniam 100, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.\nSoftware Developer Skype 2015 – 2017\nLondon, UK\n● Results, impact and your contribution\n● As the position is more in the past, you'll want to be mindful on how much details you add, and what you call out.\nYou want to make sure there's space on all the key details on the first page.\nSoftware Developer Intern LogMeIn Summer 2014\nBudapest, Hungary\n● Results, impact and your contribution. The further in the past a position is, often the less important its details.\nEducation and Certifications\n● M.Sc. Computer Science, University of Munich, Germany. 2013 – 2014\n● B.Sc. Computer Science, University of Technology, Budapest. 2010 – 2013\n●\nTechnologies and Languages\n● Languages: Java, Go, Swift, Kotlin, {other languages}\n● Technologies: MySQL, Postgres, AWS, Git, {other technologies}\n● Other: Data structures and algorithms, {other relevant skills}\n\nProjects\n● Projects are worth mentioning when they are standout, and when they add to your resume. When you have strong\nand relevant work experience, they are less important. Describe the impact, the challenges and why the project\nstands out. Blogs and articles can also be projects.\n● Another project - Modern API design principles and concepts with Nodejs. Concepts include Caching and Content\nNegotiation. See the source on Github.\n● Technical blogging on The Pragmatic Engineer blog. Popular articles include a piece on Angular Material and one on\nClean Code.\nOther Sections\n● The above sections should cover most resumes. However, if you have something unique, consider adding a section\nfor it. Sections I have seen include:\n● Volunteer work - though I would suggest merging it under Projects and Volunteer Wor k or Extracurricular .\n● Patents - if you have them, do show them off!\n● Awards - these are especially relevant when you have less work experience, or when the award is truly outstanding.\n● Certifications and Courses - be mindful of where you are applying and how relevant these are. E.g. don't list a SEO\ncourse for a distributed systems engineering job. Also, projects show off skill far better than a course.\nInterests\n● Listing interests can be a conversation starter. Don't go overboard on this one though.\n● I am an avid masters swimmer and I have read most science fiction novels worth reading.",
+    "referees": [],
+    "skills": [
+      {
+        "name": "Amazon Web Services",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_e675p8fk2e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "AWS"
+      },
+      {
+        "name": "Angular Material",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_dvs9gkpk43",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Angular Material"
+      },
+      {
+        "name": "API Design",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_yt6sgbydvb",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "API design"
+      },
+      {
+        "name": "Application Programming Interface (API)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nx9pacwa4p",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "API"
+      },
+      {
+        "name": "Computer Science",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mwp7zh48rc",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Computer Science"
+      },
+      {
+        "name": "Content Negotiation",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nnrpzfa8kg",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Content Negotiation"
+      },
+      {
+        "name": "Data Structures",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_xzhs6c92y3",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Data structures and algorithms"
+      },
+      {
+        "name": "Distributed Computing",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_sd6d9xbe88",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "distributed systems engineering"
+      },
+      {
+        "name": "Git (Version Control System)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h8abcdpmm2",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Git"
+      },
+      {
+        "name": "Github",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_rhwsj67s8w",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Github"
+      },
+      {
+        "name": "Java (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h6k9k3hm3f",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Java"
+      },
+      {
+        "name": "Kotlin",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_jcjjwsh9ys",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Kotlin"
+      },
+      {
+        "name": "MySQL",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_p3vrmhjzzb",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "MySQL"
+      },
+      {
+        "name": "Node.js (Javascript Library)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_ymwp4qz2d7",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Nodejs"
+      },
+      {
+        "name": "PostgreSQL",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_s6n8evamcc",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Postgres"
+      },
+      {
+        "name": "Search Engine Optimization",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_5rfekdw7kg",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "SEO"
+      },
+      {
+        "experienceMonths": 36,
+        "lastUsed": {
+          "date": "2017-12-01",
+          "precision": "month"
+        },
+        "name": "Skype",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          },
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_qkdb538r3t",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "common_skill"
+        },
+        "text": "Skype"
+      },
+      {
+        "name": "Swift (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_khq45ad52q",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Swift"
+      },
+      {
+        "name": "Systems Engineering",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_7vpk43p6my",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "systems engineering"
+      },
+      {
+        "experienceMonths": 24,
+        "lastUsed": {
+          "date": "2018-12-01",
+          "precision": "month"
+        },
+        "name": "Customer Success Management",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_agw7wrhbxg",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Customer Success"
+      },
+      {
+        "name": "Negotiation",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_qtk7bxc5es",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "common_skill"
+        },
+        "text": "Negotiation"
+      },
+      {
+        "name": "API design principles",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "API design principles"
+      },
+      {
+        "name": "Caching and",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Caching and"
+      },
+      {
+        "name": "Clean Code",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Clean Code"
+      },
+      {
+        "name": "Go",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Go"
+      },
+      {
+        "name": "Technical blogging",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Technical blogging"
+      }
+    ],
+    "workExperience": [
+      {
+        "dateRange": {
+          "durationMonths": 97,
+          "end": {
+            "current": true
+          },
+          "start": {
+            "date": "2018-09-01",
+            "precision": "month"
+          }
+        },
+        "description": "Payments team\n• Results, impact and your contribution.\n• Add at numbers to the impact, use active languages and mention specifics like the languages used.",
+        "employmentType": "full_time",
+        "jobTitle": "Senior Software Engineer",
+        "location": {
+          "city": "Amsterdam",
+          "coordinates": {
+            "latitude": 52.37403,
+            "longitude": 4.88969
+          },
+          "country": "The Netherlands",
+          "countryCode": "NL",
+          "formatted": "Amsterdam, North Holland, The Netherlands",
+          "raw": "Amsterdam, Netherlands",
+          "state": "North Holland"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2134",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "213",
+              "name": "Information Technology Professionals"
+            },
+            "subMajorGroup": {
+              "code": "21",
+              "name": "SCIENCE, RESEARCH, ENGINEERING AND TECHNOLOGY PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Programmers and software development professionals "
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Software Engineer"
+        },
+        "organization": "Uber"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 24,
+          "end": {
+            "date": "2018-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2017-01-01",
+            "precision": "year"
+          }
+        },
+        "description": "Customer Success team\n• Results, impact and your contribution",
+        "employmentType": "full_time",
+        "jobTitle": "Software Engineer II",
+        "location": {
+          "city": "London",
+          "coordinates": {
+            "latitude": 51.50853,
+            "longitude": -0.12574
+          },
+          "country": "United Kingdom",
+          "countryCode": "GB",
+          "formatted": "London, England, United Kingdom",
+          "raw": "London, UK",
+          "state": "England"
+        },
+        "occupation": {
+          "normalizedTitle": "Software Engineer Ii"
+        },
+        "organization": "Skyscanner"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 36,
+          "end": {
+            "date": "2017-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2015-01-01",
+            "precision": "year"
+          }
+        },
+        "description": "• Results, impact and your contribution",
+        "employmentType": "full_time",
+        "jobTitle": "Software Developer",
+        "location": {
+          "city": "London",
+          "coordinates": {
+            "latitude": 51.50853,
+            "longitude": -0.12574
+          },
+          "country": "United Kingdom",
+          "countryCode": "GB",
+          "formatted": "London, England, United Kingdom",
+          "raw": "London, UK",
+          "state": "England"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2134",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "213",
+              "name": "Information Technology Professionals"
+            },
+            "subMajorGroup": {
+              "code": "21",
+              "name": "SCIENCE, RESEARCH, ENGINEERING AND TECHNOLOGY PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Programmers and software development professionals "
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Software Developer"
+        },
+        "organization": "Skype"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 12,
+          "end": {
+            "date": "2014-01-01",
+            "precision": "year"
+          },
+          "start": {
+            "date": "2014-01-01",
+            "precision": "year"
+          }
+        },
+        "description": "• Results, impact and your contribution. The further in the past a position is, often the less important its details.",
+        "employmentType": "internship",
+        "jobTitle": "Software Developer Intern",
+        "location": {
+          "city": "Budapest",
+          "coordinates": {
+            "latitude": 47.49835,
+            "longitude": 19.04045
+          },
+          "country": "Hungary",
+          "countryCode": "HU",
+          "formatted": "Budapest, Budapest, Hungary",
+          "raw": "Budapest, Hungary",
+          "state": "Budapest"
+        },
+        "occupation": {
+          "normalizedTitle": "Software Developer Intern"
+        },
+        "organization": "LogMeIn"
+      }
+    ]
+  },
+  "meta": {
+    "document": {
+      "classification": {
+        "confidence": 0.5354,
+        "label": "resume",
+        "modelVersion": "document-domain-p1b-r2-clean-20260728"
+      },
+      "extractionQuality": {
+        "band": "medium",
+        "score": 0.8766
+      }
+    },
+    "schemaVersion": "1.0",
+    "timing": {
+      "totalMs": 82.166127
+    }
+  }
+}

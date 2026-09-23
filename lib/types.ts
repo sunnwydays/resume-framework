@@ -22,11 +22,11 @@ export interface AtsLocation {
 export interface AtsContact {
   emails?: string[];
   phoneNumbers?: {
-    raw: string;
-    formatted: string;
-    nationalNumber: string;
-    countryCode: string;
-    callingCode: number;
+    raw?: string;
+    formatted?: string;
+    nationalNumber?: string;
+    countryCode?: string;
+    callingCode?: number;
   }[];
   websites?: { url: string; domain: string; type: string }[];
 }
@@ -43,7 +43,7 @@ export interface AtsEducation {
   fieldsOfStudy?: string[];
   dateRange?: AtsDateRange;
   location?: AtsLocation;
-  grade?: { metric?: string; value?: string };
+  grade?: { metric?: string; value?: string | number };
   minors?: string[];
 }
 
