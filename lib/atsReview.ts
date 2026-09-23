@@ -29,7 +29,8 @@ export type IssueCode =
   | "NOT_IN_RAW_TEXT"
   | "LOW_CONFIDENCE"
   | "MALFORMED_BLOCK"
-  | "GLYPH_DUPLICATION";
+  | "GLYPH_DUPLICATION"
+  | "LINK_TEXT_MISMATCH";
 
 export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   MISSING: "Missing",
@@ -45,6 +46,7 @@ export const DEFAULT_ISSUE_MESSAGES: Record<IssueCode, string> = {
   LOW_CONFIDENCE: "Low confidence",
   MALFORMED_BLOCK: "This entry wasn't parsed correctly",
   GLYPH_DUPLICATION: "Text repeated many times in a row in the extracted output",
+  LINK_TEXT_MISMATCH: "Visible text doesn't match the linked value",
 };
 
 export function issueMessage(issue: AtsIssue): string {
@@ -292,11 +294,11 @@ function lastSeparatorEnd(text: string, index: number): number {
   return end;
 }
 
-// Compares a parsed email against the header block of raw extracted text
-// (see reviewContact) and reports how, if at all, it disagrees. Split out on
-// its own since this is the piece most likely to need tuning against more
-// real resumes.
-function compareEmailToRaw(email: string, headerBlock: string): AtsIssue[] {
+// Format checks on a single parsed email value, independent of the raw
+// text. Always run, even when compareEmailPosition is skipped for a
+// text/link mismatch (see findEmailTextLinkMismatch) -- a mismatched email
+// can still separately be malformed.
+function compareEmailFormat(email: string): AtsIssue[] {
   const issues: AtsIssue[] = [];
 
   const iconWords = findIconWords(email);
@@ -318,6 +320,45 @@ function compareEmailToRaw(email: string, headerBlock: string): AtsIssue[] {
       evidence: email,
     });
   }
+
+  return issues;
+}
+
+// A resume can have two different addresses attached to its "email" in the
+// PDF: whatever is printed as visible text, and whatever a mailto: link on
+// it actually points to. When those disagree (most often because a
+// template's placeholder address was never swapped out), Affinda hands back
+// both as separate `emails` entries -- one that matches the raw extracted
+// text, one that's nowhere in it. Reported one at a time through
+// compareEmailPosition, that's two loosely-worded, differently-severity
+// issues (a "space in the text" false read on the visible one, a "not
+// found" on the hidden one) for what is really one root cause. Detect the
+// pattern up front so reviewContact can report it as a single, critical
+// finding instead, and skip the per-email position checks that would
+// otherwise misdescribe it.
+function findEmailTextLinkMismatch(
+  emails: string[],
+  headerBlock: string
+): { visible: string; linked: string } | undefined {
+  if (emails.length < 2) return undefined;
+
+  const squashedHeader = squash(headerBlock);
+  const visible = emails.filter((e) => squashedHeader.includes(squash(e)));
+  const hidden = emails.filter((e) => !squashedHeader.includes(squash(e)));
+
+  if (visible.length !== 1 || hidden.length !== 1) return undefined;
+  return { visible: visible[0], linked: hidden[0] };
+}
+
+// Compares a parsed email's position against the header block of raw
+// extracted text (see reviewContact) and reports how, if at all, it
+// disagrees. Assumes the email's value itself is genuinely meant to match
+// the raw text -- skip this for emails covered by
+// findEmailTextLinkMismatch, where a non-match is the expected shape, not a
+// parsing artifact. Split out on its own since this is the piece most
+// likely to need tuning against more real resumes.
+function compareEmailPosition(email: string, headerBlock: string): AtsIssue[] {
+  const issues: AtsIssue[] = [];
 
   const domain = email.split("@")[1] ?? "";
   const atIndex = headerBlock.indexOf(`@${domain}`);
@@ -475,8 +516,25 @@ export function reviewContact(contact: AtsContact, rawText: string): SectionRevi
     });
   } else {
     for (const email of emails) {
-      for (const issue of compareEmailToRaw(email, headerBlock)) {
+      for (const issue of compareEmailFormat(email)) {
         add(fields, "emails", issue);
+      }
+    }
+
+    const mismatch = findEmailTextLinkMismatch(emails, headerBlock);
+    if (mismatch) {
+      add(fields, "emails", {
+        code: "LINK_TEXT_MISMATCH",
+        severity: "critical",
+        message: `Resume shows "${mismatch.visible}" as text, but a different email ("${mismatch.linked}") was also parsed, likely from a mailto: link`,
+        fix: "This is usually a template placeholder address that was never swapped out, or a mailto: link left pointing at the wrong address. Make the visible text and link the same.",
+        evidence: `visible: ${mismatch.visible}, linked: ${mismatch.linked}`,
+      });
+    } else {
+      for (const email of emails) {
+        for (const issue of compareEmailPosition(email, headerBlock)) {
+          add(fields, "emails", issue);
+        }
       }
     }
   }
