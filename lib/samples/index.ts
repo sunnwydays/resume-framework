@@ -9,11 +9,16 @@
 //      lib/samples/<slug>.json — never hand-write/fabricate this, it has
 //      to match what Affinda actually returns for that exact PDF.
 //   3. Import the JSON below and add a SAMPLE_RESUMES entry for it.
+//   4. Optional: if LaTeX source exists for the sample, drop the .tex in
+//      public/samples/<slug>.tex too and set texPath/texFileName so the
+//      gallery can offer a "View LaTeX" preview/download alongside the PDF.
 
 import { AtsParseResult } from "@/lib/types";
 
 import pragmaticEngineerResult from "./pragmatic_engineer.json";
 import genericSoftwareResumeResult from "./generic_software_resume.json";
+import johnSmithResult from "./john_smith.json";
+import janeDoeResult from "./jane_doe.json";
 
 export interface SampleResume {
   id: string;
@@ -22,6 +27,8 @@ export interface SampleResume {
   pdfPath: string;
   fileName: string;
   result: AtsParseResult;
+  texPath?: string;
+  texFileName?: string;
 }
 
 export const SAMPLE_RESUMES: SampleResume[] = [
@@ -40,5 +47,27 @@ export const SAMPLE_RESUMES: SampleResume[] = [
     pdfPath: "/samples/generic_software_resume.pdf",
     fileName: "generic_software_resume.pdf",
     result: genericSoftwareResumeResult as AtsParseResult,
+  },
+  {
+    id: "john-smith",
+    label: "John Smith (original)",
+    description:
+      "An obfuscated version of my own resume, before I made any ATS-focused edits to the LaTeX template.",
+    pdfPath: "/samples/john_smith.pdf",
+    fileName: "john_smith.pdf",
+    result: johnSmithResult as AtsParseResult,
+    texPath: "/samples/john_smith.tex",
+    texFileName: "john_smith.tex",
+  },
+  {
+    id: "jane-doe",
+    label: "Jane Doe (revised)",
+    description:
+      "The same obfuscated resume after I edited the LaTeX template for better ATS parsability (dropped icon glyphs, added glyphtounicode mapping).",
+    pdfPath: "/samples/jane_doe.pdf",
+    fileName: "jane_doe.pdf",
+    result: janeDoeResult as AtsParseResult,
+    texPath: "/samples/jane_doe.tex",
+    texFileName: "jane_doe.tex",
   },
 ];

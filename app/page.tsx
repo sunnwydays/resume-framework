@@ -20,34 +20,38 @@ export default function Home() {
   const [resumePdf, setResumePdf] = useState<File | null>(null);
   const [atsResult, setAtsResult] = useState<AtsParseResponse | null>(null);
 
-  // Feeds <PdfPreview>. For an upload this is a blob: URL derived below; for
-  // a loaded sample it's a static /samples/... path set directly.
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string | undefined>();
+  // For a loaded sample: a static /samples/... path set directly by
+  // handleLoadSample. Superseded by the derived blob URL below whenever
+  // resumePdf is set.
+  const [sampleOverride, setSampleOverride] = useState<
+    { url: string; fileName: string } | null
+  >(null);
 
-  // Only the upload flow produces a blob URL that needs creating/revoking.
-  // A sample's previewUrl is a plain static path set by handleLoadSample,
-  // so this effect leaves it alone until resumePdf actually changes.
+  // The upload flow's blob URL is derived from resumePdf rather than stored
+  // in state + an effect, so creating it can't trigger the cascading-render
+  // lint warning; a separate effect just handles revoking it.
+  const uploadPreviewUrl = useMemo(
+    () => (resumePdf ? URL.createObjectURL(resumePdf) : null),
+    [resumePdf]
+  );
   useEffect(() => {
-    if (!resumePdf) return;
-    const url = URL.createObjectURL(resumePdf);
-    setPreviewUrl(url);
-    setPreviewFileName(resumePdf.name);
-    return () => URL.revokeObjectURL(url);
-  }, [resumePdf]);
+    return () => {
+      if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+    };
+  }, [uploadPreviewUrl]);
+
+  const previewUrl = uploadPreviewUrl ?? sampleOverride?.url ?? null;
+  const previewFileName = resumePdf ? resumePdf.name : sampleOverride?.fileName;
 
   function handleLoadSample(sample: SampleResume) {
-    // Only needed for the upload -> sample transition: resumePdf isn't
-    // changing, so the effect above won't fire to revoke the stale blob URL.
-    if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     // Clear any queued upload/text input so a leftover "Run ATS parse"
     // click can't silently reparse it and overwrite the sample's result
-    // while the preview still shows the sample PDF.
+    // while the preview still shows the sample PDF. Setting resumePdf to
+    // null also lets uploadPreviewUrl fall away so sampleOverride shows.
     setResumeText("");
     setResumePdf(null);
     setAtsResult(sample.result);
-    setPreviewUrl(sample.pdfPath);
-    setPreviewFileName(sample.fileName);
+    setSampleOverride({ url: sample.pdfPath, fileName: sample.fileName });
   }
 
   // Reviewed + graded once here so the nav badges and the full breakdown

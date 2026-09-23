@@ -1,0 +1,248 @@
+%-------------------------
+% Resume in Latex
+% Author : Harshibar
+% Based off of: https://github.com/jakeryang/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage{textcomp}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{iftex}
+% only for pdflatex
+\ifPDFTeX
+  \input{glyphtounicode}
+\fi
+
+% fixed width
+\usepackage[scale=0.90,lf]{FiraMono}
+
+% light-grey
+\definecolor{light-grey}{gray}{0.83}
+\definecolor{dark-grey}{gray}{0.3}
+\definecolor{text-grey}{gray}{.08}
+\definecolor{desc-grey}{gray}{0.2}
+
+\DeclareRobustCommand{\ebseries}{\fontseries{eb}\selectfont}
+\DeclareTextFontCommand{\texteb}{\ebseries}
+
+% custom underilne
+\usepackage[normalem]{ulem}
+\renewcommand{\ULdepth}{1.8pt}
+
+
+% custom font: helvetica-style
+\usepackage{tgheros}
+\renewcommand*\familydefault{\sfdefault}
+%% Only if the base font of the document is to be sans serif
+\usepackage[T1]{fontenc}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.35in}
+\addtolength{\evensidemargin}{0in}
+\addtolength{\textwidth}{0.7in}
+\addtolength{\topmargin}{-.75in}
+\addtolength{\textheight}{1.0in}
+\setlength{\footskip}{4.08003pt}
+\addtolength{\textheight}{-6.08003pt}
+\addtolength{\textheight}{0.4in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting - serif
+% \titleformat{\section}{
+%   \vspace{2pt} \scshape \raggedright\large % header section
+% }{}{0em}{}[\color{black} \titlerule \vspace{-5pt}]
+
+% sans serif sections
+\titleformat {\section}{
+    \bfseries \vspace{2pt} \raggedright \large % header section
+}{}{0em}{}[\color{light-grey} {\titlerule[2pt]} \vspace{-4pt}]
+
+% Control spacing around section headers
+% \titlespacing{command}{left_spacing}{before_spacing}{after_spacing}
+\titlespacing{\section}{0pt}{-4pt}{14pt}
+
+% only for pdflatex
+% Ensure that generate pdf is machine readable/ATS parsable
+\ifPDFTeX
+  \pdfgentounicode=1
+\fi
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {\color{desc-grey}#1 \vspace{-1pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-6pt}\item
+    \begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & {\color{dark-grey}\small #2}\vspace{1pt}\\ % top row of resume entry
+      {\color{dark-grey}#3} & {\color{dark-grey} \small \textit{#4}}\\ % second row of resume entry
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeEducationHeading}[4]{
+  \vspace{-6pt}\item
+    \begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & {\color{dark-grey}\small #2}\vspace{1pt}\\ % top row of resume entry
+      {\color{dark-grey}#3} & {\color{dark-grey} \small \textit{#4}}\\ % second row of resume entry
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{#1} & {\color{dark-grey}\small \textit{#2}} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[3]{
+    \vspace{-6pt}\item
+    \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+      #1 & {\small\color{dark-grey} \textit{#3}} \\
+      {\color{dark-grey}\small #2} & \\
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{0pt}}
+
+\color{text-grey}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%----------HEADING----------
+\vspace*{0pt}
+\begin{center}
+  \textbf{\huge Jane Doe} \\ \vspace{5pt}
+  \small
+  \texttt{123-456-7890} $|$
+  \hspace{1pt} \hspace{2pt} \texttt{jane.doe@example.com} \hspace{1pt} $|$
+  \hspace{1pt} \hspace{2pt} \href{https://www.linkedin.com/in/jane-doe/}{\texttt{linkedin.com/in/jane-doe}} \hspace{1pt} $|$
+  \hspace{1pt} \hspace{2pt}\texttt{Seattle, WA}
+  \\ \vspace{-3pt}
+\end{center}
+\vspace{-8pt}
+
+%-----------EDUCATION-----------
+\vspace{2pt}
+\section {EDUCATION}
+\resumeSubHeadingListStart
+\resumeEducationHeading
+{University of Washington}{Seattle, WA}
+{BS, Computer Science (Dean's List)}{Sep. 2022 -- Jun. 2026 (expected)}
+\resumeSubHeadingListEnd
+
+% Manually set vertical space below education because
+% it doesn't have bullet points so spacing is different
+\vspace{5pt}
+
+%-----------EXPERIENCE-----------
+\section{EXPERIENCE}
+\resumeSubHeadingListStart
+
+\resumeSubheading
+{Search Infrastructure Co-op}{Seattle, WA}
+{Fathomline Systems}{May 2025 -- May 2026}
+\resumeItemListStart
+\resumeItem{Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from \textbf{420ms to 85ms}}
+\resumeItem{Built a \textbf{Rust-based indexing pipeline} that reprocesses 30M documents nightly, replacing an \textbf{11-hour} full rebuild with a \textbf{2-hour} incremental one}
+\resumeItem{Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout}
+\resumeItem{Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly \textbf{5\%} of queries}
+\resumeItem{Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index}
+\resumeItemListEnd
+
+\resumeSubheading
+{Mobile App Lead}{Seattle, WA}
+{Cascade Housing Cooperative}{Sep. 2024 -- Jun. 2026}
+\resumeItemListStart
+\resumeItem{Rebuilt the co-op's iOS/Android app in \textbf{React Native}, cutting cold-start time from \textbf{3.8s to 1.0s}}
+\resumeItem{Added offline sync with conflict resolution, cutting failed submissions during outages by roughly \textbf{85\%}}
+\resumeItem{Shipped push notifications for maintenance updates, lifting resident response rate from \textbf{57\% to 88\%}}
+\resumeItem{Led \textbf{3} fellow student developers to ship a resident directory covering \textbf{950+} tenants, now averaging \textbf{4.6 stars} across app stores}
+\resumeItemListEnd
+
+\resumeSubheading
+{Security Contributor}{Seattle, WA}
+{Husky Security Collective}{Jan. 2024 -- Jun. 2025}
+\resumeItemListStart
+\resumeItem{Ran a dependency audit across the co-op's stack, finding and patching \textbf{7} vulnerable packages before a disclosed CVE went public}
+\resumeItem{Added rate limiting and CSRF protection to the resident portal, closing \textbf{2} exploitable auth-bypass paths}
+\resumeItem{Wrote a secrets-scanning pre-commit hook that's blocked \textbf{25+} accidental credential leaks since rollout}
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+
+%-----------PROJECTS-----------
+
+\section{PROJECTS}
+\resumeSubHeadingListStart
+
+\resumeProjectHeading
+{\href{https://github.com/janedoe/puzzle-solver}{\textbf{Puzzle Solver Toolkit}}}{Python, NumPy | \href{https://github.com/janedoe/puzzle-solver}{github.com/janedoe/puzzle-solver}}{Feb. 2026 -- present}
+\resumeItemListStart
+\resumeItem{Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban puzzles}
+\resumeItem{Benchmarked \textbf{5 heuristics} across 150 generated puzzles to compare solve time against optimality}
+\resumeItem{Distributing search across worker processes cut median solve time roughly \textbf{3x}}
+\resumeItemListEnd
+
+\resumeProjectHeading
+{\href{https://github.com/janedoe/textbook-swap}{\textbf{Textbook Swap Marketplace}}}{React, TypeScript, Tailwind CSS, Firebase | {\href{https://textbookswap.app}{textbookswap.app}}}{Sep. 2024 -- Dec. 2024}
+\resumeItemListStart
+\resumeItem{Peer-to-peer listings platform for textbook exchange, now used by \textbf{600+} students}
+\resumeItem{Infinite scroll and image lazy-loading brought listing load time from \textbf{12s to 0.7s}}
+\resumeItem{An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing}
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-----------PROGRAMMING SKILLS-----------
+\section{SKILLS}
+\vspace{-4pt}
+\begin{itemize}[leftmargin=0in, label={}]
+  \small{\item{
+          \textbf{Languages \& Frameworks} {\color{desc-grey}: Python, JavaScript, TypeScript, Java, SQL, React, Node.js}\vspace{2pt} \\
+          \textbf{Tools}     {\color{desc-grey}: Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash}
+        }}
+\end{itemize}
+
+
+%-------------------------------------------
+\end{document}

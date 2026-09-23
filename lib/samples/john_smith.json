@@ -1,0 +1,1080 @@
+{
+  "data": {
+    "achievements": [
+      "Dean's List",
+      "Led a team of 4 volunteer developers to ship a member directory used by 2,100+ students, now averaging 4.7 stars across",
+      "lifted week-over-week return visits roughly 3x",
+      "5-piece endgames in under 2 seconds",
+      "Took 1 st of 60 submissions in a department programming contest judged on correctness and speed"
+    ],
+    "associations": [],
+    "certifications": [],
+    "contact": {
+      "emails": [
+        "john.smith@example.com"
+      ],
+      "phoneNumbers": [
+        {
+          "raw": "123 -456 - 7890"
+        }
+      ],
+      "websites": [
+        {
+          "domain": "linkedin.com/in/john-smith/",
+          "type": "linkedin",
+          "url": "https://www.linkedin.com/in/john-smith/"
+        },
+        {
+          "domain": "github.com/johnsmith/trail-route-planner",
+          "type": "github",
+          "url": "https://github.com/johnsmith/trail-route-planner"
+        },
+        {
+          "domain": "github.com/johnsmith/campus-event-finder",
+          "type": "github",
+          "url": "https://github.com/johnsmith/campus-event-finder"
+        }
+      ]
+    },
+    "education": [
+      {
+        "dateRange": {
+          "durationMonths": 46,
+          "end": {
+            "date": "2026-05-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2022-08-01",
+            "precision": "month"
+          }
+        },
+        "fieldsOfStudy": [
+          "Computer Science"
+        ],
+        "grade": {
+          "metric": "Award"
+        },
+        "institution": "University of Texas at Austin",
+        "level": "bachelor",
+        "location": {
+          "city": "Austin",
+          "coordinates": {
+            "latitude": 30.26715,
+            "longitude": -97.74306
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Austin, Texas, United States",
+          "raw": "Austin, TX",
+          "state": "Texas"
+        },
+        "minors": [],
+        "qualification": "BS"
+      }
+    ],
+    "employmentMetrics": {
+      "averageTenureMonths": 5.7,
+      "gaps": [],
+      "longestTenureMonths": 9,
+      "totalExperienceMonths": 16
+    },
+    "interests": [],
+    "languages": [],
+    "patents": [],
+    "person": {
+      "location": {
+        "coordinates": {
+          "latitude": 29.76328,
+          "longitude": -95.36327
+        },
+        "country": "United States",
+        "countryCode": "US",
+        "formatted": "Texas, United States",
+        "raw": "Aust in , TX",
+        "state": "Texas"
+      },
+      "name": {
+        "family": "Smith",
+        "given": "John"
+      },
+      "nationalities": []
+    },
+    "preferredWorkLocations": [],
+    "projects": [
+      {
+        "dateRange": {
+          "durationMonths": 8,
+          "end": {
+            "current": true
+          },
+          "start": {
+            "date": "2026-02-01",
+            "precision": "month"
+          }
+        },
+        "description": "Built a closure-aware routing engine on top of OpenStreetMap data for 500+ hikers • A* search with a custom elevation-gain heuristic replaced brute-force pathfinding, cutting route computation from 12s to under 1 s • Users can report closures live; affected edges re-weight instantly instead of triggering a full graph rebuild",
+        "title": "Trail Route Planner"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 4,
+          "end": {
+            "date": "2024-12-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-09-01",
+            "precision": "month"
+          }
+        },
+        "description": "Consolidated 9 separate club calendars into one searchable feed used by 1 ,100+ students • Added tag-based filtering backed by a denormalized Firestore index for instant search • Push notifications for saved searches lifted week-over-week return visits roughly 3x",
+        "title": "Campus Event Finder"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 2,
+          "end": {
+            "date": "2023-02-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2023-01-01",
+            "precision": "month"
+          }
+        },
+        "description": "Bitboard-based minimax with alpha-beta pruning and a transposition table solves 5-piece endgames in under 2 seconds • Took 1 st of 60 submissions in a department programming contest judged on correctness and speed",
+        "title": "Chess Endgame Solver"
+      }
+    ],
+    "publications": [],
+    "rawText": "John Smith\n123 -456 - 7890 | # j ohn . smith@example.com | ï l in ked in . com/in/j ohn -smith | * Aust in , TX\nEDUCATION\nUniversity of Texas at Austin Austin, TX\nBS, Computer Science (Dean's List) Aug. 2022 – May 2026\nEXPERIENCE\nSearch Infrastructure Intern Austin, TX\nLatticework Systems May 2025 – Aug 2025\n• Query latency in the ranking service was dominated by cold cache misses; adding a tiered LRU cache cut p99 latency\nfrom 480ms to 90ms\n• Built a Go-based indexing pipeline that reprocesses 40M documents nightly, replacing a 14-hour full rebuild with a\n2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 25 query sets before rollout\n• Traced a tokenizer bug that was silently dropping non-ASCII terms, recovering recall on roughly 6% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Austin, TX\nLonghorn Founders Guild Sep. 2024 – May 2025\n• Rebuilt the club's iOS/Android app in React Native , cutting cold-start time from 4.2s to 1 .1 s\n• Added offline sync with conflict resolution, cutting failed submissions over flaky campus wifi by roughly 90%\n• Shipped push notifications for event reminders, lifting RSVP show-up rate from 61% to 84%\n• Led a team of 4 volunteer developers to ship a member directory used by 2,100+ students, now averaging 4.7 stars\nacross app stores\nSecurity Contributor Austin, TX\nLonghorn Security Collective May 2024 – Aug 2024\n• Ran a dependency audit across the club's stack, finding and patching 9 vulnerable packages before a public writeup\ncould flag them\n• Added rate limiting and CSRF protection to the member portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 30+ accidental credential leaks since rollout\nPROJECTS\nTrail Route Planner - React, TypeScript, Node.js, PostgreSQL Feb. 2026 – present\n• Built a closure-aware routing engine on top of OpenStreetMap data for 500+ hikers\n• A* search with a custom elevation-gain heuristic replaced brute-force pathfinding, cutting route computation from 12s\nto under 1 s\n• Users can report closures live; affected edges re-weight instantly instead of triggering a full graph rebuild\nCampus Event Finder - React, TypeScript, Tailwind CSS, Firebase Sep. 2024 – Dec. 2024\n• Consolidated 9 separate club calendars into one searchable feed used by 1 ,100+ students\n• Added tag-based filtering backed by a denormalized Firestore index for instant search\n• Push notifications for saved searches lifted week-over-week return visits roughly 3x\nChess Endgame Solver - C++ Jan. 2023 – Feb. 2023\n• Bitboard-based minimax with alpha-beta pruning and a transposition table solves 5-piece endgames in under 2\nseconds\n• Took 1 st of 60 submissions in a department programming contest judged on correctness and speed\nSKILLS\nLanguages : JavaScript, TypeScript, Python, Java, C/C++, SQL\nFrameworks & Tools : React, Node.js, Django, Docker, Git, Linux, AWS, CI/CD",
+    "redactedText": "**** *****\n*** **** * **** | # * *** * ***************** * * * ** *** ** * ******** *** ****** | * **** ** * **\nEDUCATION\nUniversity of Texas at Austin Austin, TX\nBS, Computer Science (Dean's List) Aug. 2022 – May 2026\nEXPERIENCE\nSearch Infrastructure Intern Austin, TX\nLatticework Systems May 2025 – Aug 2025\n• Query latency in the ranking service was dominated by cold cache misses; adding a tiered LRU cache cut p99 latency\nfrom 480ms to 90ms\n• Built a Go-based indexing pipeline that reprocesses 40M documents nightly, replacing a 14-hour full rebuild with a\n2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 25 query sets before rollout\n• Traced a tokenizer bug that was silently dropping non-ASCII terms, recovering recall on roughly 6% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Austin, TX\nLonghorn Founders Guild Sep. 2024 – May 2025\n• Rebuilt the club's iOS/Android app in React Native , cutting cold-start time from 4.2s to 1 .1 s\n• Added offline sync with conflict resolution, cutting failed submissions over flaky campus wifi by roughly 90%\n• Shipped push notifications for event reminders, lifting RSVP show-up rate from 61% to 84%\n• Led a team of 4 volunteer developers to ship a member directory used by 2,100+ students, now averaging 4.7 stars\nacross app stores\nSecurity Contributor Austin, TX\nLonghorn Security Collective May 2024 – Aug 2024\n• Ran a dependency audit across the club's stack, finding and patching 9 vulnerable packages before a public writeup\ncould flag them\n• Added rate limiting and CSRF protection to the member portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 30+ accidental credential leaks since rollout\nPROJECTS\nTrail Route Planner - React, TypeScript, Node.js, PostgreSQL Feb. 2026 – present\n• Built a closure-aware routing engine on top of OpenStreetMap data for 500+ hikers\n• A* search with a custom elevation-gain heuristic replaced brute-force pathfinding, cutting route computation from 12s\nto under 1 s\n• Users can report closures live; affected edges re-weight instantly instead of triggering a full graph rebuild\nCampus Event Finder - React, TypeScript, Tailwind CSS, Firebase Sep. 2024 – Dec. 2024\n• Consolidated 9 separate club calendars into one searchable feed used by 1 ,100+ students\n• Added tag-based filtering backed by a denormalized Firestore index for instant search\n• Push notifications for saved searches lifted week-over-week return visits roughly 3x\nChess Endgame Solver - C++ Jan. 2023 – Feb. 2023\n• Bitboard-based minimax with alpha-beta pruning and a transposition table solves 5-piece endgames in under 2\nseconds\n• Took 1 st of 60 submissions in a department programming contest judged on correctness and speed\nSKILLS\nLanguages : JavaScript, TypeScript, Python, Java, C/C++, SQL\nFrameworks & Tools : React, Node.js, Django, Docker, Git, Linux, AWS, CI/CD",
+    "referees": [],
+    "skills": [
+      {
+        "name": "Algorithms",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_79kps4a23b",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "minimax"
+      },
+      {
+        "name": "Amazon Web Services",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_e675p8fk2e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "AWS"
+      },
+      {
+        "name": "Application Programming Interface (API)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nx9pacwa4p",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "API"
+      },
+      {
+        "name": "Cascading Style Sheets (CSS)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_45bnby2mty",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "CSS"
+      },
+      {
+        "name": "Computer Science",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mwp7zh48rc",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Computer Science"
+      },
+      {
+        "name": "Django (Web Framework)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_d2cvg3xsyt",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Django"
+      },
+      {
+        "name": "Docker (Software)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_5z6g6h78dk",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Docker"
+      },
+      {
+        "name": "Firebase",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_4nfbz73rf6",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Firebase"
+      },
+      {
+        "name": "Git (Version Control System)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h8abcdpmm2",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Git"
+      },
+      {
+        "name": "Java (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h6k9k3hm3f",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Java"
+      },
+      {
+        "name": "JavaScript (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nb3p6pg564",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "JavaScript"
+      },
+      {
+        "name": "Linux",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_djdw49pg3b",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Linux"
+      },
+      {
+        "name": "Node.js (Javascript Library)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_ymwp4qz2d7",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Node.js"
+      },
+      {
+        "name": "PostgreSQL",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_s6n8evamcc",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "PostgreSQL"
+      },
+      {
+        "name": "Pruning",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_n32vn3ppcg",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "alpha-beta pruning"
+      },
+      {
+        "name": "Python (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_zfg3qpjq2c",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Python"
+      },
+      {
+        "name": "SQL (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_rgfwa86y3z",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "SQL"
+      },
+      {
+        "name": "TypeScript",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_be9aneaqn8",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "TypeScript"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "Apple IOS",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_9jtf2wcmsx",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "iOS"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2024-08-01",
+          "precision": "month"
+        },
+        "name": "Auditing",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_573dpchpcw",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "audit"
+      },
+      {
+        "experienceMonths": 17,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "C++ (Programming Language)",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          },
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          },
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_8ye6g75ttz",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "C++"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "Conflict Resolution",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_p6w8dhgw9a",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "conflict resolution"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2024-08-01",
+          "precision": "month"
+        },
+        "name": "Cross-Site Request Forgery",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_n2vkqqjyat",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "CSRF protection"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Data Ingestion",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_7mm2z2mfsn",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "ingestion API"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Indexing",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_py8cd4c4wb",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "indexing"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "React.js (Javascript Library)",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mvrf4ykx7e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "React"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "React Native",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_xdpp64v29y",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "React Native"
+      },
+      {
+        "name": "Bitboard-based",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Bitboard-based"
+      },
+      {
+        "name": "brute-force pathfinding",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "brute-force pathfinding"
+      },
+      {
+        "name": "C/C++",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "C/C++"
+      },
+      {
+        "name": "closure-aware routing engine",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "closure-aware routing engine"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2024-08-01",
+          "precision": "month"
+        },
+        "name": "dependency audit",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "dependency audit"
+      },
+      {
+        "name": "elevation-gain heuristic",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "elevation-gain heuristic"
+      },
+      {
+        "name": "Firestore index",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Firestore index"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Go",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Go"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Go-based indexing pipeline",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Go-based indexing pipeline"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "LRU cache",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "LRU cache"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "offline sync",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "offline sync"
+      },
+      {
+        "name": "OpenStreetMap data",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "OpenStreetMap data"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "push notifications",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "push notifications"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Query latency",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Query latency"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "query-shape validation",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "query-shape validation"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "ranking service",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "ranking service"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2024-08-01",
+          "precision": "month"
+        },
+        "name": "rate limiting and",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "rate limiting and"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "relevance-scoring harness",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "relevance-scoring harness"
+      },
+      {
+        "experienceMonths": 9,
+        "lastUsed": {
+          "date": "2025-05-01",
+          "precision": "month"
+        },
+        "name": "RSVP",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "RSVP"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "search",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "search"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "Search Infrastructure",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Search Infrastructure"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2024-08-01",
+          "precision": "month"
+        },
+        "name": "secrets-scanning",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "secrets-scanning"
+      },
+      {
+        "name": "tag-based filtering",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "tag-based filtering"
+      },
+      {
+        "experienceMonths": 4,
+        "lastUsed": {
+          "date": "2025-08-01",
+          "precision": "month"
+        },
+        "name": "tokenizer bug",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "tokenizer bug"
+      },
+      {
+        "name": "transposition table",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "transposition table"
+      }
+    ],
+    "workExperience": [
+      {
+        "dateRange": {
+          "durationMonths": 4,
+          "end": {
+            "date": "2025-08-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2025-05-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Query latency in the ranking service was dominated by cold cache misses; adding a tiered LRU cache cut p99 latency from 480ms to 90ms\n• Built a Go-based indexing pipeline that reprocesses 40M documents nightly, replacing a 14-hour full rebuild with a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 25 query sets before rollout\n• Traced a tokenizer bug that was silently dropping non-ASCII terms, recovering recall on roughly 6% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index",
+        "employmentType": "internship",
+        "jobTitle": "Search Infrastructure Intern",
+        "location": {
+          "city": "Austin",
+          "coordinates": {
+            "latitude": 30.26715,
+            "longitude": -97.74306
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Austin, Texas, United States",
+          "raw": "Austin, TX",
+          "state": "Texas"
+        },
+        "occupation": {
+          "managementLevel": "low",
+          "normalizedTitle": "Infrastructure Intern"
+        },
+        "organization": "Latticework Systems"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 9,
+          "end": {
+            "date": "2025-05-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-09-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Rebuilt the club's iOS/Android app in React Native , cutting cold-start time from 4.2s to 1 .1 s\n• Added offline sync with conflict resolution, cutting failed submissions over flaky campus wifi by roughly 90%\n• Shipped push notifications for event reminders, lifting RSVP show-up rate from 61% to 84%\n• Led a team of 4 volunteer developers to ship a member directory used by 2,100+ students, now averaging 4.7 stars across app stores",
+        "employmentType": "volunteer",
+        "jobTitle": "Mobile App Lead",
+        "location": {
+          "city": "Austin",
+          "coordinates": {
+            "latitude": 30.26715,
+            "longitude": -97.74306
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Austin, Texas, United States",
+          "raw": "Austin, TX",
+          "state": "Texas"
+        },
+        "occupation": {
+          "managementLevel": "mid",
+          "normalizedTitle": "Mobile App Lead"
+        },
+        "organization": "Longhorn Founders Guild"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 4,
+          "end": {
+            "date": "2024-08-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-05-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Ran a dependency audit across the club's stack, finding and patching 9 vulnerable packages before a public writeup could flag them\n• Added rate limiting and CSRF protection to the member portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 30+ accidental credential leaks since rollout",
+        "employmentType": "full_time",
+        "jobTitle": "Security Contributor",
+        "location": {
+          "city": "Austin",
+          "coordinates": {
+            "latitude": 30.26715,
+            "longitude": -97.74306
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Austin, Texas, United States",
+          "raw": "Austin, TX",
+          "state": "Texas"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2492",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "249",
+              "name": "Media Professionals"
+            },
+            "subMajorGroup": {
+              "code": "24",
+              "name": "BUSINESS, MEDIA AND PUBLIC SERVICE PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Newspaper and periodical journalists and reporters"
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Contributor"
+        },
+        "organization": "Longhorn Security Collective"
+      }
+    ]
+  },
+  "meta": {
+    "document": {
+      "classification": {
+        "confidence": 0.6167,
+        "label": "resume",
+        "modelVersion": "document-domain-p1b-r2-clean-20260728"
+      },
+      "extractionQuality": {
+        "band": "high",
+        "score": 0.9695
+      }
+    },
+    "schemaVersion": "1.0",
+    "timing": {
+      "totalMs": 74.117473
+    }
+  }
+}

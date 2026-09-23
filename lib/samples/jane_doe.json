@@ -1,0 +1,885 @@
+{
+  "data": {
+    "achievements": [
+      "Dean's List",
+      "Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars across app stores",
+      "solve time roughly 3x",
+      "listing load time from 12s to 0.7s"
+    ],
+    "associations": [],
+    "certifications": [],
+    "contact": {
+      "emails": [
+        "jane.doe@example.com"
+      ],
+      "phoneNumbers": [
+        {
+          "raw": "123 -456 - 7890"
+        }
+      ],
+      "websites": [
+        {
+          "domain": "linkedin.com/in/jane-doe/",
+          "type": "linkedin",
+          "url": "https://www.linkedin.com/in/jane-doe/"
+        },
+        {
+          "domain": "github.com/janedoe/puzzle-solver",
+          "type": "github",
+          "url": "https://github.com/janedoe/puzzle-solver"
+        },
+        {
+          "domain": "github.com/janedoe/textbook-swap",
+          "type": "github",
+          "url": "https://github.com/janedoe/textbook-swap"
+        }
+      ]
+    },
+    "education": [
+      {
+        "dateRange": {
+          "durationMonths": 46,
+          "end": {
+            "date": "2026-06-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2022-09-01",
+            "precision": "month"
+          }
+        },
+        "fieldsOfStudy": [
+          "Computer Science"
+        ],
+        "grade": {
+          "metric": "Award"
+        },
+        "institution": "University of Washington",
+        "level": "bachelor",
+        "location": {
+          "city": "Seattle",
+          "coordinates": {
+            "latitude": 47.60621,
+            "longitude": -122.33207
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Seattle, Washington, United States",
+          "raw": "Seattle, WA",
+          "state": "Washington"
+        },
+        "minors": [],
+        "qualification": "BS"
+      }
+    ],
+    "employmentMetrics": {
+      "averageTenureMonths": 17.7,
+      "gaps": [],
+      "longestTenureMonths": 22,
+      "totalExperienceMonths": 30
+    },
+    "interests": [],
+    "languages": [],
+    "patents": [],
+    "person": {
+      "location": {
+        "city": "Seattle",
+        "coordinates": {
+          "latitude": 47.60621,
+          "longitude": -122.33207
+        },
+        "country": "United States",
+        "countryCode": "US",
+        "formatted": "Seattle, Washington, United States",
+        "raw": "Seattle , WA",
+        "state": "Washington"
+      },
+      "name": {
+        "family": "Doe",
+        "given": "Jane"
+      },
+      "nationalities": []
+    },
+    "preferredWorkLocations": [],
+    "projects": [
+      {
+        "dateRange": {
+          "durationMonths": 8,
+          "end": {
+            "current": true
+          },
+          "start": {
+            "date": "2026-02-01",
+            "precision": "month"
+          }
+        },
+        "description": "Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban puzzles • Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality • Distributing search across worker processes cut median solve time roughly 3x",
+        "title": "Puzzle Solver Toolkit"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 4,
+          "end": {
+            "date": "2024-12-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-09-01",
+            "precision": "month"
+          }
+        },
+        "description": "Peer-to-peer listings platform for textbook exchange, now used by 600+ students • Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s • An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing",
+        "title": "Textbook Swap Marketplace"
+      }
+    ],
+    "publications": [],
+    "rawText": "Jane Doe\n123 -456 - 7890 | j ane . doe@example.com | l in ked in . com/in/j ane -doe | Seattle , WA\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science (Dean's List) Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | github.com/janedoe/puzzle-solver\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | textbookswap.app\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
+    "redactedText": "**** ***\n*** **** * **** | * *** * *************** | * ** *** ** * ******** *** **** | ******* * **\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science (Dean's List) Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | ********************************\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | ****************\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
+    "referees": [],
+    "skills": [
+      {
+        "name": "Amazon Web Services",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_e675p8fk2e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "AWS"
+      },
+      {
+        "name": "Application Programming Interface (API)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nx9pacwa4p",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "API"
+      },
+      {
+        "name": "Bash (Scripting Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_3cc8s3ffwt",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Bash"
+      },
+      {
+        "name": "Cascading Style Sheets (CSS)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_45bnby2mty",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "CSS"
+      },
+      {
+        "name": "Computer Science",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mwp7zh48rc",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "Computer Science"
+      },
+      {
+        "name": "Docker (Software)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_5z6g6h78dk",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Docker"
+      },
+      {
+        "name": "Firebase",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_4nfbz73rf6",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Firebase"
+      },
+      {
+        "name": "Git (Version Control System)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h8abcdpmm2",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Git"
+      },
+      {
+        "name": "Java (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_h6k9k3hm3f",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Java"
+      },
+      {
+        "name": "JavaScript (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nb3p6pg564",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "JavaScript"
+      },
+      {
+        "name": "Linux",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_djdw49pg3b",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Linux"
+      },
+      {
+        "name": "Node.js (Javascript Library)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_ymwp4qz2d7",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Node.js"
+      },
+      {
+        "name": "NumPy (Python Package)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_w6rsfez4v9",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "NumPy"
+      },
+      {
+        "name": "PostgreSQL",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_s6n8evamcc",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "PostgreSQL"
+      },
+      {
+        "name": "Python (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_zfg3qpjq2c",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "Python"
+      },
+      {
+        "name": "SQL (Programming Language)",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_rgfwa86y3z",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "SQL"
+      },
+      {
+        "name": "TypeScript",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_be9aneaqn8",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "TypeScript"
+      },
+      {
+        "experienceMonths": 22,
+        "lastUsed": {
+          "date": "2026-06-01",
+          "precision": "month"
+        },
+        "name": "Apple IOS",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_9jtf2wcmsx",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "iOS"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "Auditing",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_573dpchpcw",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "audit"
+      },
+      {
+        "experienceMonths": 22,
+        "lastUsed": {
+          "date": "2026-06-01",
+          "precision": "month"
+        },
+        "name": "Conflict Resolution",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_p6w8dhgw9a",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "conflict resolution"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "Cross-Site Request Forgery",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_n2vkqqjyat",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "CSRF protection"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Data Ingestion",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_7mm2z2mfsn",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "ingestion API"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Indexing",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_py8cd4c4wb",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "indexing"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Page Replacement",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_qpekbjntp2",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "LRU"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "Rate Limiting",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_dpz2qz3eqg",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "rate limiting"
+      },
+      {
+        "experienceMonths": 22,
+        "lastUsed": {
+          "date": "2026-06-01",
+          "precision": "month"
+        },
+        "name": "React.js (Javascript Library)",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_mvrf4ykx7e",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "React"
+      },
+      {
+        "experienceMonths": 22,
+        "lastUsed": {
+          "date": "2026-06-01",
+          "precision": "month"
+        },
+        "name": "React Native",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_xdpp64v29y",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "React Native"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "Vulnerability",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_a3j3xeb5kk",
+          "isLanguage": false,
+          "isSoftware": false,
+          "type": "specialized_skill"
+        },
+        "text": "CVE"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "dependency audit",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "dependency audit"
+      },
+      {
+        "experienceMonths": 22,
+        "lastUsed": {
+          "date": "2026-06-01",
+          "precision": "month"
+        },
+        "name": "push notifications",
+        "sources": [
+          {
+            "recordIndex": 1,
+            "section": "workexperience"
+          }
+        ],
+        "text": "push notifications"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "query-shape validation",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "query-shape validation"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "relevance-scoring harness",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "relevance-scoring harness"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Rust-based indexing pipeline",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Rust-based indexing pipeline"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "search",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "search"
+      },
+      {
+        "experienceMonths": 18,
+        "lastUsed": {
+          "date": "2025-06-01",
+          "precision": "month"
+        },
+        "name": "secrets-scanning",
+        "sources": [
+          {
+            "recordIndex": 2,
+            "section": "workexperience"
+          }
+        ],
+        "text": "secrets-scanning"
+      },
+      {
+        "name": "sliding-tile",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "sliding-tile"
+      },
+      {
+        "name": "Sokoban puzzles",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "Sokoban puzzles"
+      }
+    ],
+    "workExperience": [
+      {
+        "dateRange": {
+          "durationMonths": 13,
+          "end": {
+            "date": "2026-05-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2025-05-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from 420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild with a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index",
+        "employmentType": "full_time",
+        "jobTitle": "Search Infrastructure Co-op",
+        "location": {
+          "city": "Seattle",
+          "coordinates": {
+            "latitude": 47.60621,
+            "longitude": -122.33207
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Seattle, Washington, United States",
+          "raw": "Seattle, WA",
+          "state": "Washington"
+        },
+        "occupation": {
+          "normalizedTitle": "Search Infrastructure Co-op"
+        },
+        "organization": "Fathomline Systems"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 22,
+          "end": {
+            "date": "2026-06-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-09-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars across app stores",
+        "employmentType": "full_time",
+        "jobTitle": "Mobile App Lead",
+        "location": {
+          "city": "Seattle",
+          "coordinates": {
+            "latitude": 47.60621,
+            "longitude": -122.33207
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Seattle, Washington, United States",
+          "raw": "Seattle, WA",
+          "state": "Washington"
+        },
+        "occupation": {
+          "managementLevel": "mid",
+          "normalizedTitle": "Mobile App Lead"
+        },
+        "organization": "Cascade Housing Cooperative"
+      },
+      {
+        "dateRange": {
+          "durationMonths": 18,
+          "end": {
+            "date": "2025-06-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2024-01-01",
+            "precision": "month"
+          }
+        },
+        "description": "• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a disclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout PROJECTS",
+        "employmentType": "full_time",
+        "jobTitle": "Security Contributor",
+        "location": {
+          "city": "Seattle",
+          "coordinates": {
+            "latitude": 47.60621,
+            "longitude": -122.33207
+          },
+          "country": "United States",
+          "countryCode": "US",
+          "formatted": "Seattle, Washington, United States",
+          "raw": "Seattle, WA",
+          "state": "Washington"
+        },
+        "occupation": {
+          "classification": {
+            "code": "2492",
+            "majorGroup": {
+              "code": "2",
+              "name": "PROFESSIONAL OCCUPATIONS"
+            },
+            "minorGroup": {
+              "code": "249",
+              "name": "Media Professionals"
+            },
+            "subMajorGroup": {
+              "code": "24",
+              "name": "BUSINESS, MEDIA AND PUBLIC SERVICE PROFESSIONALS"
+            },
+            "system": "SOC",
+            "title": "Newspaper and periodical journalists and reporters"
+          },
+          "managementLevel": "low",
+          "normalizedTitle": "Contributor"
+        },
+        "organization": "Husky Security Collective"
+      }
+    ]
+  },
+  "meta": {
+    "document": {
+      "classification": {
+        "confidence": 0.6456,
+        "label": "resume",
+        "modelVersion": "document-domain-p1b-r2-clean-20260728"
+      },
+      "extractionQuality": {
+        "band": "high",
+        "score": 0.964
+      }
+    },
+    "schemaVersion": "1.0",
+    "timing": {
+      "totalMs": 75.26526799999999
+    }
+  }
+}
