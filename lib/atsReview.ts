@@ -864,9 +864,65 @@ export interface EducationReview {
   entries: EducationIssues[];   // parallel to education[]
 }
 
+// A grade number, allowing one stray space around the separator ("3 .51"),
+// optionally followed by a scale ("/4.00", " /4.00", " / 4.00").
+const GRADE_NUMBER = String.raw`\d+(?: ?[.,] ?\d+)?`;
+const GRADE_VALUE = String.raw`${GRADE_NUMBER}(?:\s*\/\s*${GRADE_NUMBER})?`;
+
+// A space on only one side of "/", "." or ",", or between two digits. That's
+// the extractor reading a visual gap as a word break ("3.51 /4.00"), not
+// deliberate spacing ("3.51 / 4.00").
+const LOPSIDED_SPACE_RE = /\S\s[/.,]\S|\S[/.,]\s\S|\d\s\d/;
+
+// Finds the grade as written in the raw text (e.g. "GPA: 3.51 /4.00") when
+// Affinda recognized the metric but returned no value.
+function findGradeText(metric: string, rawText: string): { text: string; value: string } | null {
+  const escaped = metric.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = rawText.match(
+    new RegExp(String.raw`\b${escaped}\b\s*[:\-–]?\s*(${GRADE_VALUE})`, "i"),
+  );
+  return match ? { text: match[0], value: match[1] } : null;
+}
+
+function reviewMissingGradeValue(metric: string, rawText: string): AtsIssue {
+  const found = findGradeText(metric, rawText);
+  if (!found) {
+    // Just listing award is also shown in Affinda's example
+    return {
+      code: "LOW_CONFIDENCE",
+      severity: "info",
+      message: `Parsed a grade ("${metric}") with no value`,
+      fix: "Add GPA if >=3.5",
+      evidence: metric,
+    };
+  }
+
+  const split = found.value.match(LOPSIDED_SPACE_RE);
+  if (split) {
+    const afterOne = split[0].startsWith("1");
+    return {
+      code: "WRONG_SPLIT",
+      severity: "info",
+      message: `${metric} "${found.value}" is in the text, but a stray space stopped it being read as a value`,
+      fix:
+        (afterOne ? 'A narrow "1" left a gap the extractor read as a space. ' : "") +
+        `Write "${metric}: 3.50 / 4.00" or just "${metric}: 3.50".`,
+      evidence: found.text,
+    };
+  }
+
+  return {
+    code: "LOW_CONFIDENCE",
+    severity: "info",
+    message: `${metric} "${found.value}" is in the text but wasn't extracted as a value`,
+    fix: `Write it plainly ("${metric}: 3.50/4.00"), set off with "|" or a line break.`,
+    evidence: found.text,
+  };
+}
+
 // Per-entry rules only. Cross-entry rules (duplicate institution) live in
 // reviewEducation, since they need the full list.
-export function reviewEducationEntry(ed: AtsEducation): EducationIssues {
+export function reviewEducationEntry(ed: AtsEducation, rawText: string): EducationIssues {
   const fields: EducationIssues = {};
 
   if (!ed.institution?.trim()) {
@@ -926,21 +982,14 @@ export function reviewEducationEntry(ed: AtsEducation): EducationIssues {
     });
   }
 
-  // Just listing award is also shown in Affinda's example
   if (ed.grade?.metric && !ed.grade.value) {
-    add(fields, "grade", {
-      code: "LOW_CONFIDENCE",
-      severity: "info",
-      message: `Parsed a grade ("${ed.grade.metric}") with no value`,
-      fix: "If this is an award or honor rather than a GPA, consider listing it under Achievements instead. Add GPA if high.",
-      evidence: ed.grade.metric,
-    });
+    add(fields, "grade", reviewMissingGradeValue(ed.grade.metric, rawText));
   }
 
   return fields;
 }
 
-export function reviewEducation(list: AtsEducation[]): EducationReview {
+export function reviewEducation(list: AtsEducation[], rawText: string): EducationReview {
   const section: AtsIssue[] = [];
 
   if (list.length === 0) {
@@ -952,7 +1001,7 @@ export function reviewEducation(list: AtsEducation[]): EducationReview {
     return { section, entries: [] };
   }
 
-  const entries = list.map(reviewEducationEntry);
+  const entries = list.map((ed) => reviewEducationEntry(ed, rawText));
 
   const seen = new Set<string>();
   for (const ed of list) {
@@ -1083,6 +1132,38 @@ function findRepeatedLineRuns(rawText: string): string[] {
   return [...found];
 }
 
+// The parser's extractor rebuilds text from glyph positions, guessing word
+// breaks from visual gaps. Narrow glyphs in wide slots (the digit "1",
+// "i"/"l"/"." in a monospace font) and font switches before punctuation leave
+// gaps it misreads, e.g. "Toronto , ON", "gma il . com", "3.51 /4.00", "1 st".
+// It ignores real space characters in the PDF: pdfTeX's \pdfinterwordspaceon
+// changed nothing here (tested on a real resume) and added "←" junk instead.
+const STRAY_SPACE_RES = [
+  /\w ,/g,                        // space before a comma
+  /\w \.(?= ?\w)/g,               // space before a dot glued to the next word
+  /\d (?=(?:st|nd|rd|th)\b)/g,    // split ordinal: "1 st"
+  /\d (?=[,./]\d)/g,              // split number: "1 ,500", "3.51 /4.00"
+  /\d (?=[KMB]\+)/g,              // split magnitude: "1 M+"
+];
+const STRAY_SPACE_THRESHOLD = 3;
+const STRAY_SPACE_EXAMPLES = 4;
+
+function findStraySpaces(rawText: string): string[] {
+  const hits: { index: number; text: string }[] = [];
+  for (const re of STRAY_SPACE_RES) {
+    for (const m of rawText.matchAll(re)) {
+      // A little context on each side, trimmed back to whole words
+      const text = rawText
+        .slice(Math.max(0, m.index - 10), m.index + m[0].length + 10)
+        .replace(/\s+/g, " ")
+        .replace(/^\S* /, "")
+        .replace(/ \S*$/, "");
+      hits.push({ index: m.index, text });
+    }
+  }
+  return hits.sort((a, b) => a.index - b.index).map((h) => h.text);
+}
+
 // Whole-document checks, as opposed to the header-only icon-word scan in
 // reviewContact. Not tied to any one field, so this returns a flat list.
 export function reviewRawText(rawText: string): AtsIssue[] {
@@ -1129,6 +1210,30 @@ export function reviewRawText(rawText: string): AtsIssue[] {
       severity: "info",
       message: "Word(s) appear to be hyphenated across a line break in the extracted text",
       fix: 'A hyphenated line-wrap (e.g. "opti-\\nmization") can prevent keyword matching. Usually harmless, but worth checking near important keywords.',
+    });
+  }
+
+  const straySpaces = findStraySpaces(rawText);
+  if (straySpaces.length >= STRAY_SPACE_THRESHOLD) {
+    issues.push({
+      code: "WRONG_SPLIT",
+      severity: "info",
+      message: `${straySpaces.length} stray spaces inside words or numbers in the extracted text, e.g. ${straySpaces
+        .slice(0, STRAY_SPACE_EXAMPLES)
+        .map((s) => `"${s}"`)
+        .join(", ")}`,
+      fix: 'The parser guesses spaces from gaps between letters (see "Raw extracted text"). Usually harmless, but it can break a GPA or email. Avoid monospace fonts (\\texttt) for contact details.',
+    });
+  }
+
+  // pdfTeX's \pdfinterwordspaceon emits a space glyph after math-mode
+  // separators like $|$ in the math font, where that slot is "←".
+  if (rawText.includes("←")) {
+    issues.push({
+      code: "UNEXPECTED_SYMBOL",
+      severity: "info",
+      message: 'Stray "←" characters in the extracted text',
+      fix: "In LaTeX, likely \\pdfinterwordspaceon next to a $|$ separator. Remove it; it doesn't help parsing.",
     });
   }
 

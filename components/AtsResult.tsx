@@ -952,6 +952,14 @@ export default function AtsResult({ result, report }: Props) {
 
             {typeof data.rawText === "string" && data.rawText && (
               <RawDetails summary="Raw extracted text" copyText={data.rawText}>
+                <p className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
+                  Spaces in odd places (&ldquo;Toronto , ON&rdquo;, &ldquo;1 st&rdquo;)?
+                  The parser rebuilds text from where each letter sits on the page and
+                  guesses spaces from the gaps. Narrow letters in wide slots (a
+                  &ldquo;1&rdquo;, or &ldquo;i&rdquo;/&ldquo;l&rdquo; in a monospace
+                  font) leave gaps it reads as spaces. Real spaces in the PDF don&rsquo;t
+                  help, so fix it with the font.
+                </p>
                 <pre className={preCls}>{data.rawText}</pre>
               </RawDetails>
             )}

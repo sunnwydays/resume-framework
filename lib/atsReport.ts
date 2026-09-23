@@ -73,7 +73,7 @@ export function buildAtsReport(result: AtsParseResult): AtsReport {
   const person = { name: data.person?.name ?? {}, location: data.person?.location };
   const personIssues = reviewPerson(person);
   const education = data.education ?? [];
-  const educationReview = reviewEducation(education);
+  const educationReview = reviewEducation(education, data.rawText ?? "");
   const workExperience = data.workExperience ?? [];
   const workReview = reviewWorkExperiences(workExperience);
   const projects = data.projects ?? [];
