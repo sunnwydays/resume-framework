@@ -387,21 +387,26 @@ function compareEmailPosition(email: string, headerBlock: string): AtsIssue[] {
     .replace(ICON_WORD_RE, "")
     .trim();
 
-  if (/\s/.test(rawLocalPart)) {
-    issues.push({
-      code: "WRONG_SPLIT",
-      severity: "critical",
-      message: "Email has space(s) in the extracted text",
-      fix: "The raw text has whitespace inside the email address (likely from letter-spacing or an icon glyph next to it). Type the email as plain text with nothing touching it.",
-      evidence: `${rawLocalPart}@${email.split("@")[1] ?? ""}`,
-    });
-  } else if (squash(rawLocalPart) !== squash(email.split("@")[0] ?? "")) {
-    issues.push({
-      code: "TRUNCATED",
-      severity: "minor",
-      message: "Parsed email differs from the raw text near it",
-      evidence: `raw: ${rawLocalPart}@..., parsed: ${email}`,
-    });
+  // Same whitespace-reflow tolerance as the domain check above: letter-spacing
+  // or an icon glyph can put spaces inside the raw local part even though the
+  // address is genuinely intact, so only flag it once squashing rules that out.
+  if (squash(rawLocalPart) !== squash(email.split("@")[0] ?? "")) {
+    if (/\s/.test(rawLocalPart)) {
+      issues.push({
+        code: "WRONG_SPLIT",
+        severity: "critical",
+        message: "Email has space(s) in the extracted text",
+        fix: "The raw text has whitespace inside the email address (likely from letter-spacing or an icon glyph next to it). Type the email as plain text with nothing touching it.",
+        evidence: `${rawLocalPart}@${email.split("@")[1] ?? ""}`,
+      });
+    } else {
+      issues.push({
+        code: "TRUNCATED",
+        severity: "minor",
+        message: "Parsed email differs from the raw text near it",
+        evidence: `raw: ${rawLocalPart}@..., parsed: ${email}`,
+      });
+    }
   }
 
   return issues;
