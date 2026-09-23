@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!allowed) {
     return NextResponse.json(
       {
-        error: `This demo limits parses per visitor to protect the shared API key. You've hit that limit — try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
+        error: `This demo limits parses per visitor to protect the shared API key. You hit the ratelimit. Try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
       },
       { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
     );
@@ -32,9 +32,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file or text provided" }, { status: 400 });
   }
 
+  const KEY_DOWN_MESSAGE =
+    "The demo's Affinda API key has expired or stopped working, so live parsing is unavailable right now. You can still view common mistakes and fixes using the sample resumes which were parsed with Affinda.";
+
   const apiKey = process.env.AFFINDA_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "no Affinda api key" }, { status: 500 });
+    return NextResponse.json({ error: KEY_DOWN_MESSAGE }, { status: 500 });
   }
 
   const form = new FormData();
@@ -54,6 +57,10 @@ export async function POST(req: NextRequest) {
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
     });
+
+    if (response.status === 401 || response.status === 403) {
+      return NextResponse.json({ error: KEY_DOWN_MESSAGE }, { status: 502 });
+    }
 
     if (!response.ok) throw new Error(await response.text());
 
