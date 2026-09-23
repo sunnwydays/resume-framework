@@ -25,9 +25,6 @@
   \input{glyphtounicode}
 \fi
 
-% fixed width
-\usepackage[scale=0.90,lf]{FiraMono}
-
 % light-grey
 \definecolor{light-grey}{gray}{0.83}
 \definecolor{dark-grey}{gray}{0.3}
@@ -132,6 +129,9 @@
 
 \newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
 
+% Even spacing on both sides of the header's "|" separators
+\newcommand{\contactSep}{\hspace{4pt}$|$\hspace{4pt}}
+
 \renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
 
 \newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0in, label={}]}
@@ -152,10 +152,12 @@
 \begin{center}
   \textbf{\huge Jane Doe} \\ \vspace{5pt}
   \small
-  \texttt{123-456-7890} $|$
-  \hspace{1pt} \hspace{2pt} \texttt{jane.doe@example.com} \hspace{1pt} $|$
-  \hspace{1pt} \hspace{2pt} \href{https://www.linkedin.com/in/jane-doe/}{\texttt{linkedin.com/in/jane-doe}} \hspace{1pt} $|$
-  \hspace{1pt} \hspace{2pt}\texttt{Seattle, WA}
+  % Proportional font, not \texttt: monospace gives narrow letters (i, l, .)
+  % wide empty slots that ATS extraction reads as spaces ("gma il . com")
+  123-456-7890\contactSep
+  jane.doe@example.com\contactSep
+  \href{https://www.linkedin.com/in/jane-doe/}{linkedin.com/in/jane-doe}\contactSep
+  Seattle, WA
   \\ \vspace{-3pt}
 \end{center}
 \vspace{-8pt}
@@ -238,8 +240,8 @@
 \vspace{-4pt}
 \begin{itemize}[leftmargin=0in, label={}]
   \small{\item{
-          \textbf{Languages \& Frameworks} {\color{desc-grey}: Python, JavaScript, TypeScript, Java, SQL, React, Node.js}\vspace{2pt} \\
-          \textbf{Tools}     {\color{desc-grey}: Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash}
+          \textbf{Languages \& Frameworks}{\color{desc-grey}: Python, JavaScript, TypeScript, Java, SQL, React, Node.js}\vspace{2pt} \\
+          \textbf{Tools}{\color{desc-grey}: Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash}
         }}
 \end{itemize}
 

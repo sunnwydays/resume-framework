@@ -902,7 +902,7 @@ function reviewMissingGradeValue(metric: string, rawText: string): AtsIssue {
     const afterOne = split[0].startsWith("1");
     return {
       code: "WRONG_SPLIT",
-      severity: "info",
+      severity: "critical",
       message: `${metric} "${found.value}" is in the text, but a stray space stopped it being read as a value`,
       fix:
         (afterOne ? 'A narrow "1" left a gap the extractor read as a space. ' : "") +
@@ -913,7 +913,7 @@ function reviewMissingGradeValue(metric: string, rawText: string): AtsIssue {
 
   return {
     code: "LOW_CONFIDENCE",
-    severity: "info",
+    severity: "critical",
     message: `${metric} "${found.value}" is in the text but wasn't extracted as a value`,
     fix: `Write it plainly ("${metric}: 3.50/4.00"), set off with "|" or a line break.`,
     evidence: found.text,
@@ -1222,7 +1222,7 @@ export function reviewRawText(rawText: string): AtsIssue[] {
         .slice(0, STRAY_SPACE_EXAMPLES)
         .map((s) => `"${s}"`)
         .join(", ")}`,
-      fix: 'The parser guesses spaces from gaps between letters (see "Raw extracted text"). Usually harmless, but it can break a GPA or email. Avoid monospace fonts (\\texttt) for contact details.',
+      fix: 'The parser guesses spaces from gaps between letters (see "Raw extracted text"). Usually harmless, but it can break a GPA or email. Avoid monospace fonts (\\texttt) for contact details, and put punctuation right after bold text inside the bold (\\textbf{pass rate,} not \\textbf{pass rate},) since the font switch leaves a gap too.',
     });
   }
 
