@@ -2,9 +2,7 @@
   "data": {
     "achievements": [
       "Dean's List",
-      "Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars across app stores",
-      "solve time roughly 3x",
-      "listing load time from 12s to 0.7s"
+      "Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars across app stores"
     ],
     "associations": [],
     "certifications": [],
@@ -52,7 +50,9 @@
           "Computer Science"
         ],
         "grade": {
-          "metric": "Award"
+          "metric": "GPA",
+          "raw": "GPA: 3.72/4.00",
+          "value": 3.72
         },
         "institution": "University of Washington",
         "level": "bachelor",
@@ -133,8 +133,8 @@
       }
     ],
     "publications": [],
-    "rawText": "Jane Doe\n123 -456 - 7890 | j ane . doe@example.com | l in ked in . com/in/j ane -doe | Seattle , WA\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science (Dean's List) Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | github.com/janedoe/puzzle-solver\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | textbookswap.app\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
-    "redactedText": "**** ***\n*** **** * **** | * *** * *************** | * ** *** ** * ******** *** **** | ******* * **\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science (Dean's List) Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | ********************************\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | ****************\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
+    "rawText": "Jane Doe\n123 -456 - 7890 | j ane . doe@example.com | l in ked in . com/in/j ane -doe | Seattle , WA\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science | GPA: 3.72/4.00 | Dean's List Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | github.com/janedoe/puzzle-solver\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | textbookswap.app\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
+    "redactedText": "**** ***\n*** **** * **** | * *** * *************** * * ** *** ** * ******** *** **** * ******* * **\nEDUCATION\nUniversity of Washington Seattle, WA\nBS, Computer Science | GPA: 3.72/4.00 | Dean's List Sep. 2022 – Jun. 2026 (expected)\nEXPERIENCE\nSearch Infrastructure Co-op Seattle, WA\nFathomline Systems May 2025 – May 2026\n• Query latency in the autocomplete service spiked under load; adding a tiered LRU cache cut p99 latency from\n420ms to 85ms\n• Built a Rust-based indexing pipeline that reprocesses 30M documents nightly, replacing an 11 -hour full rebuild\nwith a 2-hour incremental one\n• Wrote a relevance-scoring harness that A/B tests ranking changes against 20 query sets before rollout\n• Traced a tokenizer bug that was silently dropping accented terms, recovering recall on roughly 5% of queries\n• Added query-shape validation to the ingestion API so malformed filters get rejected before hitting the index\nMobile App Lead Seattle, WA\nCascade Housing Cooperative Sep. 2024 – Jun. 2026\n• Rebuilt the co-op's iOS/Android app in React Native , cutting cold-start time from 3.8s to 1 .0s\n• Added offline sync with conflict resolution, cutting failed submissions during outages by roughly 85%\n• Shipped push notifications for maintenance updates, lifting resident response rate from 57% to 88%\n• Led 3 fellow student developers to ship a resident directory covering 950+ tenants, now averaging 4.6 stars\nacross app stores\nSecurity Contributor Seattle, WA\nHusky Security Collective Jan. 2024 – Jun. 2025\n• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a\ndisclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout\nPROJECTS\nPuzzle Solver Toolkit Feb. 2026 – present\nPython, NumPy | ********************************\n• Simulated annealing and A* search sit behind a shared heuristic interface for solving sliding-tile and Sokoban\npuzzles\n• Benchmarked 5 heuristics across 150 generated puzzles to compare solve time against optimality\n• Distributing search across worker processes cut median solve time roughly 3x\nTextbook Swap Marketplace Sep. 2024 – Dec. 2024\nReact, TypeScript, Tailwind CSS, Firebase | ****************\n• Peer-to-peer listings platform for textbook exchange, now used by 600+ students\n• Infinite scroll and image lazy-loading brought listing load time from 12s to 0.7s\n• An automatic matching system surfaces mutual-swap opportunities instead of requiring manual browsing\nSKILLS\nLanguages & Frameworks : Python, JavaScript, TypeScript, Java, SQL, React, Node.js\nTools : Docker, Git, CI/CD, PostgreSQL, Linux, AWS, Bash",
     "referees": [],
     "skills": [
       {
@@ -151,21 +151,6 @@
           "type": "specialized_skill"
         },
         "text": "AWS"
-      },
-      {
-        "name": "Application Programming Interface (API)",
-        "sources": [
-          {
-            "section": "skills_interests_languages"
-          }
-        ],
-        "taxonomy": {
-          "affindaId": "af_nx9pacwa4p",
-          "isLanguage": false,
-          "isSoftware": true,
-          "type": "specialized_skill"
-        },
-        "text": "API"
       },
       {
         "name": "Bash (Scripting Language)",
@@ -414,6 +399,27 @@
         "text": "iOS"
       },
       {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Application Programming Interface (API)",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "taxonomy": {
+          "affindaId": "af_nx9pacwa4p",
+          "isLanguage": false,
+          "isSoftware": true,
+          "type": "specialized_skill"
+        },
+        "text": "API"
+      },
+      {
         "experienceMonths": 18,
         "lastUsed": {
           "date": "2025-06-01",
@@ -482,27 +488,6 @@
           "date": "2026-05-01",
           "precision": "month"
         },
-        "name": "Data Ingestion",
-        "sources": [
-          {
-            "recordIndex": 0,
-            "section": "workexperience"
-          }
-        ],
-        "taxonomy": {
-          "affindaId": "af_7mm2z2mfsn",
-          "isLanguage": false,
-          "isSoftware": false,
-          "type": "specialized_skill"
-        },
-        "text": "ingestion API"
-      },
-      {
-        "experienceMonths": 13,
-        "lastUsed": {
-          "date": "2026-05-01",
-          "precision": "month"
-        },
         "name": "Indexing",
         "sources": [
           {
@@ -538,27 +523,6 @@
           "type": "specialized_skill"
         },
         "text": "LRU"
-      },
-      {
-        "experienceMonths": 18,
-        "lastUsed": {
-          "date": "2025-06-01",
-          "precision": "month"
-        },
-        "name": "Rate Limiting",
-        "sources": [
-          {
-            "recordIndex": 2,
-            "section": "workexperience"
-          }
-        ],
-        "taxonomy": {
-          "affindaId": "af_dpz2qz3eqg",
-          "isLanguage": false,
-          "isSoftware": false,
-          "type": "specialized_skill"
-        },
-        "text": "rate limiting"
       },
       {
         "experienceMonths": 22,
@@ -624,6 +588,15 @@
         "text": "CVE"
       },
       {
+        "name": "automatic matching system",
+        "sources": [
+          {
+            "section": "skills_interests_languages"
+          }
+        ],
+        "text": "automatic matching system"
+      },
+      {
         "experienceMonths": 18,
         "lastUsed": {
           "date": "2025-06-01",
@@ -674,14 +647,14 @@
           "date": "2026-05-01",
           "precision": "month"
         },
-        "name": "relevance-scoring harness",
+        "name": "relevance-scoring",
         "sources": [
           {
             "recordIndex": 0,
             "section": "workexperience"
           }
         ],
-        "text": "relevance-scoring harness"
+        "text": "relevance-scoring"
       },
       {
         "experienceMonths": 13,
@@ -712,6 +685,21 @@
           }
         ],
         "text": "search"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "Search Infrastructure",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "Search Infrastructure"
       },
       {
         "experienceMonths": 18,
@@ -745,6 +733,21 @@
           }
         ],
         "text": "Sokoban puzzles"
+      },
+      {
+        "experienceMonths": 13,
+        "lastUsed": {
+          "date": "2026-05-01",
+          "precision": "month"
+        },
+        "name": "tokenizer bug",
+        "sources": [
+          {
+            "recordIndex": 0,
+            "section": "workexperience"
+          }
+        ],
+        "text": "tokenizer bug"
       }
     ],
     "workExperience": [
@@ -825,7 +828,7 @@
             "precision": "month"
           }
         },
-        "description": "• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a disclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout PROJECTS",
+        "description": "• Ran a dependency audit across the co-op's stack, finding and patching 7 vulnerable packages before a disclosed CVE went public\n• Added rate limiting and CSRF protection to the resident portal, closing 2 exploitable auth-bypass paths\n• Wrote a secrets-scanning pre-commit hook that's blocked 25+ accidental credential leaks since rollout",
         "employmentType": "full_time",
         "jobTitle": "Security Contributor",
         "location": {
@@ -868,18 +871,18 @@
   "meta": {
     "document": {
       "classification": {
-        "confidence": 0.6456,
+        "confidence": 0.7176,
         "label": "resume",
         "modelVersion": "document-domain-p1b-r2-clean-20260728"
       },
       "extractionQuality": {
         "band": "high",
-        "score": 0.964
+        "score": 0.9579
       }
     },
     "schemaVersion": "1.0",
     "timing": {
-      "totalMs": 75.26526799999999
+      "totalMs": 76.055093
     }
   }
 }
