@@ -74,7 +74,6 @@ const ICON_WORDS = [
   "phone-alt",
   "mobile-alt",
   "linkedin",
-  "github",
   "globe",
   "link",
   "map-marker",
