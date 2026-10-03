@@ -246,10 +246,17 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   all on by default); the server still returns the raw title.
 - **Export** (`lib/tracker/export.ts`): XLSX is written with ExcelJS (the
   community SheetJS build can't write styles); CSV is still plain SheetJS
-  rows. Each sheet has a summary block (title, stat tiles, up to 4 facts,
-  from `applicationStats` / `assessmentStats` over *all* rows, ignoring the
-  on-screen filters) above an Excel table with colored status/outcome
-  cells, real date cells, clickable links, and wrapped notes. The header
+  rows. Each sheet has a summary block (title, stat tiles, a fixed set of
+  facts over *all* rows, ignoring the on-screen filters) above an Excel
+  table with colored status/outcome cells, real date cells, clickable
+  links, and wrapped notes. Every stat is a live formula over the tables
+  (structured refs, `_xlfn.AGGREGATE` for median/min) built as an `Expr`
+  alongside the same calculation in JS, which becomes the cached result
+  (Protected View doesn't recalculate). Formulas can only see the sheet, so
+  there's no status history: these follow current status + listed
+  assessments (matched by company + role) and can differ slightly from the
+  app's stats panel. The table is padded to at least 300 rows so typed-in
+  rows are inside it and get counted. The header
   row is therefore not row 1, which re-import tolerates (header must stay
   within the first 15 rows; nothing in the summary may look like a Company
   column). Dates are written as local wall-clock Excel dates to round-trip

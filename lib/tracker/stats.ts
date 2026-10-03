@@ -60,7 +60,7 @@ export function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> 
   return map;
 }
 
-function median(values: number[]): number | null {
+export function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const s = [...values].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);

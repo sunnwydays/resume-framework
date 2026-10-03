@@ -33,14 +33,12 @@ import {
   type Application,
   type Assessment,
   type Question,
-  type StatusChange,
 } from "@/lib/tracker/format";
 
 interface Props {
   applications: Application[];
   assessments: Assessment[];
   questions: Question[];
-  statusChanges: StatusChange[];
   onImported: () => Promise<void>;
   // Deletes every application; resolves to an error message, or null.
   onClearAll: () => Promise<string | null>;
@@ -274,7 +272,6 @@ export default function ImportExport({
   applications,
   assessments,
   questions,
-  statusChanges,
   onImported,
   onClearAll,
 }: Props) {
@@ -455,7 +452,7 @@ export default function ImportExport({
         <button
           type="button"
           onClick={() =>
-            exportData("xlsx", applications, assessments, questions, statusChanges)
+            exportData("xlsx", applications, assessments, questions)
           }
           className={buttonCls}
           disabled={applications.length === 0}
@@ -465,7 +462,7 @@ export default function ImportExport({
         <button
           type="button"
           onClick={() =>
-            exportData("csv", applications, assessments, questions, statusChanges)
+            exportData("csv", applications, assessments, questions)
           }
           className={buttonCls}
           disabled={applications.length === 0}

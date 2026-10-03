@@ -237,7 +237,6 @@ export default function TrackerPage() {
           applications={applications}
           assessments={assessments}
           questions={questions}
-          statusChanges={statusChanges}
           onImported={tracker.reload}
           onClearAll={tracker.deleteAllApplications}
         />

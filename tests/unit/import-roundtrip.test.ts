@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   applicationRows,
   assessmentRows,
@@ -13,7 +13,7 @@ import {
   type ImportPlan,
   type RawSheet,
 } from "@/lib/tracker/io";
-import { makeApp, makeAssessment, makeChange, makeQuestion, local } from "../helpers/fixtures";
+import { makeApp, makeAssessment, makeQuestion, local } from "../helpers/fixtures";
 
 // What the user exports is what they should be able to import: through the
 // real XLSX writer and reader, not just the plan builder.
@@ -82,8 +82,6 @@ const questions = [
   makeQuestion({ assessment_id: "asmt-2", source: "expected", question: "Explain the CAP theorem", answer: null }),
 ];
 
-const changes = [makeChange({ application_id: "app-1", status: "oa", changed_at: local(2026, 9, 10, 14, 30) })];
-
 async function readBytes(bytes: ArrayBuffer | string, name: string): Promise<RawSheet[]> {
   return readSheets(new File([bytes], name));
 }
@@ -99,7 +97,7 @@ describe("XLSX export -> import", () => {
   // the 5 s test timeout on a busy machine; doing it here keeps that from
   // failing every test below with "undefined".
   beforeAll(async () => {
-    sheets = await readBytes(await buildExportXlsx(apps, assessments, questions, changes), "export.xlsx");
+    sheets = await readBytes(await buildExportXlsx(apps, assessments, questions), "export.xlsx");
     fresh = buildImportPlan(sheets, [], []);
   }, 60_000);
 
@@ -191,7 +189,7 @@ describe("XLSX export -> import", () => {
   });
 
   it("an empty tracker exports and re-imports cleanly", async () => {
-    const empty = await readBytes(await buildExportXlsx([], [], [], []), "empty.xlsx");
+    const empty = await readBytes(await buildExportXlsx([], [], []), "empty.xlsx");
     const p = buildImportPlan(empty, [], []);
     expect(p.apps).toEqual([]);
     expect(p.assessments).toEqual([]);
@@ -200,9 +198,66 @@ describe("XLSX export -> import", () => {
 
   it("an answer's line breaks are flattened to ' / ' (the one lossy spot)", async () => {
     const q = makeQuestion({ assessment_id: "asmt-1", source: "asked", question: "Q", answer: "Line one\nLine two" });
-    const read = await readBytes(await buildExportXlsx(apps, assessments, [q], changes), "x.xlsx");
+    const read = await readBytes(await buildExportXlsx(apps, assessments, [q]), "x.xlsx");
     const p = buildImportPlan(read, [], []);
     expect(p.assessments[0].row.questions).toEqual([{ source: "asked", question: "Q", answer: "Line one / Line two" }]);
+  });
+});
+
+describe("the XLSX summary", () => {
+  // Each sheet's summary formula cells by address. (Read `cell.result`:
+  // ExcelJS's `cell.value` drops a cached 0.)
+  async function summary(bytes: ArrayBuffer) {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes);
+    return wb.worksheets.map((ws) => {
+      const cells: Record<string, { formula: string; result: unknown }> = {};
+      for (let r = 3; r <= 10; r++) {
+        for (let c = 1; c <= 6; c++) {
+          const cell = ws.getCell(r, c);
+          if (cell.type === ExcelJS.ValueType.Formula) cells[cell.address] = { formula: cell.formula, result: cell.result };
+        }
+      }
+      return { ws, cells };
+    });
+  }
+
+  let sheets: Awaited<ReturnType<typeof summary>>;
+  beforeAll(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 3, 12, 0));
+    sheets = await summary(await buildExportXlsx(apps, assessments, questions));
+    vi.useRealTimers();
+  }, 60_000);
+
+  it("every stat is a formula, with today's value cached", () => {
+    const [a, s] = sheets.map((x) => Object.fromEntries(Object.entries(x.cells).map(([k, v]) => [k, v.result])));
+    expect(a).toEqual({
+      A4: 3, B4: 0, C4: 1, D4: 2 / 3, E4: 1, F4: 0,
+      A5: "0 this week", B5: "0 last week", C5: "3 of 3", D5: "2 of 3", E5: "33%",
+      A7: "Ghosted (30d+, no reply): 0% — 0 of 1 applied 30+ days ago",
+      A8: "Speedrun rejection: 12 days — Gamma · Front End SWE",
+      A9: "Typical time to rejection: 12 days",
+    });
+    expect(s).toEqual({
+      A4: 3, B4: 2, C4: 0, D4: 0, E4: 1, F4: 0,
+      A5: "1 completed", D5: undefined, E5: "1 of 1 with a result", // D5 is "", which reads back as nothing
+      A7: "Procrastination index: 2 days early — 0% done in the final 24h",
+      A8: "Time in assessments: 70 min — completed ones, from the listed durations",
+      A9: "Average difficulty: 4.0 / 5 — over 1 rated one",
+      A10: "Hardest so far: 4 / 5 — Acme · CodeSignal GCA",
+    });
+    for (const { cells } of sheets) {
+      for (const { formula } of Object.values(cells)) expect(formula).toMatch(/Applications\[|Assessments\[/);
+    }
+  });
+
+  it("the table runs at least 300 rows past the header", () => {
+    for (const { ws } of sheets) {
+      const header = ws.getColumn(1).values.indexOf("Company");
+      expect(ws.getCell(header + 300, 1).border?.bottom).toBeDefined();
+    }
   });
 });
 
