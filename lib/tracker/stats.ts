@@ -51,6 +51,15 @@ export function weekStart(iso: string): string {
   return addDays(iso, -weekdayIndex(iso));
 }
 
+export function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    map.set(k, [...(map.get(k) ?? []), item]);
+  }
+  return map;
+}
+
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const s = [...values].sort((a, b) => a - b);

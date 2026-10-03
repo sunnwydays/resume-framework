@@ -4,9 +4,7 @@
 // own.
 
 import {
-  OUTCOMES,
   STATUSES,
-  kindLabel,
   sameUrl,
   statusLabel,
   type AppStatus,
@@ -14,108 +12,10 @@ import {
   type Assessment,
   type AssessmentKind,
   type Outcome,
-  type Question,
   type QuestionSource,
 } from "@/lib/tracker/format";
 
-// ------------------------------------------------------------------ export
-
 const pad = (n: number) => String(n).padStart(2, "0");
-function stamp() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-// Column names double as import aliases, so an export re-imports cleanly.
-function applicationRows(apps: Application[]) {
-  return apps.map((a) => ({
-    Company: a.company,
-    Role: a.role,
-    Link: a.url ?? "",
-    Location: a.location ?? "",
-    Applied: a.applied_on,
-    Status: statusLabel(a.status),
-    "Status changed": a.status_changed_at ?? "",
-    Notes: a.notes ?? "",
-    Description: a.description ?? "",
-  }));
-}
-
-// One question per line, "question → answer"; parseQuestions reads it back.
-const QUESTION_SEP = " → ";
-function questionLines(questions: Question[], source: QuestionSource): string {
-  return questions
-    .filter((q) => q.source === source)
-    .map((q) => q.question.replace(/\s+/g, " ") + (q.answer ? QUESTION_SEP + q.answer.replace(/\s*\n\s*/g, " / ") : ""))
-    .join("\n");
-}
-
-function assessmentRows(assessments: Assessment[], apps: Application[], questions: Question[]) {
-  const byId = new Map(apps.map((a) => [a.id, a]));
-  return assessments.map((s) => ({
-    Company: byId.get(s.application_id)?.company ?? "",
-    Role: byId.get(s.application_id)?.role ?? "",
-    Type: kindLabel(s.kind),
-    Title: s.title,
-    Details: s.details ?? "",
-    "Duration (min)": s.duration_min ?? "",
-    Due: s.due_at ?? "",
-    Interviewer: s.interviewer ?? "",
-    Link: s.link ?? "",
-    Important: s.important ? "yes" : "no",
-    Status: s.status === "completed" ? "Completed" : "Pending",
-    "Completed at": s.completed_at ?? "",
-    Difficulty: s.difficulty ?? "",
-    Outcome: s.outcome ? OUTCOMES[s.outcome as Outcome].label : "",
-    Score: s.score ?? "",
-    "Prep notes": s.prep_notes ?? "",
-    Reflection: s.reflection ?? "",
-    "Expected questions": questionLines(questions.filter((q) => q.assessment_id === s.id), "expected"),
-    "Asked questions": questionLines(questions.filter((q) => q.assessment_id === s.id), "asked"),
-    Notes: s.notes ?? "",
-  }));
-}
-
-function download(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export async function exportData(
-  format: "xlsx" | "csv",
-  apps: Application[],
-  assessments: Assessment[],
-  questions: Question[]
-) {
-  const XLSX = await import("xlsx");
-  const appSheet = XLSX.utils.json_to_sheet(applicationRows(apps));
-  const asmtSheet = XLSX.utils.json_to_sheet(assessmentRows(assessments, apps, questions));
-  if (format === "xlsx") {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, appSheet, "Applications");
-    XLSX.utils.book_append_sheet(wb, asmtSheet, "Assessments");
-    XLSX.writeFile(wb, `job-tracker-${stamp()}.xlsx`);
-  } else {
-    const csv = (ws: typeof appSheet) =>
-      new Blob([XLSX.utils.sheet_to_csv(ws)], { type: "text/csv;charset=utf-8" });
-    download(csv(appSheet), `job-tracker-applications-${stamp()}.csv`);
-    download(csv(asmtSheet), `job-tracker-assessments-${stamp()}.csv`);
-  }
-}
-
-// Empty workbook with the suggested headers, to paste rows into.
-export async function downloadTemplate() {
-  const XLSX = await import("xlsx");
-  const wb = XLSX.utils.book_new();
-  const headers = (spec: Record<string, FieldSpec>) => [Object.values(spec).map((f) => f.label)];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(headers(APP_FIELDS)), "Applications");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(headers(ASSESSMENT_FIELDS)), "Assessments");
-  XLSX.writeFile(wb, "job-tracker-template.xlsx");
-}
 
 // ------------------------------------------------------------------ import
 

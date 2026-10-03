@@ -36,18 +36,10 @@ import {
   type StatusChange,
 } from "@/lib/tracker/format";
 import { prioritize } from "@/lib/tracker/priority";
+import { groupBy } from "@/lib/tracker/stats";
 import { ROLE_TYPES, roleType, roleTypeLabel, type RoleType } from "@/lib/tracker/roles";
 
 type Tab = "applications" | "assessments";
-
-function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> {
-  const map = new Map<string, T[]>();
-  for (const item of items) {
-    const k = key(item);
-    map.set(k, [...(map.get(k) ?? []), item]);
-  }
-  return map;
-}
 
 export default function TrackerPage() {
   const tracker = useTracker();
@@ -245,6 +237,7 @@ export default function TrackerPage() {
           applications={applications}
           assessments={assessments}
           questions={questions}
+          statusChanges={statusChanges}
           onImported={tracker.reload}
           onClearAll={tracker.deleteAllApplications}
         />

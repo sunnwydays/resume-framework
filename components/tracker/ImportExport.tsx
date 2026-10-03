@@ -6,8 +6,6 @@ import {
   APP_FIELDS,
   ASSESSMENT_FIELDS,
   buildImportPlan,
-  downloadTemplate,
-  exportData,
   normalizeHeader,
   readSheets,
   toImportPayload,
@@ -20,6 +18,7 @@ import {
   type SheetKind,
   type SheetReport,
 } from "@/lib/tracker/io";
+import { downloadTemplate, exportData } from "@/lib/tracker/export";
 import ApplicationPicker from "@/components/tracker/ApplicationPicker";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
 import { supabase } from "@/lib/tracker/useTracker";
@@ -34,12 +33,14 @@ import {
   type Application,
   type Assessment,
   type Question,
+  type StatusChange,
 } from "@/lib/tracker/format";
 
 interface Props {
   applications: Application[];
   assessments: Assessment[];
   questions: Question[];
+  statusChanges: StatusChange[];
   onImported: () => Promise<void>;
   // Deletes every application; resolves to an error message, or null.
   onClearAll: () => Promise<string | null>;
@@ -273,6 +274,7 @@ export default function ImportExport({
   applications,
   assessments,
   questions,
+  statusChanges,
   onImported,
   onClearAll,
 }: Props) {
@@ -453,7 +455,7 @@ export default function ImportExport({
         <button
           type="button"
           onClick={() =>
-            exportData("xlsx", applications, assessments, questions)
+            exportData("xlsx", applications, assessments, questions, statusChanges)
           }
           className={buttonCls}
           disabled={applications.length === 0}
@@ -463,7 +465,7 @@ export default function ImportExport({
         <button
           type="button"
           onClick={() =>
-            exportData("csv", applications, assessments, questions)
+            exportData("csv", applications, assessments, questions, statusChanges)
           }
           className={buttonCls}
           disabled={applications.length === 0}

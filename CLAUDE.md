@@ -241,7 +241,18 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   looked-up role is tidied client-side by `lib/tracker/trimRole.ts` (trim
   term, trim intern, shorten title; three checkboxes under the Role field,
   all on by default); the server still returns the raw title.
-- **Import/export** (`lib/tracker/io.ts`): SheetJS (installed from the
+- **Export** (`lib/tracker/export.ts`): XLSX is written with ExcelJS (the
+  community SheetJS build can't write styles); CSV is still plain SheetJS
+  rows. Each sheet has a summary block (title, stat tiles, up to 4 facts,
+  from `applicationStats` / `assessmentStats` over *all* rows, ignoring the
+  on-screen filters) above an Excel table with colored status/outcome
+  cells, real date cells, clickable links, and wrapped notes. The header
+  row is therefore not row 1, which re-import tolerates (header must stay
+  within the first 15 rows; nothing in the summary may look like a Company
+  column). Dates are written as local wall-clock Excel dates to round-trip
+  through `parseDate`/`parseDateTime`. The template shares the layouts, adds
+  header hover notes (the field hints) and dropdowns for enum columns.
+- **Import** (`lib/tracker/io.ts`): SheetJS (installed from the
   cdn.sheetjs.com tarball, not npm's stale `xlsx`), dynamically imported.
   The header row is the first with a company-like column plus one other
   known column, so title and totals rows above it are skipped. Columns are
