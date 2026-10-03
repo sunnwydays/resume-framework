@@ -4,6 +4,7 @@
 // own.
 
 import {
+  OUTCOMES,
   STATUSES,
   kindLabel,
   sameUrl,
@@ -12,6 +13,9 @@ import {
   type Application,
   type Assessment,
   type AssessmentKind,
+  type Outcome,
+  type Question,
+  type QuestionSource,
 } from "@/lib/tracker/format";
 
 // ------------------------------------------------------------------ export
@@ -37,7 +41,16 @@ function applicationRows(apps: Application[]) {
   }));
 }
 
-function assessmentRows(assessments: Assessment[], apps: Application[]) {
+// One question per line, "question → answer"; parseQuestions reads it back.
+const QUESTION_SEP = " → ";
+function questionLines(questions: Question[], source: QuestionSource): string {
+  return questions
+    .filter((q) => q.source === source)
+    .map((q) => q.question.replace(/\s+/g, " ") + (q.answer ? QUESTION_SEP + q.answer.replace(/\s*\n\s*/g, " / ") : ""))
+    .join("\n");
+}
+
+function assessmentRows(assessments: Assessment[], apps: Application[], questions: Question[]) {
   const byId = new Map(apps.map((a) => [a.id, a]));
   return assessments.map((s) => ({
     Company: byId.get(s.application_id)?.company ?? "",
@@ -52,6 +65,13 @@ function assessmentRows(assessments: Assessment[], apps: Application[]) {
     Important: s.important ? "yes" : "no",
     Status: s.status === "completed" ? "Completed" : "Pending",
     "Completed at": s.completed_at ?? "",
+    Difficulty: s.difficulty ?? "",
+    Outcome: s.outcome ? OUTCOMES[s.outcome as Outcome].label : "",
+    Score: s.score ?? "",
+    "Prep notes": s.prep_notes ?? "",
+    Reflection: s.reflection ?? "",
+    "Expected questions": questionLines(questions.filter((q) => q.assessment_id === s.id), "expected"),
+    "Asked questions": questionLines(questions.filter((q) => q.assessment_id === s.id), "asked"),
     Notes: s.notes ?? "",
   }));
 }
@@ -68,11 +88,12 @@ function download(blob: Blob, filename: string) {
 export async function exportData(
   format: "xlsx" | "csv",
   apps: Application[],
-  assessments: Assessment[]
+  assessments: Assessment[],
+  questions: Question[]
 ) {
   const XLSX = await import("xlsx");
   const appSheet = XLSX.utils.json_to_sheet(applicationRows(apps));
-  const asmtSheet = XLSX.utils.json_to_sheet(assessmentRows(assessments, apps));
+  const asmtSheet = XLSX.utils.json_to_sheet(assessmentRows(assessments, apps, questions));
   if (format === "xlsx") {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, appSheet, "Applications");
@@ -84,6 +105,16 @@ export async function exportData(
     download(csv(appSheet), `job-tracker-applications-${stamp()}.csv`);
     download(csv(asmtSheet), `job-tracker-assessments-${stamp()}.csv`);
   }
+}
+
+// Empty workbook with the suggested headers, to paste rows into.
+export async function downloadTemplate() {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.utils.book_new();
+  const headers = (spec: Record<string, FieldSpec>) => [Object.values(spec).map((f) => f.label)];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(headers(APP_FIELDS)), "Applications");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(headers(ASSESSMENT_FIELDS)), "Assessments");
+  XLSX.writeFile(wb, "job-tracker-template.xlsx");
 }
 
 // ------------------------------------------------------------------ import
@@ -128,76 +159,239 @@ export function normalizeHeader(h: unknown): string {
     .trim();
 }
 
-const APP_COLUMNS = {
-  company: ["company", "company name", "employer"],
-  role: ["role", "role title", "position", "job title", "title"],
-  url: ["link to job advert", "link", "url", "job link", "posting", "job url"],
-  location: ["location"],
-  applied_on: ["applied", "date", "date applied", "applied on", "application date"],
-  status: ["status", "response"],
-  status_changed_at: ["status changed"],
-  notes: ["notes"],
-  interview: ["interview time date interviewer name", "interview", "interviews"],
-  accepted: ["accepted"],
-  description: ["description", "job description"],
-} as const;
+// One importable column. `label` is the name we suggest (and export under);
+// `aliases` are normalized headers we also accept, best first.
+export interface FieldSpec {
+  label: string;
+  hint: string;
+  aliases: readonly string[];
+}
 
-const ASSESSMENT_COLUMNS = {
-  company: ["company", "company name"],
-  role: ["role", "role title", "position"],
-  kind: ["type", "kind"],
-  title: ["sub assessment", "title", "assessment", "name"],
-  details: ["breakdown details", "details", "breakdown"],
-  duration: ["duration", "length"],
-  due: ["due", "due date", "deadline", "scheduled", "date"],
-  interviewer: ["interviewer"],
-  link: ["link", "url"],
-  important: ["important", "priority"],
-  status: ["status"],
-  completed_at: ["completed at", "completed on"],
-  notes: ["notes"],
-} as const;
+const COMPANY: FieldSpec = {
+  label: "Company",
+  hint: "Required",
+  aliases: ["company", "company name", "employer", "organization", "organisation", "org", "firm", "business"],
+};
+const NOTES: FieldSpec = {
+  label: "Notes",
+  hint: "Anything else",
+  aliases: ["notes", "note", "comments", "comment", "remarks"],
+};
+
+export const APP_FIELDS = {
+  company: COMPANY,
+  role: {
+    label: "Role",
+    hint: "Required",
+    aliases: ["role", "role title", "position", "job title", "title", "job", "job role", "position title", "opening"],
+  },
+  url: {
+    label: "Link",
+    hint: "Job posting URL",
+    aliases: ["link", "link to job advert", "url", "job link", "posting", "job url", "job posting", "advert", "job ad", "listing"],
+  },
+  location: { label: "Location", hint: "", aliases: ["location", "city", "office"] },
+  applied_on: {
+    label: "Applied",
+    hint: "Date, e.g. 25/09/26 (day first) or 2026-09-25. Blank = no date",
+    aliases: ["applied", "date applied", "applied date", "applied on", "application date", "date", "submitted", "date submitted"],
+  },
+  status: {
+    label: "Status",
+    hint: "Applied, OA, Video interview, Interview, Offer, Rejected or Withdrawn",
+    aliases: ["status", "response", "stage", "outcome", "result", "progress"],
+  },
+  status_changed_at: {
+    label: "Status changed",
+    hint: "Date of the last status change",
+    aliases: ["status changed", "last updated", "updated", "last change", "status date"],
+  },
+  notes: NOTES,
+  interview: {
+    label: "Interview",
+    hint: "Free text, added to notes",
+    aliases: ["interview", "interviews", "interview time date interviewer name", "interviewer"],
+  },
+  description: { label: "Description", hint: "Job description", aliases: ["description", "job description", "jd"] },
+} satisfies Record<string, FieldSpec>;
+
+export const ASSESSMENT_FIELDS = {
+  company: COMPANY,
+  role: {
+    label: "Role",
+    hint: "Helps pick the right application when a company has several",
+    aliases: ["role", "role title", "position", "job title"],
+  },
+  kind: { label: "Type", hint: "OA, Video interview or Interview", aliases: ["type", "kind", "assessment type"] },
+  title: {
+    label: "Title",
+    hint: "Required, e.g. \"Coding round\"",
+    aliases: ["sub assessment", "title", "assessment", "name", "assessment name", "task"],
+  },
+  details: { label: "Details", hint: "", aliases: ["breakdown details", "details", "breakdown", "description"] },
+  duration: { label: "Duration (min)", hint: "Minutes, or \"1.5h\"", aliases: ["duration", "length", "time limit", "minutes"] },
+  due: {
+    label: "Due",
+    hint: "Deadline or scheduled date/time",
+    aliases: ["due", "due date", "deadline", "scheduled", "date"],
+  },
+  interviewer: { label: "Interviewer", hint: "", aliases: ["interviewer", "interviewer name", "interviewers"] },
+  link: { label: "Link", hint: "URL, or a platform name like CodeSignal", aliases: ["link", "url", "platform"] },
+  important: { label: "Important", hint: "yes / no", aliases: ["important", "priority", "starred"] },
+  status: { label: "Status", hint: "Pending or Completed", aliases: ["status", "progress"] },
+  completed_at: { label: "Completed at", hint: "", aliases: ["completed at", "completed on", "date completed"] },
+  difficulty: {
+    label: "Difficulty",
+    hint: "1–5, or easy / medium / hard",
+    aliases: ["difficulty", "difficulty level", "level", "how hard", "hardness"],
+  },
+  outcome: {
+    label: "Outcome",
+    hint: "Waiting, Passed or Failed",
+    aliases: ["outcome", "result", "results", "passed", "verdict"],
+  },
+  score: { label: "Score", hint: "Free text, e.g. 800/850", aliases: ["score", "grade", "marks", "points"] },
+  prep_notes: {
+    label: "Prep notes",
+    hint: "What to study",
+    aliases: ["prep notes", "prep", "preparation", "topics", "to study", "study notes"],
+  },
+  reflection: {
+    label: "Reflection",
+    hint: "How it went",
+    aliases: ["reflection", "how it went", "takeaways", "lessons", "retro", "feedback"],
+  },
+  expected_questions: {
+    label: "Expected questions",
+    hint: "One per line; \"question → answer\" to include an answer",
+    aliases: ["expected questions", "questions", "possible questions", "prep questions", "practice questions"],
+  },
+  asked_questions: {
+    label: "Asked questions",
+    hint: "Same format, for questions that came up",
+    aliases: ["asked questions", "questions asked", "asked", "actual questions"],
+  },
+  notes: NOTES,
+} satisfies Record<string, FieldSpec>;
 
 // Headers that only an assessment sheet would have.
-const ASSESSMENT_MARKERS = ["sub assessment", "breakdown details", "due date", "due", "duration", "deadline", "type"];
+const ASSESSMENT_MARKERS = [
+  "sub assessment", "breakdown details", "due date", "due", "duration", "deadline", "type", "difficulty",
+];
 
-type ColumnMap<K extends string> = Partial<Record<K, number>>;
-
-function mapColumns<K extends string>(
-  headers: string[],
-  spec: Record<K, readonly string[]>
-): ColumnMap<K> {
-  const map: ColumnMap<K> = {};
-  const used = new Set<number>();
-  // Exact alias matches, in alias priority order, so "role title" wins
-  // over a later "title" column.
-  for (const key of Object.keys(spec) as K[]) {
-    for (const alias of spec[key]) {
-      const idx = headers.findIndex((h, i) => h === alias && !used.has(i));
-      if (idx >= 0) {
-        map[key] = idx;
-        used.add(idx);
-        break;
+// Optimal string alignment distance: edits plus adjacent swaps.
+function editDistance(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
       }
     }
   }
-  return map;
+  return d[a.length][b.length];
 }
 
-// The header row is the first row (in the top 15) with a "company" column;
-// anything above it (titles, hand-typed totals) is ignored.
-function findHeader(rows: unknown[][]): { index: number; headers: string[] } | null {
+const EXACT = 1000;
+const KEYWORD = 500;
+const TYPO = 300;
+
+// How well a header fits a field: an exact alias (earlier aliases win), a
+// header containing an alias as whole words ("Company Name (legal)"), or
+// one typo away from an alias ("Roll", "Compnay"). Longer aliases beat
+// shorter ones, so "Interview Date" goes to Interview, not Applied.
+function score(header: string, aliases: readonly string[]): number {
+  let best = 0;
+  aliases.forEach((alias, i) => {
+    if (header === alias) best = Math.max(best, EXACT - i);
+    else if (` ${header} `.includes(` ${alias} `)) best = Math.max(best, KEYWORD + alias.length);
+    else if (alias.length >= 4) {
+      const words = alias.includes(" ") ? [header] : [header, ...header.split(" ")];
+      if (words.some((w) => editDistance(w, alias) === 1)) best = Math.max(best, TYPO + alias.length);
+    }
+  });
+  return best;
+}
+
+type ColumnMap<K extends string> = Partial<Record<K, number>>;
+
+// Best-scoring header/field pairs first; each header and field used once.
+// `overrides` are the user's choices (column index -> field key, or null for
+// "keep in notes"); they win, and those columns skip automatic matching.
+function mapColumns<K extends string>(
+  headers: string[],
+  spec: Record<K, FieldSpec>,
+  overrides: Record<number, string | null> = {}
+): { map: ColumnMap<K>; guessed: Set<number>; manual: Set<number> } {
+  const map: ColumnMap<K> = {};
+  const guessed = new Set<number>();
+  const manual = new Set<number>();
+  for (const [idx, key] of Object.entries(overrides)) {
+    manual.add(Number(idx));
+    if (key && key in spec) map[key as K] = Number(idx);
+  }
+  const pairs: { key: K; idx: number; score: number }[] = [];
+  for (const key of Object.keys(spec) as K[]) {
+    headers.forEach((h, idx) => {
+      const s = h && !manual.has(idx) ? score(h, spec[key].aliases) : 0;
+      if (s > 0) pairs.push({ key, idx, score: s });
+    });
+  }
+  pairs.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  for (const p of pairs) {
+    if (map[p.key] !== undefined || Object.values(map).includes(p.idx)) continue;
+    map[p.key] = p.idx;
+    if (p.score < EXACT - 100) guessed.add(p.idx);
+  }
+  return { map, guessed, manual };
+}
+
+interface HeaderRow {
+  index: number;
+  headers: string[];
+  labels: string[];
+}
+
+function headerAt(rows: unknown[][], index: number): HeaderRow {
+  return {
+    index,
+    headers: rows[index].map(normalizeHeader),
+    // As typed, minus line breaks: "Date\n(dd/mm/yy)" -> "Date (dd/mm/yy)".
+    labels: rows[index].map((h) => String(h ?? "").replace(/\s+/g, " ").trim()),
+  };
+}
+
+// The header row is the first row (in the top 15) with a company column
+// and at least one other recognized column; anything above it (titles,
+// hand-typed totals) is ignored.
+function findHeader(rows: unknown[][]): HeaderRow | null {
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const headers = rows[i].map(normalizeHeader);
-    if (headers.some((h) => APP_COLUMNS.company.includes(h as never))) {
-      return { index: i, headers };
-    }
+    const found = [mapColumns(headers, APP_FIELDS).map, mapColumns(headers, ASSESSMENT_FIELDS).map].some(
+      (map) => map.company !== undefined && Object.keys(map).length >= 2
+    );
+    if (found) return headerAt(rows, i);
   }
   return null;
 }
 
+// When nothing was recognized but the user says how to read the sheet, its
+// first non-empty row is the header.
+function firstRowHeader(rows: unknown[][]): HeaderRow | null {
+  const index = rows.findIndex((r) => r.some((c) => String(c ?? "").trim()));
+  return index < 0 ? null : headerAt(rows, index);
+}
+
 const cell = (row: unknown[], idx: number | undefined): string =>
   idx === undefined ? "" : String(row[idx] ?? "").trim();
+
+// Columns nothing matched: kept in notes as "Header: value" rather than dropped.
+function extraNotes(row: unknown[], labels: string[], unmapped: number[]): string[] {
+  return unmapped.map((i) => cell(row, i) && `${labels[i]}: ${cell(row, i)}`).filter(Boolean);
+}
 
 // Excel serial (days since 1899-12-30) -> Date (UTC midnight).
 function fromSerial(n: number): Date {
@@ -274,6 +468,44 @@ function parseDuration(value: string): number | null {
   return n ? parseInt(n[1], 10) : null;
 }
 
+// "4", "4/5", "3.5" -> 1..5; easy / medium / hard words too.
+export function parseDifficulty(value: string): number | null {
+  const v = value.toLowerCase().trim();
+  if (!v) return null;
+  const n = /^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+))?/.exec(v);
+  if (n) {
+    const scaled = n[2] ? (parseFloat(n[1]) / parseFloat(n[2])) * 5 : parseFloat(n[1]);
+    return Math.min(5, Math.max(1, Math.round(scaled)));
+  }
+  if (/very\s*hard|extreme|brutal/.test(v)) return 5;
+  if (/very\s*easy|trivial/.test(v)) return 1;
+  if (/hard|difficult|tough/.test(v)) return 4;
+  if (/med|moderate|ok|average/.test(v)) return 3;
+  if (/easy|simple/.test(v)) return 2;
+  return null;
+}
+
+export function parseOutcome(value: string): Outcome | null {
+  const v = value.toLowerCase();
+  if (/fail|reject|unsuccessful|didn.?t pass|not pass/.test(v)) return "failed";
+  if (/pass|advanc|next round|moved on|offer|success/.test(v)) return "passed";
+  if (/wait|pending|tbd|awaiting|unknown/.test(v)) return "waiting";
+  return null;
+}
+
+// One question per line, optionally "question → answer" (or "->", " - A: ").
+export function parseQuestions(value: string, source: QuestionSource): QuestionPayload[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [question, ...rest] = line.split(/\s*(?:→|->)\s*/);
+      return { source, question: question.trim(), answer: rest.join(" → ").trim() || null };
+    })
+    .filter((q) => q.question);
+}
+
 const parseBool = (v: string) => /^(y|yes|true|1|x|✓|✔|important|high)$/i.test(v.trim());
 
 export interface AppPayload {
@@ -289,6 +521,12 @@ export interface AppPayload {
   notes: string | null;
 }
 
+export interface QuestionPayload {
+  source: QuestionSource;
+  question: string;
+  answer: string | null;
+}
+
 export interface AssessmentPayload {
   kind: AssessmentKind;
   title: string;
@@ -301,6 +539,12 @@ export interface AssessmentPayload {
   status: "pending" | "completed";
   completed_at: string | null;
   notes: string | null;
+  difficulty: number | null;
+  outcome: Outcome | null;
+  score: string | null;
+  prep_notes: string | null;
+  reflection: string | null;
+  questions: QuestionPayload[];
 }
 
 export type AssessmentTarget = { existing: string } | { ref: string } | null;
@@ -322,42 +566,195 @@ export interface PlannedAssessment {
   include: boolean;
 }
 
+export type SheetKind = "applications" | "assessments";
+
+// The user's corrections to the automatic reading, per sheet name.
+export interface SheetOverride {
+  kind?: SheetKind | "skip"; // unset = whatever was detected
+  columns?: Record<number, string | null>; // column index -> field key; null = keep in notes
+}
+export type ImportOverrides = Record<string, SheetOverride>;
+
+// How each column of a sheet was read, for the preview.
+export interface ColumnReport {
+  index: number;
+  header: string;
+  key: string | null; // field key it feeds (see APP_FIELDS / ASSESSMENT_FIELDS), or null (kept in notes)
+  guessed: boolean; // matched by keyword or typo, not an exact name
+  manual: boolean; // chosen by the user
+  sample: string; // first non-empty value, to show what's in the column
+}
+
+export interface SheetReport {
+  name: string;
+  kind: SheetKind | null; // how it's being read; null = skipped on purpose
+  autoKind: SheetKind | null; // what detection alone would pick
+  problem: string | null; // why nothing is imported from it
+  columns: ColumnReport[];
+}
+
 export interface ImportPlan {
   apps: PlannedApp[];
   assessments: PlannedAssessment[];
+  sheets: SheetReport[];
   warnings: string[];
+}
+
+function sampleOf(body: unknown[][], idx: number): string {
+  for (const row of body.slice(0, 25)) {
+    const v = cell(row, idx).replace(/\s+/g, " ");
+    if (v) return v.length > 40 ? `${v.slice(0, 40)}…` : v;
+  }
+  return "";
+}
+
+function describeColumns<K extends string>(
+  labels: string[],
+  body: unknown[][],
+  map: ColumnMap<K>,
+  guessed: Set<number>,
+  manual: Set<number>
+): { columns: ColumnReport[]; unmapped: number[] } {
+  const keyAt = new Map((Object.entries(map) as [string, number][]).map(([k, i]) => [i, k]));
+  const columns: ColumnReport[] = [];
+  const unmapped: number[] = [];
+  labels.forEach((header, index) => {
+    if (!header) return;
+    const key = keyAt.get(index) ?? null;
+    if (!key) unmapped.push(index);
+    columns.push({
+      index,
+      header,
+      key,
+      guessed: guessed.has(index),
+      manual: manual.has(index),
+      sample: sampleOf(body, index),
+    });
+  });
+  return { columns, unmapped };
 }
 
 const key = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
+// An application an imported assessment could be attached to.
+export interface ApplicationOption {
+  value: string; // "existing:<id>" or "ref:<ref>", see AssessmentTarget
+  company: string;
+  role: string;
+  isNew: boolean; // from the file being imported, not yet tracked
+}
+
+const COMPANY_NOISE = new Set(["inc", "llc", "ltd", "limited", "corp", "corporation", "co", "company", "the", "group", "plc"]);
+const companyCompact = (s: string) =>
+  key(s)
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !COMPANY_NOISE.has(w))
+    .join("");
+
+// 0 = unrelated. "Snowflake" vs "Snowflake Computing Inc." is close; vs "Microsoft" isn't.
+function companyCloseness(a: string, b: string): number {
+  const x = companyCompact(a);
+  const y = companyCompact(b);
+  if (!x || !y) return 0;
+  if (x === y) return 100;
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  if (short.length >= 3 && long.startsWith(short)) return 85;
+  if (short.length >= 4 && long.includes(short)) return 70;
+  if (short.length >= 4 && editDistance(x, y) <= (short.length >= 7 ? 2 : 1)) return 60;
+  return 0;
+}
+
+// The applications most likely meant by an assessment's company/role, best
+// first. Only the company has to be close; a matching role just ranks higher.
+export function suggestApplications(
+  options: ApplicationOption[],
+  company: string,
+  role: string,
+  limit = 5
+): ApplicationOption[] {
+  const wanted = key(role);
+  return options
+    .map((option) => {
+      const closeness = companyCloseness(company, option.company);
+      const have = key(option.role);
+      const roleBonus =
+        wanted && have === wanted ? 20 : wanted && have && (have.includes(wanted) || wanted.includes(have)) ? 10 : 0;
+      return { option, score: closeness ? closeness + roleBonus : 0 };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.option);
+}
+
 export function buildImportPlan(
   sheets: RawSheet[],
   existingApps: Application[],
-  existingAssessments: Assessment[]
+  existingAssessments: Assessment[],
+  overrides: ImportOverrides = {}
 ): ImportPlan {
   const warnings: string[] = [];
+  const sheetReports: SheetReport[] = [];
   const apps: PlannedApp[] = [];
   const pendingAssessments: Omit<PlannedAssessment, "target" | "match" | "duplicate" | "include">[] = [];
 
   for (const sheet of sheets) {
-    const header = findHeader(sheet.rows);
-    if (!header) {
-      warnings.push(`Sheet "${sheet.name}": no header row with a "Company" column, skipped.`);
+    const override = overrides[sheet.name] ?? {};
+    const found = findHeader(sheet.rows);
+    const autoKind: SheetKind | null = found
+      ? found.headers.some((h) => ASSESSMENT_MARKERS.includes(h))
+        ? "assessments"
+        : "applications"
+      : null;
+    const kind = override.kind === "skip" ? null : (override.kind ?? autoKind);
+    const header = found ?? (kind ? firstRowHeader(sheet.rows) : null);
+    if (!header || !kind) {
+      sheetReports.push({
+        name: sheet.name,
+        kind,
+        autoKind,
+        problem: header ? null : "Couldn't find a header row with a Company column.",
+        columns: [],
+      });
       continue;
     }
     const body = sheet.rows.slice(header.index + 1);
-    const isAssessmentSheet = header.headers.some((h) => ASSESSMENT_MARKERS.includes(h));
+    const overrideCols = override.columns ?? {};
 
-    if (isAssessmentSheet) {
-      const cols = mapColumns(header.headers, ASSESSMENT_COLUMNS);
+    if (kind === "assessments") {
+      const { map: cols, guessed, manual } = mapColumns(header.headers, ASSESSMENT_FIELDS, overrideCols);
+      const { columns, unmapped } = describeColumns(header.labels, body, cols, guessed, manual);
+      if (cols.company === undefined || cols.title === undefined) {
+        sheetReports.push({
+          name: sheet.name,
+          kind,
+          autoKind,
+          problem: "Choose which column is the Company and which is the assessment Title.",
+          columns,
+        });
+        continue;
+      }
+      sheetReports.push({ name: sheet.name, kind, autoKind, problem: null, columns });
       for (const row of body) {
         const company = cell(row, cols.company);
         const title = cell(row, cols.title);
         if (!company || !title) continue;
         const details = cell(row, cols.details);
-        const status = /complet|done|submitted|finished/i.test(cell(row, cols.status))
-          ? "completed"
-          : "pending";
+        // An OA sheet often has "Passed" / "Rejected" in Status rather than
+        // a separate Outcome column; either way a pass/fail means it's done.
+        const statusOutcome = parseOutcome(cell(row, cols.status));
+        const outcome =
+          parseOutcome(cell(row, cols.outcome)) ??
+          (statusOutcome === "passed" || statusOutcome === "failed" ? statusOutcome : null);
+        const status =
+          /complet|done|submitted|finished/i.test(cell(row, cols.status)) ||
+          outcome === "passed" ||
+          outcome === "failed"
+            ? "completed"
+            : "pending";
+        const difficultyText = cell(row, cols.difficulty);
+        const difficulty = parseDifficulty(difficultyText);
+        const outcomeText = cell(row, cols.outcome);
         pendingAssessments.push({
           company,
           role: cell(row, cols.role),
@@ -382,18 +779,39 @@ export function buildImportPlan(
                 cell(row, cols.link) && !/^https?:\/\//i.test(cell(row, cols.link))
                   ? `Platform: ${cell(row, cols.link)}`
                   : "",
+                // Values we couldn't read are kept rather than dropped.
+                difficultyText && difficulty === null ? `Difficulty: ${difficultyText}` : "",
+                outcomeText && !parseOutcome(outcomeText) ? `Outcome: ${outcomeText}` : "",
+                ...extraNotes(row, header.labels, unmapped),
               ]
                 .filter(Boolean)
                 .join(" · ") || null,
+            difficulty,
+            outcome,
+            score: cell(row, cols.score) || null,
+            prep_notes: cell(row, cols.prep_notes) || null,
+            reflection: cell(row, cols.reflection) || null,
+            questions: [
+              ...parseQuestions(cell(row, cols.expected_questions), "expected"),
+              ...parseQuestions(cell(row, cols.asked_questions), "asked"),
+            ],
           },
         });
       }
     } else {
-      const cols = mapColumns(header.headers, APP_COLUMNS);
-      if (cols.role === undefined) {
-        warnings.push(`Sheet "${sheet.name}": no "Role" column, skipped.`);
+      const { map: cols, guessed, manual } = mapColumns(header.headers, APP_FIELDS, overrideCols);
+      const { columns, unmapped } = describeColumns(header.labels, body, cols, guessed, manual);
+      if (cols.company === undefined || cols.role === undefined) {
+        sheetReports.push({
+          name: sheet.name,
+          kind,
+          autoKind,
+          problem: "Choose which column is the Company and which is the Role.",
+          columns,
+        });
         continue;
       }
+      sheetReports.push({ name: sheet.name, kind, autoKind, problem: null, columns });
       for (const row of body) {
         const company = cell(row, cols.company);
         const role = cell(row, cols.role);
@@ -406,8 +824,8 @@ export function buildImportPlan(
         const notes = [
           cell(row, cols.notes),
           cell(row, cols.interview) && `Interview: ${cell(row, cols.interview)}`,
-          cell(row, cols.accepted) && `Accepted: ${cell(row, cols.accepted)}`,
           !known && cell(row, cols.status) && `Original status: ${cell(row, cols.status)}`,
+          ...extraNotes(row, header.labels, unmapped),
         ]
           .filter(Boolean)
           .join("\n");
@@ -474,7 +892,7 @@ export function buildImportPlan(
     return { ...a, target: pick?.target ?? null, match, duplicate, include: Boolean(pick) && !duplicate };
   });
 
-  return { apps, assessments, warnings };
+  return { apps, assessments, sheets: sheetReports, warnings };
 }
 
 // What gets sent to the import_rows RPC.

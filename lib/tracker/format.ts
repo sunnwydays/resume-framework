@@ -3,6 +3,7 @@ import type { Tables } from "@/lib/tracker/database.types";
 export type Application = Tables<"applications">;
 export type Assessment = Tables<"assessments">;
 export type StatusChange = Tables<"status_changes">;
+export type Question = Tables<"assessment_questions">;
 
 // Order matters: it's the pipeline order used for filter chips and the
 // status dropdown. Must match the check constraint on applications.status.
@@ -63,6 +64,21 @@ export type AssessmentKind = keyof typeof ASSESSMENT_KINDS;
 export function kindLabel(kind: string): string {
   return ASSESSMENT_KINDS[kind as AssessmentKind] ?? kind;
 }
+
+// Must match the check constraint on assessments.outcome (null = not set).
+export const OUTCOMES = {
+  waiting: { label: "Waiting", cls: "text-amber-700 dark:text-amber-400" },
+  passed: { label: "Passed", cls: "text-emerald-700 dark:text-emerald-400" },
+  failed: { label: "Failed", cls: "text-red-700 dark:text-red-400" },
+} as const;
+export type Outcome = keyof typeof OUTCOMES;
+
+// Must match the check constraint on assessment_questions.source.
+export const QUESTION_SOURCES = {
+  expected: "Expected",
+  asked: "Asked",
+} as const;
+export type QuestionSource = keyof typeof QUESTION_SOURCES;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 

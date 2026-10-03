@@ -35,7 +35,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
   const [link, setLink] = useState(initial?.link ?? "");
   const [important, setImportant] = useState(initial?.important ?? false);
   const [completed, setCompleted] = useState(initial?.status === "completed");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [completedAt, setCompletedAt] = useState(toDatetimeLocal(initial?.completed_at));
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -52,7 +52,8 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
       link: link.trim() || null,
       important,
       status: completed ? "completed" : "pending",
-      notes: notes.trim() || null,
+      // Blank on a new completion: the trigger stamps "now".
+      completed_at: completed ? fromDatetimeLocal(completedAt) : null,
     });
     setSaving(false);
   }
@@ -130,10 +131,6 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           <span className={labelCls}>Link</span>
           <input value={link} onChange={(e) => setLink(e.target.value)} className={inputCls} />
         </label>
-        <label className="block space-y-1 sm:col-span-6">
-          <span className={labelCls}>Notes</span>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} />
-        </label>
       </div>
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="flex items-center gap-1.5">
@@ -152,6 +149,17 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           />
           Completed
         </label>
+        {completed && (
+          <label className="flex items-center gap-1.5">
+            <span className={labelCls}>{kind === "oa" ? "Submitted" : "Completed on"}</span>
+            <input
+              type="datetime-local"
+              value={completedAt}
+              onChange={(e) => setCompletedAt(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+        )}
         <div className="ml-auto flex gap-2">
           <button type="submit" disabled={saving} className={primaryButtonCls}>
             {saving ? "Saving…" : initial ? "Save" : "Add"}

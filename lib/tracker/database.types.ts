@@ -68,12 +68,51 @@ export type Database = {
         }
         Relationships: []
       }
+      assessment_questions: {
+        Row: {
+          answer: string | null
+          assessment_id: string
+          created_at: string
+          id: string
+          question: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          assessment_id: string
+          created_at?: string
+          id?: string
+          question: string
+          source?: string
+          user_id?: string
+        }
+        Update: {
+          answer?: string | null
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          question?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           application_id: string
           completed_at: string | null
           created_at: string
           details: string | null
+          difficulty: number | null
           due_at: string | null
           duration_min: number | null
           id: string
@@ -82,6 +121,10 @@ export type Database = {
           kind: string
           link: string | null
           notes: string | null
+          outcome: string | null
+          prep_notes: string | null
+          reflection: string | null
+          score: string | null
           status: string
           title: string
           user_id: string
@@ -91,6 +134,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           details?: string | null
+          difficulty?: number | null
           due_at?: string | null
           duration_min?: number | null
           id?: string
@@ -99,6 +143,10 @@ export type Database = {
           kind?: string
           link?: string | null
           notes?: string | null
+          outcome?: string | null
+          prep_notes?: string | null
+          reflection?: string | null
+          score?: string | null
           status?: string
           title: string
           user_id?: string
@@ -108,6 +156,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           details?: string | null
+          difficulty?: number | null
           due_at?: string | null
           duration_min?: number | null
           id?: string
@@ -116,6 +165,10 @@ export type Database = {
           kind?: string
           link?: string | null
           notes?: string | null
+          outcome?: string | null
+          prep_notes?: string | null
+          reflection?: string | null
+          score?: string | null
           status?: string
           title?: string
           user_id?: string

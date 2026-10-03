@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback } from "react";
 import ApplicationDetail from "@/components/tracker/ApplicationDetail";
+import { SortHeader, useSortedRows, type SortDir } from "@/components/tracker/sorting";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   STATUSES,
@@ -13,12 +14,14 @@ import {
   type AppStatus,
   type Application,
   type Assessment,
+  type Question,
   type StatusChange,
 } from "@/lib/tracker/format";
 
 interface Props {
   applications: Application[];
   assessmentsByApp: Map<string, Assessment[]>;
+  questionsByAssessment: Map<string, Question[]>;
   changesByApp: Map<string, StatusChange[]>;
   expandedId: string | null;
   onToggle: (id: string) => void;
@@ -30,10 +33,7 @@ const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide
 const tdCls = "px-3 py-2 align-middle";
 
 type SortKey = "company" | "role" | "applied" | "status" | "next" | "changed";
-type SortDir = "asc" | "desc";
 
-// First click on a column: A–Z / pipeline order / soonest due, but newest
-// first for dates you look back on.
 const FIRST_DIR: Record<SortKey, SortDir> = {
   company: "asc",
   role: "asc",
@@ -43,7 +43,6 @@ const FIRST_DIR: Record<SortKey, SortDir> = {
   changed: "desc",
 };
 
-// Null means "nothing to sort on" and always goes last.
 function sortValue(app: Application, key: SortKey, assessments: Assessment[]): string | number | null {
   switch (key) {
     case "company":
@@ -67,63 +66,27 @@ function sortValue(app: Application, key: SortKey, assessments: Assessment[]): s
 export default function ApplicationsTable({
   applications,
   assessmentsByApp,
+  questionsByAssessment,
   changesByApp,
   expandedId,
   onToggle,
   tracker,
   now,
 }: Props) {
-  // Default matches the fetch order (newest applied first), and the sort is
-  // stable, so ties keep that order.
-  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "applied", dir: "desc" });
-
-  const sorted = useMemo(() => {
-    const sign = sort.dir === "asc" ? 1 : -1;
-    const keyed = applications.map((app) => ({
-      app,
-      value: sortValue(app, sort.key, assessmentsByApp.get(app.id) ?? []),
-    }));
-    keyed.sort((a, b) => {
-      if (a.value === null || b.value === null) return a.value === b.value ? 0 : a.value === null ? 1 : -1;
-      const cmp =
-        typeof a.value === "number" && typeof b.value === "number"
-          ? a.value - b.value
-          : String(a.value).localeCompare(String(b.value), undefined, { sensitivity: "base", numeric: true });
-      return cmp * sign;
-    });
-    return keyed.map((k) => k.app);
-  }, [applications, assessmentsByApp, sort]);
+  // Default matches the fetch order (newest applied first).
+  const value = useCallback(
+    (app: Application, key: SortKey) => sortValue(app, key, assessmentsByApp.get(app.id) ?? []),
+    [assessmentsByApp]
+  );
+  const { sort, setSort, sorted } = useSortedRows<Application, SortKey>(applications, value, { key: "applied", dir: "desc" });
 
   if (applications.length === 0) {
     return <p className="py-8 text-center text-sm text-neutral-500">No applications match.</p>;
   }
 
-  const header = (key: SortKey, label: string) => {
-    const active = sort.key === key;
-    return (
-      <th
-        className={thCls}
-        aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-      >
-        <button
-          type="button"
-          onClick={() =>
-            setSort(
-              active
-                ? { key, dir: sort.dir === "asc" ? "desc" : "asc" }
-                : { key, dir: FIRST_DIR[key] }
-            )
-          }
-          className={`inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-neutral-800 dark:hover:text-neutral-200 ${
-            active ? "text-neutral-800 dark:text-neutral-200" : ""
-          }`}
-        >
-          {label}
-          <span className={active ? "" : "invisible"}>{sort.dir === "asc" ? "↑" : "↓"}</span>
-        </button>
-      </th>
-    );
-  };
+  const header = (key: SortKey, label: string) => (
+    <SortHeader sortKey={key} label={label} sort={sort} setSort={setSort} firstDir={FIRST_DIR[key]} className={thCls} />
+  );
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800 bg-surface">
@@ -216,6 +179,7 @@ export default function ApplicationsTable({
                         key={app.id}
                         app={app}
                         assessments={assessments}
+                        questionsByAssessment={questionsByAssessment}
                         changes={changesByApp.get(app.id) ?? []}
                         tracker={tracker}
                       />

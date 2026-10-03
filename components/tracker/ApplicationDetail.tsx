@@ -1,24 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import AssessmentDetail from "@/components/tracker/AssessmentDetail";
 import AssessmentForm from "@/components/tracker/AssessmentForm";
+import AssessmentSummary from "@/components/tracker/AssessmentSummary";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   buttonCls,
   formatDate,
   formatDateTime,
+  fromDatetimeLocal,
   inputCls,
   kindLabel,
   primaryButtonCls,
   statusLabel,
+  toDatetimeLocal,
   type Application,
   type Assessment,
+  type Question,
   type StatusChange,
 } from "@/lib/tracker/format";
 
 interface Props {
   app: Application;
   assessments: Assessment[];
+  questionsByAssessment: Map<string, Question[]>;
   changes: StatusChange[];
   tracker: Tracker;
 }
@@ -26,7 +32,7 @@ interface Props {
 const labelCls = "text-xs font-medium text-neutral-600 dark:text-neutral-400";
 const headingCls = "text-xs font-semibold uppercase tracking-wide text-neutral-500";
 
-export default function ApplicationDetail({ app, assessments, changes, tracker }: Props) {
+export default function ApplicationDetail({ app, assessments, questionsByAssessment, changes, tracker }: Props) {
   const [draft, setDraft] = useState({
     company: app.company,
     role: app.role,
@@ -36,8 +42,12 @@ export default function ApplicationDetail({ app, assessments, changes, tracker }
     notes: app.notes ?? "",
     description: app.description ?? "",
   });
-  // null = closed, "new" = adding, else the id being edited
-  const [editing, setEditing] = useState<string | null>(null);
+  // null until edited, so it follows the live value if the status changes
+  // while this panel is open.
+  const [statusDate, setStatusDate] = useState<string | null>(null);
+  const statusDateValue = statusDate ?? toDatetimeLocal(app.status_changed_at);
+  const [adding, setAdding] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const dirty =
     draft.company !== app.company ||
@@ -45,6 +55,7 @@ export default function ApplicationDetail({ app, assessments, changes, tracker }
     draft.location !== (app.location ?? "") ||
     draft.url !== (app.url ?? "") ||
     draft.applied_on !== app.applied_on ||
+    statusDateValue !== toDatetimeLocal(app.status_changed_at) ||
     draft.notes !== (app.notes ?? "") ||
     draft.description !== (app.description ?? "");
 
@@ -57,19 +68,25 @@ export default function ApplicationDetail({ app, assessments, changes, tracker }
       location: draft.location.trim() || null,
       url: draft.url.trim() || null,
       applied_on: draft.applied_on,
+      ...(statusDate !== null && { status_changed_at: fromDatetimeLocal(statusDate) }),
       notes: draft.notes.trim() || null,
       description: draft.description.trim() || null,
     });
+    setStatusDate(null);
   }
 
   const set = (key: keyof typeof draft) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => setDraft((d) => ({ ...d, [key]: e.target.value }));
 
+  // The date of the current status is editable on the application row, so it
+  // wins over the logged history row for that status.
+  const currentChange = changes.findLastIndex((c) => c.status === app.status);
+
   const timeline = [
     ...changes.map((c, i) => ({
       key: c.id,
-      at: c.changed_at,
+      at: i === currentChange ? app.status_changed_at : c.changed_at,
       text: i === 0 ? `Added as ${statusLabel(c.status)}` : `→ ${statusLabel(c.status)}`,
       origin: c.origin === "manual" ? null : c.origin,
     })),
@@ -97,91 +114,48 @@ export default function ApplicationDetail({ app, assessments, changes, tracker }
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className={headingCls}>Assessments &amp; interviews</h3>
-            {editing === null && (
-              <button type="button" onClick={() => setEditing("new")} className={buttonCls}>
+            {!adding && (
+              <button type="button" onClick={() => setAdding(true)} className={buttonCls}>
                 + Add
               </button>
             )}
           </div>
-          {editing === "new" && (
+          {adding && (
             <AssessmentForm
-              onCancel={() => setEditing(null)}
+              onCancel={() => setAdding(false)}
               onSubmit={async (fields) => {
-                if (await tracker.addAssessment({ ...fields, application_id: app.id })) {
-                  setEditing(null);
+                const created = await tracker.addAssessment({ ...fields, application_id: app.id });
+                if (created) {
+                  setAdding(false);
+                  setOpenId(created.id);
                 }
               }}
             />
           )}
-          {sortedAssessments.length === 0 && editing !== "new" && (
-            <p className="text-sm text-neutral-500">None yet.</p>
-          )}
+          {sortedAssessments.length === 0 && !adding && <p className="text-sm text-neutral-500">None yet.</p>}
           <ul className="space-y-2">
-            {sortedAssessments.map((a) =>
-              editing === a.id ? (
-                <li key={a.id}>
-                  <AssessmentForm
-                    initial={a}
-                    onCancel={() => setEditing(null)}
-                    onSubmit={async (fields) => {
-                      await tracker.updateAssessment(a.id, fields);
-                      setEditing(null);
-                    }}
-                  />
-                </li>
-              ) : (
-                <li
-                  key={a.id}
-                  className="flex items-start gap-3 rounded-md border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    title="Completed"
-                    checked={a.status === "completed"}
-                    onChange={(e) =>
-                      tracker.updateAssessment(a.id, {
-                        status: e.target.checked ? "completed" : "pending",
-                      })
-                    }
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className={a.status === "completed" ? "text-neutral-500 line-through" : ""}>
-                      {a.important && <span className="text-amber-500" title="Important">★ </span>}
-                      <span className="font-medium">{kindLabel(a.kind)}</span>
-                      {" · "}
-                      {a.title}
+            {sortedAssessments.map((a) => {
+              const open = openId === a.id;
+              const questions = questionsByAssessment.get(a.id) ?? [];
+              return (
+                <li key={a.id} className="rounded-md border border-neutral-200 bg-surface dark:border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(open ? null : a.id)}
+                    aria-expanded={open}
+                    className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  >
+                    <span className="mt-0.5 inline-block w-3 text-neutral-400">{open ? "▾" : "▸"}</span>
+                    <AssessmentSummary assessment={a} questionCount={questions.length} />
+                  </button>
+                  {open && (
+                    <div className="border-t border-neutral-200 dark:border-neutral-800">
+                      <AssessmentDetail key={a.id} assessment={a} questions={questions} tracker={tracker} />
                     </div>
-                    <div className="text-xs text-neutral-500 space-x-2">
-                      {a.due_at && <span>{a.kind === "oa" ? "Due" : "At"} {formatDateTime(a.due_at)}</span>}
-                      {a.duration_min != null && <span>{a.duration_min} min</span>}
-                      {a.interviewer && <span>with {a.interviewer}</span>}
-                      {a.details && <span>{a.details}</span>}
-                      {a.link && (
-                        <a href={a.link} target="_blank" rel="noopener noreferrer" className="underline">
-                          link
-                        </a>
-                      )}
-                    </div>
-                    {a.notes && <div className="text-xs text-neutral-500">{a.notes}</div>}
-                  </div>
-                  <div className="flex shrink-0 gap-2 text-xs">
-                    <button type="button" onClick={() => setEditing(a.id)} className="underline text-neutral-500">
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Delete "${a.title}"?`)) tracker.deleteAssessment(a.id);
-                      }}
-                      className="underline text-red-600 dark:text-red-400"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  )}
                 </li>
-              )
-            )}
+              );
+            })}
           </ul>
         </section>
 
@@ -204,6 +178,19 @@ export default function ApplicationDetail({ app, assessments, changes, tracker }
               <span className={labelCls}>Applied</span>
               <input type="date" value={draft.applied_on} onChange={set("applied_on")} required className={inputCls} />
             </label>
+            {app.status !== "applied" && (
+              <label className="block space-y-1 sm:col-span-2">
+                <span className={labelCls}>
+                  {app.status === "rejected" ? "Rejected on" : `${statusLabel(app.status)} on`}
+                </span>
+                <input
+                  type="datetime-local"
+                  value={statusDateValue}
+                  onChange={(e) => setStatusDate(e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+            )}
             <label className="block space-y-1 sm:col-span-2">
               <span className={labelCls}>Link</span>
               <input value={draft.url} onChange={set("url")} className={inputCls} />

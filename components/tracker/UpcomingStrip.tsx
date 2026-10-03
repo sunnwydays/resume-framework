@@ -13,7 +13,7 @@ const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 interface Props {
   assessments: Assessment[];
   applicationsById: Map<string, Application>;
-  onOpen: (applicationId: string) => void;
+  onOpen: (assessmentId: string) => void;
   onComplete: (assessmentId: string) => void;
   now: number;
 }
@@ -70,7 +70,7 @@ export default function UpcomingStrip({
                 />
                 <button
                   type="button"
-                  onClick={() => onOpen(a.application_id)}
+                  onClick={() => onOpen(a.id)}
                   className="min-w-0 flex-1 text-left"
                 >
                   <div className="truncate font-medium">

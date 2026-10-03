@@ -168,10 +168,14 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   are created lazily (`supabase()` in `lib/tracker/useTracker.ts`) so the
   build doesn't need the env vars.
 - **Schema**: `applications`, `assessments` (OAs / video interviews /
-  interviews: one table, `kind` column), `status_changes` (history),
-  `time_log` (time spent per day).
-  Status and kind values are check constraints mirrored by `STATUSES` /
-  `ASSESSMENT_KINDS` in `lib/tracker/format.ts`; change both together.
+  interviews: one table, `kind` column, any number per application, plus
+  `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
+  `reflection`), `assessment_questions` (per assessment, `source`
+  expected/asked, with an answer), `status_changes` (history), `time_log`
+  (time spent per day).
+  Status, kind, outcome and question-source values are check constraints
+  mirrored by `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` /
+  `QUESTION_SOURCES` in `lib/tracker/format.ts`; change both together.
   `lib/tracker/database.types.ts` is generated; regenerate after schema
   changes.
 - **Timestamps are database triggers**, not app code: changing
@@ -180,7 +184,12 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   assessment sets `completed_at`. Each change is tagged with an `origin`
   (`manual | import | email`), read from the `app.status_origin`
   transaction setting. The `import_rows(jsonb)` RPC sets it to `import`,
-  so imports keep their given dates (or none) instead of "now". A future
+  so imports keep their given dates (or none) instead of "now". Both are
+  user-editable afterwards: `status_changed_at` ("Rejected on" etc.) in
+  `ApplicationDetail`, `completed_at` ("Submitted" for OAs) in
+  `AssessmentForm`. Editing `status_changed_at` doesn't touch the matching
+  `status_changes` row (no update policy), so the timeline reads the current
+  status's date from the application row instead. A future
   Gmail integration should do the same with `email`, and should *suggest*
   status changes rather than apply them.
 - **Time spent** (`components/tracker/TimeTracker.tsx`,
@@ -190,6 +199,14 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   (atomic upsert, floored at 0). The running stopwatch's start time lives
   in localStorage, not the database, so it survives reloads; a stretch is
   only written when stopped, all to the day it's stopped on.
+- **Assessments tab** (`components/tracker/AssessmentsTable.tsx`): every
+  OA / interview across applications, sortable, with a mouse-only hover
+  preview card (fixed-position, rendered outside the table) and click to
+  expand. The expanded panel is `AssessmentDetail.tsx`, the same one each
+  application row shows for its rounds; it uses a container query because
+  it's narrower there. Its long text fields save on blur. `AssessmentForm`
+  edits only the core facts (no notes field, so it can't overwrite notes
+  edited in the panel). Both tables sort via `components/tracker/sorting.tsx`.
 - **Link lookup** (`lib/tracker/extract.ts`, `POST /api/tracker/extract`):
   deterministic, no AI by design. Order: ATS APIs from the URL (Greenhouse,
   Lever, Ashby, Workday `cxs` JSON), then JSON-LD `JobPosting`, then
@@ -199,13 +216,35 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   (usually), and Ashby boards embedded via JS (e.g. Superhuman).
 - **Import/export** (`lib/tracker/io.ts`): SheetJS (installed from the
   cdn.sheetjs.com tarball, not npm's stale `xlsx`), dynamically imported.
-  The header row is found by its "Company" column, so title and totals rows
-  above it are skipped. Columns are matched by alias, including Sunny's old
-  sheet headers; slashed dates are day-first. Assessments attach to
+  The header row is the first with a company-like column plus one other
+  known column, so title and totals rows above it are skipped. Columns are
+  matched against `APP_FIELDS` / `ASSESSMENT_FIELDS` (suggested label plus
+  aliases; these also drive the import dialog's column guide and the
+  template download): exact alias, then whole-word keyword, then one typo
+  ("Roll", "Compnay"), best score first. Unmatched columns are appended to
+  notes as "Header: value" rather than dropped, and the preview shows how
+  each column was read. The import dialog has a "check the columns" step
+  before the row preview: every column gets a "Goes to" menu (a field, or
+  Notes), each sheet a "Read as" menu (applications / assessments / skip),
+  and "Continue" freezes the plan. Choices are `ImportOverrides`
+  (per sheet name: `kind`, and column index → field key or null) passed to
+  `buildImportPlan`; picking a field another column holds swaps the two, and
+  changing a sheet's kind drops its column overrides. A sheet with no
+  recognized header can still be read by choosing a type (its first row
+  becomes the headers). Questions are one per line, "question → answer".
+  Slashed dates are day-first. Assessments attach to
   applications by company + role, then company alone, then a 5+ digit job
   ID shared with a posting URL. Anything ambiguous is left for the user to
-  pick in the preview. Export headers are valid import aliases, so
-  round-trips dedupe.
+  pick in the preview with `ApplicationPicker.tsx`, a searchable popover
+  (not a `<select>`) that lists `suggestApplications()` results first
+  (company closeness: same name, prefix, contains, one typo; matching role
+  ranks higher) and then every application; unmatched rows also get
+  one-click suggestion chips. Export headers are valid import aliases, so
+  round-trips dedupe. A red "Clear all…" button next to Export (for
+  repeated import testing) deletes every application via
+  `deleteAllApplications`; assessments, questions and history go with them
+  by cascade. `ClearAllDialog.tsx` makes it three steps (continue, tick an
+  acknowledgement, type "delete all").
 
 ## Extending this
 

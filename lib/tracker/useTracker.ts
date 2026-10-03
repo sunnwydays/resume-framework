@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
-import type { Application, Assessment, StatusChange } from "@/lib/tracker/format";
+import type { Application, Assessment, Question, StatusChange } from "@/lib/tracker/format";
 
 // Created lazily (first use in the browser) so prerendering the page at
 // build time doesn't need the Supabase env vars, which the deployed site
@@ -15,24 +15,31 @@ export function supabase() {
 
 type FetchResult =
   | { error: string }
-  | { applications: Application[]; assessments: Assessment[]; statusChanges: StatusChange[] };
+  | {
+      applications: Application[];
+      assessments: Assessment[];
+      questions: Question[];
+      statusChanges: StatusChange[];
+    };
 
 async function fetchAll(): Promise<FetchResult> {
   const sb = supabase();
-  const [apps, asmts, changes] = await Promise.all([
+  const [apps, asmts, questions, changes] = await Promise.all([
     sb
       .from("applications")
       .select("*")
       .order("applied_on", { ascending: false })
       .order("created_at", { ascending: false }),
     sb.from("assessments").select("*").order("due_at", { ascending: true }),
+    sb.from("assessment_questions").select("*").order("created_at", { ascending: true }),
     sb.from("status_changes").select("*").order("changed_at", { ascending: true }),
   ]);
-  const err = apps.error ?? asmts.error ?? changes.error;
+  const err = apps.error ?? asmts.error ?? questions.error ?? changes.error;
   if (err) return { error: err.message };
   return {
     applications: apps.data ?? [],
     assessments: asmts.data ?? [],
+    questions: questions.data ?? [],
     statusChanges: changes.data ?? [],
   };
 }
@@ -54,6 +61,7 @@ export function useNow(intervalMs = 60_000): number {
 export function useTracker() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [statusChanges, setStatusChanges] = useState<StatusChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +72,7 @@ export function useTracker() {
     } else {
       setApplications(result.applications);
       setAssessments(result.assessments);
+      setQuestions(result.questions);
       setStatusChanges(result.statusChanges);
     }
     setLoading(false);
@@ -146,16 +155,26 @@ export function useTracker() {
   const deleteApplication = useCallback(
     async (id: string) => {
       setApplications((list) => list.filter((a) => a.id !== id));
+      const gone = new Set(assessments.filter((a) => a.application_id === id).map((a) => a.id));
       setAssessments((list) => list.filter((a) => a.application_id !== id));
+      setQuestions((list) => list.filter((q) => !gone.has(q.assessment_id)));
       setStatusChanges((list) => list.filter((c) => c.application_id !== id));
       const { error } = await supabase().from("applications").delete().eq("id", id);
       if (error) fail(error.message);
     },
-    [fail]
+    [assessments, fail]
   );
 
+  // Every application of the signed-in user (RLS scopes the delete), and with
+  // them their assessments, questions and history. Returns an error message.
+  const deleteAllApplications = useCallback(async (): Promise<string | null> => {
+    const { error } = await supabase().from("applications").delete().not("id", "is", null);
+    await reload();
+    return error?.message ?? null;
+  }, [reload]);
+
   const addAssessment = useCallback(
-    async (row: TablesInsert<"assessments">): Promise<boolean> => {
+    async (row: TablesInsert<"assessments">): Promise<Assessment | null> => {
       const { data, error } = await supabase()
         .from("assessments")
         .insert(row)
@@ -163,10 +182,10 @@ export function useTracker() {
         .single();
       if (error) {
         setError(error.message);
-        return false;
+        return null;
       }
       setAssessments((list) => [...list, data]);
-      return true;
+      return data;
     },
     []
   );
@@ -191,7 +210,43 @@ export function useTracker() {
   const deleteAssessment = useCallback(
     async (id: string) => {
       setAssessments((list) => list.filter((a) => a.id !== id));
+      setQuestions((list) => list.filter((q) => q.assessment_id !== id));
       const { error } = await supabase().from("assessments").delete().eq("id", id);
+      if (error) fail(error.message);
+    },
+    [fail]
+  );
+
+  const addQuestion = useCallback(
+    async (row: TablesInsert<"assessment_questions">): Promise<boolean> => {
+      const { data, error } = await supabase()
+        .from("assessment_questions")
+        .insert(row)
+        .select()
+        .single();
+      if (error) {
+        setError(error.message);
+        return false;
+      }
+      setQuestions((list) => [...list, data]);
+      return true;
+    },
+    []
+  );
+
+  const updateQuestion = useCallback(
+    async (id: string, patch: TablesUpdate<"assessment_questions">) => {
+      setQuestions((list) => list.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+      const { error } = await supabase().from("assessment_questions").update(patch).eq("id", id);
+      if (error) fail(error.message);
+    },
+    [fail]
+  );
+
+  const deleteQuestion = useCallback(
+    async (id: string) => {
+      setQuestions((list) => list.filter((q) => q.id !== id));
+      const { error } = await supabase().from("assessment_questions").delete().eq("id", id);
       if (error) fail(error.message);
     },
     [fail]
@@ -200,6 +255,7 @@ export function useTracker() {
   return {
     applications,
     assessments,
+    questions,
     statusChanges,
     loading,
     error,
@@ -208,9 +264,13 @@ export function useTracker() {
     addApplication,
     updateApplication,
     deleteApplication,
+    deleteAllApplications,
     addAssessment,
     updateAssessment,
     deleteAssessment,
+    addQuestion,
+    updateQuestion,
+    deleteQuestion,
   };
 }
 
