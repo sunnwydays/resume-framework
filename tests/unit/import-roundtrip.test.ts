@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   applicationRows,
   assessmentRows,
@@ -95,10 +95,16 @@ describe("XLSX export -> import", () => {
   let sheets: RawSheet[];
   let fresh: ImportPlan;
 
-  it("exports a workbook the importer can read", async () => {
+  // The first call loads ExcelJS and SheetJS cold, which can take well over
+  // the 5 s test timeout on a busy machine; doing it here keeps that from
+  // failing every test below with "undefined".
+  beforeAll(async () => {
     sheets = await readBytes(await buildExportXlsx(apps, assessments, questions, changes), "export.xlsx");
-    expect(sheets.map((s) => s.name)).toEqual(["Applications", "Assessments"]);
     fresh = buildImportPlan(sheets, [], []);
+  }, 60_000);
+
+  it("exports a workbook the importer can read", () => {
+    expect(sheets.map((s) => s.name)).toEqual(["Applications", "Assessments"]);
     expect(fresh.sheets.map((s) => [s.name, s.kind, s.problem])).toEqual([
       ["Applications", "applications", null],
       ["Assessments", "assessments", null],
