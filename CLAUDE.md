@@ -207,13 +207,40 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   it's narrower there. Its long text fields save on blur. `AssessmentForm`
   edits only the core facts (no notes field, so it can't overwrite notes
   edited in the panel). Both tables sort via `components/tracker/sorting.tsx`.
+  Its default sort is "Do first" (`lib/tracker/priority.ts`): tiered, not a
+  score. Dated pending ones by deadline (important counts a day earlier),
+  then undated, then ones overdue >72h; ties go to the shorter, then easier.
+  Completed ones and ones whose application is rejected/withdrawn are
+  unranked. Ranks are computed over the rows on screen.
+- **Role types** (`lib/tracker/roles.ts`): derived from `applications.role`
+  every time, never stored (no DB column). One type per role, first match
+  wins in `ROLE_TYPES` order, so specific types (robotics, ML, infra…) sit
+  above the general SWE catch-all. The patterns are tuned to how roles are
+  actually typed ("swe", "sde", "swd", "front end", "be", "mle", "robo");
+  to fix a misfile, edit them and re-run the classifier over a list of real
+  roles. Shown as a sortable Type column and used by filters and stats.
+- **Filters** (`lib/tracker/filters.ts`, `components/tracker/FilterBar.tsx`):
+  search and role type are shared by both tabs and decide what the stats
+  describe; status, hide rejected, applied-within, has-steps, no-reply,
+  outcome, important and overdue only narrow the table. Stats ignore those on
+  purpose: hiding rejected rows would inflate every success rate.
+- **Stats** (`lib/tracker/stats.ts`, `components/tracker/stats/`): pure
+  functions feeding a collapsible panel per tab (open state in
+  localStorage). Hand-rolled charts, no chart library; colors are the
+  `--viz-*` tokens in `globals.css`. "How far they got" uses the furthest
+  stage reached (status, status history, assessment kinds), so a rejected
+  row still counts for the OA it got. Imported rows often lack status dates,
+  so every timing fact uses only dated rows and says "from n of N".
 - **Link lookup** (`lib/tracker/extract.ts`, `POST /api/tracker/extract`):
   deterministic, no AI by design. Order: ATS APIs from the URL (Greenhouse,
   Lever, Ashby, Workday `cxs` JSON), then JSON-LD `JobPosting`, then
   og:title/`<title>` parsing, then a company guess from the domain. It
   never errors on a miss; it returns `missing` fields, which the add form
   highlights and focuses. Known misses: IBM careers (bot wall), LinkedIn
-  (usually), and Ashby boards embedded via JS (e.g. Superhuman).
+  (usually), and Ashby boards embedded via JS (e.g. Superhuman). The
+  looked-up role is tidied client-side by `lib/tracker/trimRole.ts` (trim
+  term, trim intern, shorten title; three checkboxes under the Role field,
+  all on by default); the server still returns the raw title.
 - **Import/export** (`lib/tracker/io.ts`): SheetJS (installed from the
   cdn.sheetjs.com tarball, not npm's stale `xlsx`), dynamically imported.
   The header row is the first with a company-like column plus one other

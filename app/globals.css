@@ -4,6 +4,14 @@
   --background: #fafaf9;
   --foreground: #18181b;
   --surface: #ffffff;
+  /* Stats charts: one blue series, plus a 5-step ramp for the heatmap. */
+  --viz-1: #2a78d6;
+  --viz-grid: #e1e0d9;
+  --viz-heat-0: #e1e0d9;
+  --viz-heat-1: #cde2fb;
+  --viz-heat-2: #9ec5f4;
+  --viz-heat-3: #5598e7;
+  --viz-heat-4: #184f95;
 }
 
 @theme inline {
@@ -19,6 +27,13 @@
     --background: #0a0a0a;
     --foreground: #ededed;
     --surface: #141414;
+    --viz-1: #3987e5;
+    --viz-grid: #2c2c2a;
+    --viz-heat-0: #2c2c2a;
+    --viz-heat-1: #184f95;
+    --viz-heat-2: #1c5cab;
+    --viz-heat-3: #3987e5;
+    --viz-heat-4: #86b6ef;
   }
 }
 

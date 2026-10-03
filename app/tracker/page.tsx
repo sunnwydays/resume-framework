@@ -4,10 +4,27 @@ import { useEffect, useMemo, useState } from "react";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
+import Chip from "@/components/tracker/Chip";
+import { ApplicationFilterBar, AssessmentFilterBar } from "@/components/tracker/FilterBar";
 import ImportExport from "@/components/tracker/ImportExport";
+import ApplicationStats from "@/components/tracker/stats/ApplicationStats";
+import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TimeTracker from "@/components/tracker/TimeTracker";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { supabase, useNow, useTracker } from "@/lib/tracker/useTracker";
+import {
+  CLOSED,
+  DEFAULT_APP_FILTERS,
+  DEFAULT_ASSESSMENT_FILTERS,
+  matchesApplicationFilters,
+  matchesApplicationSearch,
+  matchesAssessmentFilters,
+  matchesAssessmentSearch,
+  matchesRoleTypes,
+  type AppFilters,
+  type AssessmentFilters,
+  type StatusFilter,
+} from "@/lib/tracker/filters";
 import {
   ASSESSMENT_KINDS,
   STATUSES,
@@ -18,11 +35,10 @@ import {
   type Question,
   type StatusChange,
 } from "@/lib/tracker/format";
+import { prioritize } from "@/lib/tracker/priority";
+import { ROLE_TYPES, roleType, roleTypeLabel, type RoleType } from "@/lib/tracker/roles";
 
 type Tab = "applications" | "assessments";
-type Filter = "all" | "active" | AppStatus;
-type AssessmentFilter = "pending" | "completed" | "all";
-const CLOSED: AppStatus[] = ["rejected", "withdrawn"];
 
 function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
@@ -38,9 +54,9 @@ export default function TrackerPage() {
   const now = useNow();
   const { applications, assessments, questions, statusChanges } = tracker;
   const [tab, setTab] = useState<Tab>("applications");
-  const [filter, setFilter] = useState<Filter>("active");
-  const [asmtFilter, setAsmtFilter] = useState<AssessmentFilter>("pending");
-  const [kindFilter, setKindFilter] = useState<AssessmentKind | null>(null);
+  const [appFilters, setAppFilters] = useState<AppFilters>(DEFAULT_APP_FILTERS);
+  const [asmtFilters, setAsmtFilters] = useState<AssessmentFilters>(DEFAULT_ASSESSMENT_FILTERS);
+  const [roleTypes, setRoleTypes] = useState<Set<RoleType>>(new Set());
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedAsmtId, setExpandedAsmtId] = useState<string | null>(null);
@@ -78,52 +94,82 @@ export default function TrackerPage() {
     return c;
   }, [applications]);
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return applications.filter((a) => {
-      if (filter === "active" && CLOSED.includes(a.status as AppStatus)) return false;
-      if (filter !== "all" && filter !== "active" && a.status !== filter) return false;
-      if (!q) return true;
-      return [a.company, a.role, a.location, a.notes].some((v) => v?.toLowerCase().includes(q));
-    });
-  }, [applications, filter, query]);
+  // Search and role type decide what the stats describe; the remaining
+  // filters only narrow the table (hiding rejected would inflate rates).
+  const statsApps = useMemo(
+    () =>
+      applications.filter(
+        (a) => matchesRoleTypes(roleTypes, a.role) && matchesApplicationSearch(a, query)
+      ),
+    [applications, roleTypes, query]
+  );
+  const visible = useMemo(
+    () =>
+      statsApps.filter((a) =>
+        matchesApplicationFilters(a, appFilters, assessmentsByApp.get(a.id) ?? [], now)
+      ),
+    [statsApps, appFilters, assessmentsByApp, now]
+  );
 
   const asmtCounts = useMemo(() => {
     const c: Record<string, number> = { all: 0, pending: 0, completed: 0 };
     for (const a of assessments) {
-      if (kindFilter && a.kind !== kindFilter) continue;
+      if (asmtFilters.kind && a.kind !== asmtFilters.kind) continue;
       c.all++;
       c[a.status]++;
     }
     return c;
-  }, [assessments, kindFilter]);
+  }, [assessments, asmtFilters.kind]);
 
-  // Search covers the assessment, its application, and its questions.
-  const visibleAssessments = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return assessments.filter((a) => {
-      if (asmtFilter !== "all" && a.status !== asmtFilter) return false;
-      if (kindFilter && a.kind !== kindFilter) return false;
-      if (!q) return true;
+  const statsAssessments = useMemo(
+    () =>
+      assessments.filter((a) => {
+        const app = applicationsById.get(a.application_id);
+        return (
+          matchesRoleTypes(roleTypes, app?.role) &&
+          matchesAssessmentSearch(a, app, questionsByAssessment.get(a.id) ?? [], query)
+        );
+      }),
+    [assessments, applicationsById, questionsByAssessment, roleTypes, query]
+  );
+  const visibleAssessments = useMemo(
+    () =>
+      statsAssessments.filter((a) =>
+        matchesAssessmentFilters(a, applicationsById.get(a.application_id), asmtFilters, now)
+      ),
+    [statsAssessments, applicationsById, asmtFilters, now]
+  );
+  // Ranked among what's on screen, so #1 is the best next pick in this view.
+  const priority = useMemo(
+    () => prioritize(visibleAssessments, applicationsById, now),
+    [visibleAssessments, applicationsById, now]
+  );
+
+  // Role-type chips list the types present in each tab's own data.
+  const typeCounts = useMemo(() => {
+    const c = new Map<RoleType, number>();
+    for (const a of applications) c.set(roleType(a.role), (c.get(roleType(a.role)) ?? 0) + 1);
+    return c;
+  }, [applications]);
+  const asmtTypeCounts = useMemo(() => {
+    const c = new Map<RoleType, number>();
+    for (const a of assessments) {
       const app = applicationsById.get(a.application_id);
-      return [
-        app?.company,
-        app?.role,
-        a.title,
-        a.details,
-        a.interviewer,
-        a.score,
-        a.notes,
-        a.prep_notes,
-        a.reflection,
-        ...(questionsByAssessment.get(a.id) ?? []).flatMap((x) => [x.question, x.answer]),
-      ].some((v) => v?.toLowerCase().includes(q));
-    });
-  }, [assessments, asmtFilter, kindFilter, query, applicationsById, questionsByAssessment]);
+      if (app) c.set(roleType(app.role), (c.get(roleType(app.role)) ?? 0) + 1);
+    }
+    return c;
+  }, [assessments, applicationsById]);
+
+  const scope = useMemo(() => {
+    const parts = ROLE_TYPES.filter((t) => roleTypes.has(t.key)).map((t) => roleTypeLabel(t.key));
+    if (query.trim()) parts.push(`“${query.trim()}”`);
+    return parts.length ? parts.join(" + ") : null;
+  }, [roleTypes, query]);
 
   function openApplication(id: string) {
     setTab("applications");
-    setFilter("all");
+    setAppFilters({ ...DEFAULT_APP_FILTERS, status: "all" });
+    setRoleTypes(new Set());
     setQuery("");
     setExpandedId(id);
     requestAnimationFrame(() =>
@@ -133,8 +179,8 @@ export default function TrackerPage() {
 
   function openAssessment(id: string) {
     setTab("assessments");
-    setAsmtFilter("all");
-    setKindFilter(null);
+    setAsmtFilters({ ...DEFAULT_ASSESSMENT_FILTERS, status: "all" });
+    setRoleTypes(new Set());
     setQuery("");
     setExpandedAsmtId(id);
     requestAnimationFrame(() =>
@@ -147,25 +193,24 @@ export default function TrackerPage() {
     window.location.href = "/tracker/login";
   }
 
-  const pill = (key: string, active: boolean, onClick: () => void, label: string, count?: number) => (
-    <button
-      key={key}
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-        active
-          ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"
-      }`}
-    >
-      {label}
-      {count !== undefined && <span className="tabular-nums opacity-70"> {count}</span>}
-    </button>
+  const chip = (value: StatusFilter, label: string) => (
+    <Chip
+      key={value}
+      active={appFilters.status === value}
+      onClick={() => setAppFilters({ ...appFilters, status: value })}
+      label={label}
+      count={counts[value] ?? 0}
+    />
   );
-  const chip = (value: Filter, label: string) =>
-    pill(value, filter === value, () => setFilter(value), label, counts[value] ?? 0);
-  const asmtChip = (value: AssessmentFilter, label: string) =>
-    pill(value, asmtFilter === value, () => setAsmtFilter(value), label, asmtCounts[value] ?? 0);
+  const asmtChip = (value: AssessmentFilters["status"], label: string) => (
+    <Chip
+      key={value}
+      active={asmtFilters.status === value}
+      onClick={() => setAsmtFilters({ ...asmtFilters, status: value })}
+      label={label}
+      count={asmtCounts[value] ?? 0}
+    />
+  );
   const tabButton = (value: Tab, label: string, count: number) => (
     <button
       type="button"
@@ -231,6 +276,28 @@ export default function TrackerPage() {
           {tabButton("applications", "Applications", applications.length)}
           {tabButton("assessments", "Assessments & interviews", assessments.length)}
         </div>
+
+        {!tracker.loading && tab === "applications" && statsApps.length > 0 && (
+          <ApplicationStats
+            applications={statsApps}
+            assessmentsByApp={assessmentsByApp}
+            changesByApp={changesByApp}
+            now={now}
+            scope={scope}
+          />
+        )}
+        {!tracker.loading && tab === "assessments" && statsAssessments.length > 0 && (
+          <AssessmentStats
+            assessments={statsAssessments}
+            applicationsById={applicationsById}
+            assessmentsByApp={assessmentsByApp}
+            changesByApp={changesByApp}
+            questionsByAssessment={questionsByAssessment}
+            now={now}
+            scope={scope}
+          />
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           {tab === "applications" ? (
             <>
@@ -245,9 +312,14 @@ export default function TrackerPage() {
               {asmtChip("completed", "Completed")}
               {asmtChip("all", "All")}
               <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
-              {(Object.keys(ASSESSMENT_KINDS) as AssessmentKind[]).map((k) =>
-                pill(k, kindFilter === k, () => setKindFilter(kindFilter === k ? null : k), ASSESSMENT_KINDS[k])
-              )}
+              {(Object.keys(ASSESSMENT_KINDS) as AssessmentKind[]).map((k) => (
+                <Chip
+                  key={k}
+                  active={asmtFilters.kind === k}
+                  onClick={() => setAsmtFilters({ ...asmtFilters, kind: asmtFilters.kind === k ? null : k })}
+                  label={ASSESSMENT_KINDS[k]}
+                />
+              ))}
             </>
           )}
           <input
@@ -264,6 +336,32 @@ export default function TrackerPage() {
           />
         </div>
 
+        {tab === "applications" ? (
+          <ApplicationFilterBar
+            filters={appFilters}
+            onChange={setAppFilters}
+            typeCounts={typeCounts}
+            roleTypes={roleTypes}
+            onRoleTypes={setRoleTypes}
+            onClear={() => {
+              setAppFilters(DEFAULT_APP_FILTERS);
+              setRoleTypes(new Set());
+            }}
+          />
+        ) : (
+          <AssessmentFilterBar
+            filters={asmtFilters}
+            onChange={setAsmtFilters}
+            typeCounts={asmtTypeCounts}
+            roleTypes={roleTypes}
+            onRoleTypes={setRoleTypes}
+            onClear={() => {
+              setAsmtFilters({ ...DEFAULT_ASSESSMENT_FILTERS, status: asmtFilters.status, kind: asmtFilters.kind });
+              setRoleTypes(new Set());
+            }}
+          />
+        )}
+
         {tracker.loading ? (
           <p className="py-8 text-center text-sm text-neutral-500">Loading…</p>
         ) : tab === "assessments" ? (
@@ -276,6 +374,7 @@ export default function TrackerPage() {
               assessments={visibleAssessments}
               applicationsById={applicationsById}
               questionsByAssessment={questionsByAssessment}
+              priority={priority}
               expandedId={expandedAsmtId}
               onToggle={(id) => setExpandedAsmtId((cur) => (cur === id ? null : id))}
               onOpenApplication={openApplication}

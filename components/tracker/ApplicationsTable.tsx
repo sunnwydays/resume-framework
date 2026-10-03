@@ -3,6 +3,7 @@
 import { Fragment, useCallback } from "react";
 import ApplicationDetail from "@/components/tracker/ApplicationDetail";
 import { SortHeader, useSortedRows, type SortDir } from "@/components/tracker/sorting";
+import { ROLE_TYPE_ORDER, roleType, roleTypeLabel } from "@/lib/tracker/roles";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   STATUSES,
@@ -32,11 +33,12 @@ interface Props {
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
 const tdCls = "px-3 py-2 align-middle";
 
-type SortKey = "company" | "role" | "applied" | "status" | "next" | "changed";
+type SortKey = "company" | "role" | "type" | "applied" | "status" | "next" | "changed";
 
 const FIRST_DIR: Record<SortKey, SortDir> = {
   company: "asc",
   role: "asc",
+  type: "asc",
   applied: "desc",
   status: "asc",
   next: "asc",
@@ -49,6 +51,8 @@ function sortValue(app: Application, key: SortKey, assessments: Assessment[]): s
       return app.company;
     case "role":
       return app.role;
+    case "type":
+      return ROLE_TYPE_ORDER[roleType(app.role)];
     case "applied":
       return app.applied_on;
     case "status":
@@ -95,6 +99,7 @@ export default function ApplicationsTable({
           <tr>
             {header("company", "Company")}
             {header("role", "Role")}
+            {header("type", "Type")}
             {header("applied", "Applied")}
             {header("status", "Status")}
             {header("next", "Next step")}
@@ -138,6 +143,7 @@ export default function ApplicationsTable({
                       <div className="text-xs text-neutral-500">{app.location}</div>
                     )}
                   </td>
+                  <td className={`${tdCls} text-xs text-neutral-500`}>{roleTypeLabel(roleType(app.role))}</td>
                   <td className={`${tdCls} tabular-nums`}>{formatDate(app.applied_on)}</td>
                   <td className={tdCls} onClick={(e) => e.stopPropagation()}>
                     <select
@@ -174,7 +180,7 @@ export default function ApplicationsTable({
                 </tr>
                 {expanded && (
                   <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                    <td colSpan={6} className="bg-background/50">
+                    <td colSpan={7} className="bg-background/50">
                       <ApplicationDetail
                         key={app.id}
                         app={app}
