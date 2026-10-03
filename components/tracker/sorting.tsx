@@ -1,31 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { sortRows, type SortDir, type SortState } from "@/lib/tracker/sorting";
 
-export type SortDir = "asc" | "desc";
-export type SortState<K extends string> = { key: K; dir: SortDir };
-
-// Null means "nothing to sort on" and always goes last, in either
-// direction. The sort is stable, so ties keep the input order.
 export function useSortedRows<T, K extends string>(
   rows: T[],
   value: (row: T, key: K) => string | number | null,
   initial: SortState<K>
 ) {
   const [sort, setSort] = useState(initial);
-  const sorted = useMemo(() => {
-    const sign = sort.dir === "asc" ? 1 : -1;
-    const keyed = rows.map((row) => ({ row, v: value(row, sort.key) }));
-    keyed.sort((a, b) => {
-      if (a.v === null || b.v === null) return a.v === b.v ? 0 : a.v === null ? 1 : -1;
-      const cmp =
-        typeof a.v === "number" && typeof b.v === "number"
-          ? a.v - b.v
-          : String(a.v).localeCompare(String(b.v), undefined, { sensitivity: "base", numeric: true });
-      return cmp * sign;
-    });
-    return keyed.map((k) => k.row);
-  }, [rows, value, sort]);
+  const sorted = useMemo(() => sortRows(rows, value, sort), [rows, value, sort]);
   return { sort, setSort, sorted };
 }
 

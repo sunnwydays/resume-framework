@@ -689,9 +689,7 @@ export default function ImportExport({
                           <td className={tdCls}>{a.row.company}</td>
                           <td className={tdCls}>{a.row.role}</td>
                           <td className={`${tdCls} tabular-nums`}>
-                            {a.row.applied_on
-                              ? formatDate(a.row.applied_on)
-                              : "today"}
+                            {formatDate(a.row.applied_on)}
                           </td>
                           <td className={tdCls}>{statusLabel(a.row.status)}</td>
                           <td className={`${tdCls} text-xs`}>

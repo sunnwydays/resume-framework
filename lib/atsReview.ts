@@ -208,7 +208,9 @@ export function reviewPerson(person: AtsPerson): SectionReview<PersonIssues> {
     // Given/family names are almost never a single letter
     // Mismatched capitalization or an unusual font (e.g. small caps) can make 
     // name one character early, e.g. "Rob W Ang" -> given "R", middle "obw".
-    if (field !== "middle" && value.trim().length === 1) {
+    // Latin letters only: one-character names are normal in Chinese, Korean
+    // and Japanese ("李").
+    if (field !== "middle" && /^\p{Script=Latin}$/u.test(value.trim())) {
       add(fields, field, {
         code: "WRONG_SPLIT",
         severity: "minor",

@@ -28,7 +28,7 @@ import { applicationStats, assessmentStats, groupBy, pct, plural, type Fact } fr
 // ------------------------------------------------------------------ rows
 
 // Column names double as import aliases, so an export re-imports cleanly.
-function applicationRows(apps: Application[]) {
+export function applicationRows(apps: Application[]) {
   return apps.map((a) => ({
     Company: a.company,
     Role: a.role,
@@ -51,7 +51,7 @@ function questionLines(questions: Question[], source: QuestionSource): string {
     .join("\n");
 }
 
-function assessmentRows(assessments: Assessment[], apps: Application[], questions: Question[]) {
+export function assessmentRows(assessments: Assessment[], apps: Application[], questions: Question[]) {
   const byId = new Map(apps.map((a) => [a.id, a]));
   return assessments.map((s) => ({
     Company: byId.get(s.application_id)?.company ?? "",

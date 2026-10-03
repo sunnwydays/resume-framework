@@ -5,8 +5,11 @@
 
 import {
   STATUSES,
+  formatDate,
+  parseDuration as parseClockDuration,
   sameUrl,
   statusLabel,
+  todayISO,
   type AppStatus,
   type Application,
   type Assessment,
@@ -24,9 +27,32 @@ export interface RawSheet {
   rows: unknown[][];
 }
 
+// A workbook is a zip (.xlsx, "PK") or an old OLE file (.xls); anything else
+// is text, which SheetJS would decode as Latin-1 and garble "é" and "→".
+function isWorkbook(bytes: Uint8Array): boolean {
+  const starts = (...sig: number[]) => sig.every((b, i) => bytes[i] === b);
+  return starts(0x50, 0x4b) || starts(0xd0, 0xcf, 0x11, 0xe0);
+}
+
+// UTF-8 (what we export), or Windows-1252 (what Excel's plain "CSV" saves).
+function decodeText(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
 export async function readSheets(file: File): Promise<RawSheet[]> {
   const XLSX = await import("xlsx");
-  const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  // raw: keep CSV cells as the text they are. Left to guess, SheetJS turns
+  // "03/04/26" into March 4 (the importer reads it day-first) and an ISO
+  // timestamp into a serial that then shifts by the UTC offset. Real
+  // spreadsheets carry their own types, so it doesn't apply to them.
+  const wb = isWorkbook(bytes)
+    ? XLSX.read(bytes, { type: "array" })
+    : XLSX.read(decodeText(bytes), { type: "string", raw: true });
   return wb.SheetNames.map((name) => {
     const ws = wb.Sheets[name];
     // A hyperlinked cell ("CodeSignal") is more useful as its target URL.
@@ -93,7 +119,7 @@ export const APP_FIELDS = {
   location: { label: "Location", hint: "", aliases: ["location", "city", "office"] },
   applied_on: {
     label: "Applied",
-    hint: "Date, e.g. 25/09/26 (day first) or 2026-09-25. Blank = no date",
+    hint: "Date, e.g. 25/09/26 (day first) or 2026-09-25. Blank = today",
     aliases: ["applied", "date applied", "applied date", "applied on", "application date", "date", "submitted", "date submitted"],
   },
   status: {
@@ -298,24 +324,50 @@ function fromSerial(n: number): Date {
   return new Date(Date.UTC(1899, 11, 30) + Math.round(n * 86400000));
 }
 
-// -> YYYY-MM-DD. Slashed dates are day-first (the old sheet's dd/mm/yy).
+// A number (or numeric text, from a CSV) in the range Excel uses for dates
+// from 1954 to 2118.
+function serialOf(value: unknown): number | null {
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && /^\d{5}(\.\d+)?$/.test(value.trim())
+        ? Number(value)
+        : NaN;
+  return n > 20000 && n < 80000 ? n : null;
+}
+
+// YYYY-MM-DD for a real calendar date in a believable year, else null.
+// Anything else would make Postgres reject the date, and with it the whole
+// import (it runs as one transaction).
+function isoDate(y: number, m: number, d: number): string | null {
+  if (y < 1990 || y > 2100 || m < 1 || m > 12 || d < 1) return null;
+  return d > new Date(Date.UTC(y, m, 0)).getUTCDate() ? null : `${y}-${pad(m)}-${pad(d)}`;
+}
+
+// -> YYYY-MM-DD, or null if it isn't a real date. Slashed dates are
+// day-first (the old sheet's dd/mm/yy), unless that isn't a date and
+// month-first is ("09/25/26").
 export function parseDate(value: unknown): string | null {
   if (value === "" || value == null) return null;
-  if (typeof value === "number" && value > 20000 && value < 80000) {
-    return fromSerial(value).toISOString().slice(0, 10);
+  const serial = serialOf(value);
+  if (serial !== null) {
+    const d = fromSerial(serial);
+    return isoDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
+  if (typeof value === "number") return null;
   const s = String(value).trim();
-  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
-  if (iso) return `${iso[1]}-${pad(+iso[2])}-${pad(+iso[3])}`;
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/.exec(s);
+  if (iso) return isoDate(+iso[1], +iso[2], +iso[3]);
   const dmy = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})$/.exec(s);
   if (dmy) {
     const year = dmy[3].length === 2 ? 2000 + +dmy[3] : +dmy[3];
-    return `${year}-${pad(+dmy[2])}-${pad(+dmy[1])}`;
+    return isoDate(year, +dmy[2], +dmy[1]) ?? isoDate(year, +dmy[1], +dmy[2]);
   }
+  // Written-out dates ("Sep 25, 2026"). Needs a year: without one the
+  // parser invents 2001, and bare numbers aren't dates at all.
+  if (!/\b(?:19|20)\d{2}\b/.test(s) || /^\d+(\.\d+)?$/.test(s)) return null;
   const d = new Date(s);
-  return Number.isNaN(d.getTime())
-    ? null
-    : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return Number.isNaN(d.getTime()) ? null : isoDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }
 
 // -> ISO timestamp. A bare date becomes 23:59 local that day (a deadline).
@@ -326,16 +378,15 @@ export function parseDateTime(value: unknown): string | null {
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
-  if (typeof value === "number" && value % 1 !== 0) {
-    // Serial with a time part: treat its wall-clock as local time.
-    const d = fromSerial(value);
-    return new Date(
-      d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()
-    ).toISOString();
-  }
   const date = parseDate(value);
   if (!date) return null;
   const [y, m, d] = date.split("-").map(Number);
+  const serial = serialOf(value);
+  if (serial !== null && serial % 1 !== 0) {
+    // Serial with a time part: treat its wall-clock as local time.
+    const t = fromSerial(serial);
+    return new Date(y, m - 1, d, t.getUTCHours(), t.getUTCMinutes()).toISOString();
+  }
   return new Date(y, m - 1, d, 23, 59).toISOString();
 }
 
@@ -361,11 +412,19 @@ function parseKind(type: string, title: string, details: string): AssessmentKind
   return "oa";
 }
 
-function parseDuration(value: string): number | null {
-  const hours = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour)/i.exec(value);
-  if (hours) return Math.round(parseFloat(hours[1]) * 60);
-  const n = /(\d+)/.exec(value);
-  return n ? parseInt(n[1], 10) : null;
+// Longer than a week is a typo, not an assessment.
+const MAX_MINUTES = 7 * 24 * 60;
+
+// "90", "1h 30m", "1 hour 30 minutes", "1.5h", "1:30", "45 mins" -> minutes.
+export function parseMinutes(value: string): number | null {
+  const text = value
+    .toLowerCase()
+    .replace(/\b(?:hours?|hrs?)\b/g, "h")
+    .replace(/\b(?:minutes?|mins?)\b/g, "m");
+  const seconds = parseClockDuration(text);
+  const n = seconds !== null ? Math.round(seconds / 60) : (/(\d+)/.exec(value)?.[1] ?? null);
+  const minutes = n === null ? null : Number(n);
+  return minutes !== null && minutes <= MAX_MINUTES ? minutes : null;
 }
 
 // "4", "4/5", "3.5" -> 1..5; easy / medium / hard words too.
@@ -375,7 +434,7 @@ export function parseDifficulty(value: string): number | null {
   const n = /^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+))?/.exec(v);
   if (n) {
     const scaled = n[2] ? (parseFloat(n[1]) / parseFloat(n[2])) * 5 : parseFloat(n[1]);
-    return Math.min(5, Math.max(1, Math.round(scaled)));
+    return Number.isFinite(scaled) ? Math.min(5, Math.max(1, Math.round(scaled))) : null;
   }
   if (/very\s*hard|extreme|brutal/.test(v)) return 5;
   if (/very\s*easy|trivial/.test(v)) return 1;
@@ -415,7 +474,7 @@ export interface AppPayload {
   url: string | null;
   location: string | null;
   description: string | null;
-  applied_on: string | null;
+  applied_on: string;
   status: AppStatus;
   status_changed_at: string | null;
   notes: string | null;
@@ -591,9 +650,11 @@ export function buildImportPlan(
   sheets: RawSheet[],
   existingApps: Application[],
   existingAssessments: Assessment[],
-  overrides: ImportOverrides = {}
+  overrides: ImportOverrides = {},
+  today: string = todayISO()
 ): ImportPlan {
   const warnings: string[] = [];
+  let undated = 0;
   const sheetReports: SheetReport[] = [];
   const apps: PlannedApp[] = [];
   const pendingAssessments: Omit<PlannedAssessment, "target" | "match" | "duplicate" | "include">[] = [];
@@ -652,6 +713,7 @@ export function buildImportPlan(
           outcome === "failed"
             ? "completed"
             : "pending";
+        const dueAt = parseDateTime(cols.due === undefined ? "" : row[cols.due]);
         const difficultyText = cell(row, cols.difficulty);
         const difficulty = parseDifficulty(difficultyText);
         const outcomeText = cell(row, cols.outcome);
@@ -662,8 +724,8 @@ export function buildImportPlan(
             kind: parseKind(cell(row, cols.kind), title, details),
             title,
             details: details || null,
-            duration_min: parseDuration(cell(row, cols.duration)),
-            due_at: parseDateTime(cols.due === undefined ? "" : row[cols.due]),
+            duration_min: parseMinutes(cell(row, cols.duration)),
+            due_at: dueAt,
             interviewer: cell(row, cols.interviewer) || null,
             link: /^https?:\/\//i.test(cell(row, cols.link)) ? cell(row, cols.link) : null,
             important: parseBool(cell(row, cols.important)),
@@ -682,6 +744,7 @@ export function buildImportPlan(
                 // Values we couldn't read are kept rather than dropped.
                 difficultyText && difficulty === null ? `Difficulty: ${difficultyText}` : "",
                 outcomeText && !parseOutcome(outcomeText) ? `Outcome: ${outcomeText}` : "",
+                cell(row, cols.due) && !dueAt ? `Due: ${cell(row, cols.due)}` : "",
                 ...extraNotes(row, header.labels, unmapped),
               ]
                 .filter(Boolean)
@@ -729,6 +792,10 @@ export function buildImportPlan(
         ]
           .filter(Boolean)
           .join("\n");
+        // A blank or unreadable date becomes today, in the local calendar
+        // (the database's own default would be the UTC day).
+        const appliedText = cell(row, cols.applied_on);
+        const applied = parseDate(cols.applied_on === undefined ? "" : row[cols.applied_on]);
         const payload: AppPayload = {
           ref: `new-${apps.length}`,
           company,
@@ -736,7 +803,7 @@ export function buildImportPlan(
           url: url || null,
           location: cell(row, cols.location) || null,
           description: cell(row, cols.description) || null,
-          applied_on: parseDate(cols.applied_on === undefined ? "" : row[cols.applied_on]),
+          applied_on: applied ?? today,
           status,
           status_changed_at:
             cols.status_changed_at === undefined ? null : parseDateTime(row[cols.status_changed_at]),
@@ -748,6 +815,10 @@ export function buildImportPlan(
         const duplicateOf = existingApps.find(sameAs) ?? null;
         const repeatInFile = apps.some((p) => sameAs(p.row));
         if (repeatInFile) continue;
+        if (!applied && !duplicateOf) {
+          if (appliedText) warnings.push(`${company} · ${role}: couldn't read the applied date "${appliedText}", set to today.`);
+          else undated++;
+        }
         apps.push({ row: payload, duplicateOf, include: !duplicateOf });
       }
     }
@@ -791,6 +862,10 @@ export function buildImportPlan(
     );
     return { ...a, target: pick?.target ?? null, match, duplicate, include: Boolean(pick) && !duplicate };
   });
+
+  if (undated) {
+    warnings.push(`${undated} ${undated === 1 ? "application has" : "applications have"} no applied date, set to today (${formatDate(today)}).`);
+  }
 
   return { apps, assessments, sheets: sheetReports, warnings };
 }

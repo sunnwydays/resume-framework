@@ -2,7 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import AssessmentDetail, { DifficultyDots, SourceTag } from "@/components/tracker/AssessmentDetail";
-import { SortHeader, useSortedRows, type SortDir } from "@/components/tracker/sorting";
+import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
+import { assessmentSortValue, type AssessmentSortKey as SortKey, type SortDir } from "@/lib/tracker/sorting";
 import type { Priority } from "@/lib/tracker/priority";
 import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
 import type { Tracker } from "@/lib/tracker/useTracker";
@@ -33,8 +34,6 @@ interface Props {
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
 const tdCls = "px-3 py-2 align-middle";
 
-type SortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result" | "questions";
-
 const FIRST_DIR: Record<SortKey, SortDir> = {
   priority: "asc",
   company: "asc",
@@ -44,12 +43,6 @@ const FIRST_DIR: Record<SortKey, SortDir> = {
   result: "asc",
   questions: "desc",
 };
-
-// Pending, then completed with no result yet, then passed, then failed.
-function resultRank(a: Assessment): number {
-  if (a.status !== "completed") return 0;
-  return a.outcome === "passed" ? 2 : a.outcome === "failed" ? 3 : 1;
-}
 
 const HOVER_DELAY_MS = 350;
 const PREVIEW_WIDTH = 384;
@@ -68,25 +61,8 @@ export default function AssessmentsTable({
   now,
 }: Props) {
   const value = useCallback(
-    (a: Assessment, key: SortKey): string | number | null => {
-      const app = applicationsById.get(a.application_id);
-      switch (key) {
-        case "priority":
-          return priority.get(a.id)?.rank ?? null;
-        case "company":
-          return app ? `${app.company} ${app.role}` : null;
-        case "title":
-          return a.title;
-        case "due":
-          return a.due_at;
-        case "difficulty":
-          return a.difficulty;
-        case "result":
-          return resultRank(a);
-        case "questions":
-          return questionsByAssessment.get(a.id)?.length || null;
-      }
-    },
+    (a: Assessment, key: SortKey) =>
+      assessmentSortValue(a, key, applicationsById.get(a.application_id), priority, questionsByAssessment.get(a.id)),
     [applicationsById, questionsByAssessment, priority]
   );
   // Default: what to do first. Unranked (done, or the application is closed)

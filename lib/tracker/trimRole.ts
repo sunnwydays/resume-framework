@@ -1,6 +1,6 @@
 // Tidies job titles pulled from a posting ("Software Engineer Intern, Test
-// Automation (Summer 2027)" -> "SWE Intern, Test Automation"). Three
-// independent trims, all on by default in the add form.
+// Automation (Summer 2027)" -> "SWE, Test Automation"). Three independent
+// trims, all on by default in the add form.
 
 export interface RoleTrimOptions {
   term: boolean;

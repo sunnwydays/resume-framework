@@ -6,15 +6,19 @@
 // user to type in.
 
 export type ExtractField = "company" | "role" | "location" | "description";
-export type ExtractSource =
-  | "ashby"
-  | "greenhouse"
-  | "lever"
-  | "workday"
-  | "linkedin"
-  | "jsonld"
-  | "meta"
-  | "manual";
+// Stored as applications.source (with "import" added by the importer), so
+// the database's check constraint must allow every one of these.
+export const EXTRACT_SOURCES = [
+  "ashby",
+  "greenhouse",
+  "lever",
+  "workday",
+  "linkedin",
+  "jsonld",
+  "meta",
+  "manual",
+] as const;
+export type ExtractSource = (typeof EXTRACT_SOURCES)[number];
 
 export interface ExtractResult {
   fields: Partial<Record<ExtractField, string>>;
@@ -82,7 +86,9 @@ export function decodeEntities(s: string): string {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, code: string) => {
     if (code[0] === "#") {
       const n = code[1].toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
-      return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+      // Out-of-range numbers make fromCodePoint throw, and a NUL can't be
+      // stored in a Postgres text column.
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
     }
     return NAMED_ENTITIES[code.toLowerCase()] ?? m;
   });
@@ -95,7 +101,8 @@ export function htmlToText(html: string): string {
         .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<li[^>]*>/gi, "\n• ")
-        .replace(/<\/(p|div|li|ul|ol|h[1-6]|section|tr)>/gi, "\n")
+        // Not </li>: each <li> already starts its own line.
+        .replace(/<\/(p|div|ul|ol|h[1-6]|section|tr)>/gi, "\n")
         .replace(/<[^>]+>/g, "")
     )
   );
@@ -127,12 +134,19 @@ export function prettifySlug(slug: string): string {
     .join(" ");
 }
 
+// Does `text` contain `phrase` as whole words? ("Toronto" doesn't contain
+// "ON", but "Toronto, ON, Canada" does.)
+function hasPhrase(text: string, phrase: string): boolean {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "iu").test(text);
+}
+
 // Join location parts, skipping ones already contained in an earlier part
 // ("Toronto, ON, Canada" + "Canada" -> "Toronto, ON, Canada").
 function joinLocation(parts: (string | undefined)[]): string | undefined {
   const out: string[] = [];
   for (const p of parts) {
-    if (p && !out.some((o) => o.toLowerCase().includes(p.toLowerCase()))) out.push(p);
+    if (p && !out.some((o) => hasPhrase(o, p))) out.push(p);
   }
   return out.length ? out.join(", ") : undefined;
 }
@@ -433,7 +447,8 @@ const AGGREGATORS = new Set([
 export function companyFromDomain(url: URL): string | undefined {
   if (url.hostname.endsWith(".myworkdayjobs.com")) return prettifySlug(url.hostname.split(".")[0]);
   const label = registrableLabel(url.hostname);
-  if (!label || AGGREGATORS.has(label)) return undefined;
+  // A bare IP address has no name in it ("127.0.0.1" would give "0").
+  if (!label || /^\d+$/.test(label) || AGGREGATORS.has(label)) return undefined;
   return prettifySlug(label);
 }
 

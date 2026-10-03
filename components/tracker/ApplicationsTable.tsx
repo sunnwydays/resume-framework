@@ -2,15 +2,19 @@
 
 import { Fragment, useCallback } from "react";
 import ApplicationDetail from "@/components/tracker/ApplicationDetail";
-import { SortHeader, useSortedRows, type SortDir } from "@/components/tracker/sorting";
-import { ROLE_TYPE_ORDER, roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
+import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import {
+  applicationSortValue,
+  nextStep,
+  type ApplicationSortKey as SortKey,
+  type SortDir,
+} from "@/lib/tracker/sorting";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   STATUSES,
   STATUS_META,
   formatDate,
-  kindLabel,
-  relativeDue,
   statusLabel,
   type AppStatus,
   type Application,
@@ -33,8 +37,6 @@ interface Props {
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
 const tdCls = "px-3 py-2 align-middle";
 
-type SortKey = "company" | "role" | "type" | "applied" | "status" | "next" | "changed";
-
 const FIRST_DIR: Record<SortKey, SortDir> = {
   company: "asc",
   role: "asc",
@@ -44,28 +46,6 @@ const FIRST_DIR: Record<SortKey, SortDir> = {
   next: "asc",
   changed: "desc",
 };
-
-function sortValue(app: Application, key: SortKey, assessments: Assessment[]): string | number | null {
-  switch (key) {
-    case "company":
-      return app.company;
-    case "role":
-      return app.role;
-    case "type":
-      return ROLE_TYPE_ORDER[roleType(app.role)];
-    case "applied":
-      return app.applied_on;
-    case "status":
-      return STATUSES.indexOf(app.status as AppStatus);
-    case "next": {
-      // Undated pending steps sort after dated ones.
-      const a = nextPending(assessments);
-      return a ? (a.due_at ?? "~") : null;
-    }
-    case "changed":
-      return app.status !== "applied" ? app.status_changed_at : null;
-  }
-}
 
 export default function ApplicationsTable({
   applications,
@@ -79,7 +59,7 @@ export default function ApplicationsTable({
 }: Props) {
   // Default matches the fetch order (newest applied first).
   const value = useCallback(
-    (app: Application, key: SortKey) => sortValue(app, key, assessmentsByApp.get(app.id) ?? []),
+    (app: Application, key: SortKey) => applicationSortValue(app, key, assessmentsByApp.get(app.id) ?? []),
     [assessmentsByApp]
   );
   const { sort, setSort, sorted } = useSortedRows<Application, SortKey>(applications, value, { key: "applied", dir: "desc" });
@@ -199,22 +179,4 @@ export default function ApplicationsTable({
       </table>
     </div>
   );
-}
-
-// Soonest pending assessment: dated ones first, then undated.
-function nextPending(assessments: Assessment[]): Assessment | undefined {
-  return assessments
-    .filter((a) => a.status === "pending")
-    .sort((a, b) => (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999"))[0];
-}
-
-function nextStep(assessments: Assessment[], now: number) {
-  const a = nextPending(assessments);
-  if (!a) return null;
-  const overdue = Boolean(a.due_at && new Date(a.due_at).getTime() < now);
-  return {
-    text: `${kindLabel(a.kind)}${a.due_at ? ` · ${relativeDue(a.due_at, now)}` : ""}`,
-    overdue,
-    important: a.important,
-  };
 }
