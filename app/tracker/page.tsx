@@ -149,10 +149,12 @@ export default function TrackerPage() {
           <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
           {STATUSES.map((s) => chip(s, STATUS_META[s].label))}
           <input
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…"
-            className="ml-auto w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-56 dark:border-neutral-700"
+            placeholder="Search company, role, location, notes…"
+            aria-label="Search applications"
+            className="ml-auto w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-72 dark:border-neutral-700"
           />
         </div>
 
