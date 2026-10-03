@@ -67,6 +67,16 @@ You'll need an [Affinda API key](https://www.affinda.com/) set as
 4. In dev, a **Dev mocks** panel lists any JSON files dropped into
    `lib/mocks` and loads one straight into the app without hitting the API.
 
+## Job tracker (local only)
+
+A separate personal tool at [`/tracker`](http://localhost:3000/tracker):
+job applications plus their OAs / video interviews / interviews, with
+automatic status-change timestamps, paste-a-link detail lookup, and
+CSV/XLSX import/export. It's backed by Supabase (magic-link sign-in) and
+only runs under `npm run dev`; the deployed site 404s it. Needs
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
+`.env.local`.
+
 ## Tech stack
 
 Next.js (App Router) + TypeScript + Tailwind CSS. `app/api/ats-parse/route.ts`

@@ -6,6 +6,9 @@ alone.
 
 ## What this is
 
+(Also hosts a separate, local-only job tracker at `/tracker`. See "Job
+tracker" below. Everything else in this file is about the resume app.)
+
 A Next.js app, currently at **Stage 1 of a planned multi-stage redesign**:
 an ATS resume parser. The user pastes resume text or uploads a PDF, the app
 sends it server-side to Affinda's resume-parsing API, and displays both the
@@ -147,6 +150,54 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   sliders, PDF export, or an iteration loop, check
   `docs/archived-review-pipeline.md` first — that design already exists and
   was deliberately scoped out, not abandoned.
+
+## Job tracker (`/tracker`, separate track)
+
+A personal job-application tracker that lives in this app but is **not
+part of the resume-framework stages**. Single user (Sunny), local-only for
+now: `proxy.ts` returns 404 for `/tracker/*` and `/api/tracker/*` when
+`NODE_ENV === "production"`, and otherwise refreshes the Supabase session
+and redirects signed-out requests to `/tracker/login` (401 for the API).
+The proxy matcher only covers tracker paths; the resume pages never hit it.
+
+- **Backend**: Supabase project `job-tracker` (ref `zcsfiovwomnkdhnfkoqk`,
+  ca-central-1), email magic-link auth, `NEXT_PUBLIC_SUPABASE_URL` +
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`. The page talks
+  to Supabase directly from the browser (`lib/supabase/client.ts`); RLS
+  (`user_id = auth.uid()`) on every table is the access control. Clients
+  are created lazily (`supabase()` in `lib/tracker/useTracker.ts`) so the
+  build doesn't need the env vars.
+- **Schema**: `applications`, `assessments` (OAs / video interviews /
+  interviews: one table, `kind` column), `status_changes` (history).
+  Status and kind values are check constraints mirrored by `STATUSES` /
+  `ASSESSMENT_KINDS` in `lib/tracker/format.ts`; change both together.
+  `lib/tracker/database.types.ts` is generated; regenerate after schema
+  changes.
+- **Timestamps are database triggers**, not app code: changing
+  `applications.status` sets `status_changed_at` and logs a
+  `status_changes` row (users have no insert policy on it); completing an
+  assessment sets `completed_at`. Each change is tagged with an `origin`
+  (`manual | import | email`), read from the `app.status_origin`
+  transaction setting. The `import_rows(jsonb)` RPC sets it to `import`,
+  so imports keep their given dates (or none) instead of "now". A future
+  Gmail integration should do the same with `email`, and should *suggest*
+  status changes rather than apply them.
+- **Link lookup** (`lib/tracker/extract.ts`, `POST /api/tracker/extract`):
+  deterministic, no AI by design. Order: ATS APIs from the URL (Greenhouse,
+  Lever, Ashby, Workday `cxs` JSON), then JSON-LD `JobPosting`, then
+  og:title/`<title>` parsing, then a company guess from the domain. It
+  never errors on a miss; it returns `missing` fields, which the add form
+  highlights and focuses. Known misses: IBM careers (bot wall), LinkedIn
+  (usually), and Ashby boards embedded via JS (e.g. Superhuman).
+- **Import/export** (`lib/tracker/io.ts`): SheetJS (installed from the
+  cdn.sheetjs.com tarball, not npm's stale `xlsx`), dynamically imported.
+  The header row is found by its "Company" column, so title and totals rows
+  above it are skipped. Columns are matched by alias, including Sunny's old
+  sheet headers; slashed dates are day-first. Assessments attach to
+  applications by company + role, then company alone, then a 5+ digit job
+  ID shared with a posting URL. Anything ambiguous is left for the user to
+  pick in the preview. Export headers are valid import aliases, so
+  round-trips dedupe.
 
 ## Extending this
 
