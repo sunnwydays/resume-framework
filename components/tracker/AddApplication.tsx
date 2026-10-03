@@ -13,6 +13,7 @@ import {
   todayISO,
   type Application,
 } from "@/lib/tracker/format";
+import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 
 const ORIGIN_LABEL: Record<string, string> = {
   greenhouse: "from Greenhouse",
@@ -23,6 +24,12 @@ const ORIGIN_LABEL: Record<string, string> = {
   jsonld: "from page data",
   meta: "guessed from page title",
   domain: "guessed from domain",
+};
+
+const TRIM_LABELS: Record<keyof RoleTrimOptions, string> = {
+  term: "Trim term",
+  intern: "Trim intern",
+  shorten: "Shorten title",
 };
 
 interface Draft {
@@ -58,6 +65,7 @@ export default function AddApplication({ applications, onAdd }: Props) {
   const [lookupNote, setLookupNote] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [extracted, setExtracted] = useState<ExtractResult | null>(null);
+  const [trims, setTrims] = useState<RoleTrimOptions>(DEFAULT_TRIMS);
   const [saving, setSaving] = useState(false);
   const [focusField, setFocusField] = useState<ExtractField | null>(null);
   const fieldRefs = useRef<Partial<Record<ExtractField, HTMLInputElement | null>>>({});
@@ -95,7 +103,7 @@ export default function AddApplication({ applications, onAdd }: Props) {
       setDraft({
         ...emptyDraft(url),
         company: result.fields.company ?? "",
-        role: result.fields.role ?? "",
+        role: trimRole(result.fields.role ?? "", trims),
         location: result.fields.location ?? "",
         description: result.fields.description ?? "",
       });
@@ -111,6 +119,17 @@ export default function AddApplication({ applications, onAdd }: Props) {
     } finally {
       setExtracting(false);
     }
+  }
+
+  // Re-trim the looked-up title when an option flips, unless it's been edited.
+  function toggleTrim(key: keyof RoleTrimOptions) {
+    const next = { ...trims, [key]: !trims[key] };
+    setTrims(next);
+    const raw = extracted?.fields.role;
+    if (!raw) return;
+    setDraft((d) =>
+      d && d.role === trimRole(raw, trims) ? { ...d, role: trimRole(raw, next) } : d
+    );
   }
 
   function openManual(url = normalizedLink) {
@@ -226,7 +245,22 @@ export default function AddApplication({ applications, onAdd }: Props) {
         <form onSubmit={save} className="space-y-3 pt-1">
           <div className="grid gap-3 sm:grid-cols-2">
             {field("company", "Company", true)}
-            {field("role", "Role", true)}
+            <div className="space-y-1">
+              {field("role", "Role", true)}
+              {extracted?.fields.role && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {(Object.keys(TRIM_LABELS) as (keyof RoleTrimOptions)[]).map((key) => (
+                    <label
+                      key={key}
+                      className="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
+                    >
+                      <input type="checkbox" checked={trims[key]} onChange={() => toggleTrim(key)} />
+                      {TRIM_LABELS[key]}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             {field("location", "Location")}
             <div className="grid grid-cols-2 gap-3">
               <label className="block space-y-1">
