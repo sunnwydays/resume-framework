@@ -165,12 +165,35 @@ export type Database = {
           },
         ]
       }
+      time_log: {
+        Row: {
+          day: string
+          seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          day: string
+          seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          day?: string
+          seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      add_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
       import_rows: { Args: { payload: Json }; Returns: Json }
+      set_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
       status_origin: { Args: never; Returns: string }
     }
     Enums: {

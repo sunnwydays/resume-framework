@@ -66,11 +66,38 @@ export function kindLabel(kind: string): string {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-// Today as a local YYYY-MM-DD (what a <input type="date"> and a Postgres
-// `date` column both want).
-export function todayISO(): string {
-  const d = new Date();
+// Today (or the day of `at`) as a local YYYY-MM-DD (what a <input
+// type="date"> and a Postgres `date` column both want).
+export function todayISO(at: number = Date.now()): string {
+  const d = new Date(at);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// 5025 -> "1:23:45", for the running timer.
+export function formatClock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+}
+
+// 5025 -> "1h 23m", 300 -> "5m", for totals.
+export function formatHours(seconds: number): string {
+  const m = Math.floor(Math.max(0, seconds) / 60);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+}
+
+// Manual time entry -> seconds. Accepts "1:30" (h:mm), "1:30:15", "90"
+// (minutes), "1.5h", "1h 30m", "45m". Null if it can't be read.
+export function parseDuration(input: string): number | null {
+  const s = input.trim().toLowerCase();
+  if (!s) return null;
+  const clock = /^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/.exec(s);
+  if (clock) return +clock[1] * 3600 + +clock[2] * 60 + +(clock[3] ?? 0);
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s) * 60);
+  const units = /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m(?:in)?)?$/.exec(s);
+  if (units && (units[1] || units[2])) {
+    return Math.round(parseFloat(units[1] ?? "0") * 3600) + +(units[2] ?? 0) * 60;
+  }
+  return null;
 }
 
 // dd/mm/yy, matching the old spreadsheet. A bare YYYY-MM-DD is read as a

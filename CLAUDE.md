@@ -168,7 +168,8 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   are created lazily (`supabase()` in `lib/tracker/useTracker.ts`) so the
   build doesn't need the env vars.
 - **Schema**: `applications`, `assessments` (OAs / video interviews /
-  interviews: one table, `kind` column), `status_changes` (history).
+  interviews: one table, `kind` column), `status_changes` (history),
+  `time_log` (time spent per day).
   Status and kind values are check constraints mirrored by `STATUSES` /
   `ASSESSMENT_KINDS` in `lib/tracker/format.ts`; change both together.
   `lib/tracker/database.types.ts` is generated; regenerate after schema
@@ -182,6 +183,13 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   so imports keep their given dates (or none) instead of "now". A future
   Gmail integration should do the same with `email`, and should *suggest*
   status changes rather than apply them.
+- **Time spent** (`components/tracker/TimeTracker.tsx`,
+  `lib/tracker/useTimeLog.ts`): a stopwatch plus +1m/+5m/+15m buttons and
+  a manual "Set…" for today's total. Stored in `time_log` (one row per user
+  per local day), written only through the `add_time` / `set_time` RPCs
+  (atomic upsert, floored at 0). The running stopwatch's start time lives
+  in localStorage, not the database, so it survives reloads; a stretch is
+  only written when stopped, all to the day it's stopped on.
 - **Link lookup** (`lib/tracker/extract.ts`, `POST /api/tracker/extract`):
   deterministic, no AI by design. Order: ATS APIs from the URL (Greenhouse,
   Lever, Ashby, Workday `cxs` JSON), then JSON-LD `JobPosting`, then

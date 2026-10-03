@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import ImportExport from "@/components/tracker/ImportExport";
+import TimeTracker from "@/components/tracker/TimeTracker";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { supabase, useNow, useTracker } from "@/lib/tracker/useTracker";
 import {
@@ -122,6 +123,8 @@ export default function TrackerPage() {
           onImported={tracker.reload}
         />
       </header>
+
+      <TimeTracker />
 
       {tracker.error && (
         <div className="flex items-start justify-between gap-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
