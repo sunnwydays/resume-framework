@@ -88,7 +88,8 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   `SectionNav`. The section label list in `buildAtsReport` is the one
   place that fixes section order.
 - **`lib/atsGrade.ts`** — turns those issues into a score: 100 minus
-  `SEVERITY_PENALTY` per issue (critical 10, minor 3, info 1), every
+  `SEVERITY_PENALTY` per issue (critical 10, minor 3, info 0: info is a note,
+  not a deduction), every
   occurrence counts, **not floored** (negative scores are intentional).
   `GRADE_BANDS` maps the score to a label/tone. `flattenSectionReview` /
   `flattenEntriesReview` adapt the review shapes; `gradeSections` produces
@@ -206,7 +207,9 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   application row shows for its rounds; it uses a container query because
   it's narrower there. Its long text fields save on blur. `AssessmentForm`
   edits only the core facts (no notes field, so it can't overwrite notes
-  edited in the panel). Both tables sort via `components/tracker/sorting.tsx`.
+  edited in the panel). Both tables sort via `components/tracker/sorting.tsx` (the header
+  button and hook) over the pure `lib/tracker/sorting.ts` (`sortRows`, the
+  per-column sort values, `nextStep`).
   Its default sort is "Do first" (`lib/tracker/priority.ts`): tiered, not a
   score. Dated pending ones by deadline (important counts a day earlier),
   then undated, then ones overdue >72h; ties go to the shorter, then easier.
@@ -270,7 +273,14 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   changing a sheet's kind drops its column overrides. A sheet with no
   recognized header can still be read by choosing a type (its first row
   becomes the headers). Questions are one per line, "question → answer".
-  Slashed dates are day-first. Assessments attach to
+  Slashed dates are day-first, or month-first when the "month" is over 12;
+  an impossible date reads as none, since one bad value would make Postgres
+  reject the whole `import_rows` call. A blank or unreadable Applied date
+  becomes today (local calendar, with a warning in the preview). CSV text is
+  decoded in `readSheets` (UTF-8, falling back to Windows-1252) and read with
+  `raw: true`, because SheetJS otherwise garbles accents and guesses dates
+  (month-first, and shifted by the UTC offset). Assessment durations accept
+  "90", "1h 30m", "1:30" (`parseMinutes`). Assessments attach to
   applications by company + role, then company alone, then a 5+ digit job
   ID shared with a posting URL. Anything ambiguous is left for the user to
   pick in the preview with `ApplicationPicker.tsx`, a searchable popover
@@ -283,6 +293,56 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `deleteAllApplications`; assessments, questions and history go with them
   by cascade. `ClearAllDialog.tsx` makes it three steps (continue, tick an
   acknowledgement, type "delete all").
+
+## Testing
+
+Vitest 3 (4+ needs a newer Node than the 20.15 here) plus fast-check for
+property tests. Config is `vitest.config.mts`; tests live in `tests/`.
+
+- **`npm test`** — unit tests, no network, a few seconds. **Run it after any
+  change under `lib/` or to a component's logic.** Every file runs in
+  `America/Toronto` (DST), and the date-heavy ones (`DATE_SENSITIVE` in the
+  config) run again in `Pacific/Auckland`, where the local day differs from
+  the UTC day for half of every day, so a local-vs-UTC bug fails one of them.
+- **`npm run test:db`** — against the live Supabase project, ~35 s. **Run it
+  after any migration, and before touching the status triggers or
+  `import_rows` (e.g. for the Gmail work).** Needs `SUPABASE_DB_URL` (the
+  Session pooler string) in `.env.local`; without it, or if it can't connect,
+  the db tests skip with a warning instead of failing, so check for that
+  warning before trusting a green run.
+- `npm run test:watch`, `npm run test:coverage` (unit tests only).
+
+What's covered: every pure module under `lib/tracker/` (formats, roles,
+role trimming, do-first priority, filters, sorting, stats, import/export,
+link lookup against a fake `fetch`), `lib/ats*` and `lib/rateLimit.ts`;
+the import and export round trip through real XLSX/CSV bytes; and, in the
+database, RLS on every table, the status/completion triggers, `import_rows`
+(fed by the app's real plan builder), the time-log functions, and a schema
+contract (the check constraints must equal `STATUSES` / `ASSESSMENT_KINDS` /
+`OUTCOMES` / `QUESTION_SOURCES` / `EXTRACT_SOURCES`, and `database.types.ts`
+must have the same columns and nullability as the database).
+
+Rules of the road:
+
+- A bug fix comes with a test that fails without it. `it.todo(...)` lines
+  are known gaps left on purpose; don't delete them, fix and convert them.
+- Logic worth testing goes in a pure `lib/` module, not a `"use client"`
+  component or hook (that's why `lib/tracker/sorting.ts` exists and
+  `components/tracker/sorting.tsx` only has the React parts).
+- `tests/unit/ats-grade.test.ts` pins how the four sample resumes grade. If
+  a rule or weight changes on purpose, update those numbers; if they move
+  unexpectedly, a rule changed behavior.
+- Fixtures (`tests/helpers/fixtures.ts`) are typed against the database
+  rows, so a schema change fails to compile in the tests until updated.
+- DB tests can't change real data: each test is one transaction that is
+  always rolled back, with its own throwaway users (acting as them via the
+  `authenticated` role + JWT claims, so RLS applies as in the app), and the
+  helper refuses any SQL containing `commit`. Keep every query scoped to the
+  test's own users. `tests/db/harness.test.ts` tests the harness itself.
+- Where code and data disagree about dates: the importer validates every
+  date, number and enum before building the payload, because one bad value
+  makes Postgres reject the whole `import_rows` call (`all or nothing` tests
+  pin this).
 
 ## Extending this
 
