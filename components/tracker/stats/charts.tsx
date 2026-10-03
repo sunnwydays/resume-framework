@@ -105,7 +105,9 @@ export function BarList({ items, max }: { items: BarItem[]; max?: number }) {
   const top = max ?? Math.max(1, ...items.map((i) => i.value));
   if (items.length === 0) return <p className="text-sm text-neutral-500">Nothing yet.</p>;
   return (
-    <div ref={box} className="relative space-y-1.5">
+    // gap, not space-y: space-y would give the last row a margin whenever the
+    // tooltip is appended after it, growing the box on hover.
+    <div ref={box} className="relative flex flex-col gap-1.5">
       {items.map((item) => (
         <div
           key={item.label}
