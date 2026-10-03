@@ -93,15 +93,71 @@ function GuideTable({
   );
 }
 
-// Suggested headers, with what each holds and other names that also work.
-function ColumnGuide() {
-  const [downloaded, setDownloaded] = useState(false);
+// A download's state for its button: "done" shows for a few seconds after,
+// and clicks are ignored until it's back to idle, so a repeated click
+// doesn't download the file again.
+function useDownload() {
+  const [phase, setPhase] = useState<"idle" | "busy" | "done">("idle");
 
   useEffect(() => {
-    if (!downloaded) return;
-    const t = setTimeout(() => setDownloaded(false), 3000);
+    if (phase !== "done") return;
+    const t = setTimeout(() => setPhase("idle"), 3000);
     return () => clearTimeout(t);
-  }, [downloaded]);
+  }, [phase]);
+
+  async function run<T>(task: () => Promise<T>): Promise<T | undefined> {
+    if (phase !== "idle") return undefined;
+    setPhase("busy");
+    try {
+      const result = await task();
+      setPhase("done");
+      return result;
+    } catch (e) {
+      setPhase("idle");
+      throw e;
+    }
+  }
+  return { phase, run };
+}
+
+function ExportButton({
+  label,
+  disabled,
+  onExport,
+  onMessage,
+}: {
+  label: string;
+  disabled: boolean;
+  onExport: () => Promise<string[]>;
+  onMessage: (message: string) => void;
+}) {
+  const { phase, run } = useDownload();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        run(onExport).then(
+          (names) => names && onMessage(`Downloaded ${names.join(" and ")}.`),
+          (e) => onMessage(`Export failed: ${e instanceof Error ? e.message : String(e)}`),
+        )
+      }
+      className={
+        phase === "done"
+          ? `${buttonCls} border-emerald-400 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400`
+          : buttonCls
+      }
+      disabled={disabled || phase === "busy"}
+      aria-disabled={phase !== "idle"}
+      aria-live="polite"
+    >
+      {phase === "busy" ? "Exporting…" : phase === "done" ? "Downloaded ✓" : label}
+    </button>
+  );
+}
+
+// Suggested headers, with what each holds and other names that also work.
+function ColumnGuide() {
+  const { phase, run } = useDownload();
 
   return (
     <div className="space-y-4">
@@ -115,16 +171,15 @@ function ColumnGuide() {
       />
       <button
         type="button"
-        onClick={async () => {
-          await downloadTemplate();
-          setDownloaded(true);
-        }}
+        onClick={() => run(downloadTemplate)}
         className="text-sm underline"
         aria-live="polite"
       >
-        {downloaded
+        {phase === "done"
           ? "Template downloaded ✓ (job-tracker-template.xlsx)"
-          : "Download a template with these headers"}
+          : phase === "busy"
+            ? "Preparing the template…"
+            : "Download a template with these headers"}
       </button>
     </div>
   );
@@ -449,26 +504,17 @@ export default function ImportExport({
         >
           Import
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            exportData("xlsx", applications, assessments, questions)
-          }
-          className={buttonCls}
-          disabled={applications.length === 0}
-        >
-          Export XLSX
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            exportData("csv", applications, assessments, questions)
-          }
-          className={buttonCls}
-          disabled={applications.length === 0}
-        >
-          Export CSV
-        </button>
+        {(["xlsx", "csv"] as const).map((format) => (
+          <ExportButton
+            key={format}
+            label={`Export ${format.toUpperCase()}`}
+            disabled={applications.length === 0}
+            onExport={() =>
+              exportData(format, applications, assessments, questions)
+            }
+            onMessage={setMessage}
+          />
+        ))}
         <button
           type="button"
           onClick={() => setClearing(true)}
