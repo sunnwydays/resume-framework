@@ -5,12 +5,15 @@ import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
 import Chip from "@/components/tracker/Chip";
+import EmailReview from "@/components/tracker/email/EmailReview";
+import GmailScan from "@/components/tracker/email/GmailScan";
 import { ApplicationFilterBar, AssessmentFilterBar } from "@/components/tracker/FilterBar";
 import ImportExport from "@/components/tracker/ImportExport";
 import ApplicationStats from "@/components/tracker/stats/ApplicationStats";
 import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TimeTracker from "@/components/tracker/TimeTracker";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
+import { buildReview } from "@/lib/tracker/email/review";
 import { supabase, useNow, useTracker } from "@/lib/tracker/useTracker";
 import {
   CLOSED,
@@ -39,12 +42,12 @@ import { prioritize } from "@/lib/tracker/priority";
 import { groupBy } from "@/lib/tracker/stats";
 import { ROLE_TYPES, roleType, roleTypeLabel, type RoleType } from "@/lib/tracker/roles";
 
-type Tab = "applications" | "assessments";
+type Tab = "applications" | "assessments" | "gmail";
 
 export default function TrackerPage() {
   const tracker = useTracker();
   const now = useNow();
-  const { applications, assessments, questions, statusChanges } = tracker;
+  const { applications, assessments, questions, statusChanges, gmail } = tracker;
   const [tab, setTab] = useState<Tab>("applications");
   const [appFilters, setAppFilters] = useState<AppFilters>(DEFAULT_APP_FILTERS);
   const [asmtFilters, setAsmtFilters] = useState<AssessmentFilters>(DEFAULT_ASSESSMENT_FILTERS);
@@ -75,6 +78,11 @@ export default function TrackerPage() {
   const applicationsById = useMemo(
     () => new Map(applications.map((a) => [a.id, a])),
     [applications]
+  );
+  // Pending Gmail suggestions, re-matched whenever the tracker changes.
+  const review = useMemo(
+    () => buildReview(gmail.emails, gmail.mutes, applications, assessments, statusChanges),
+    [gmail.emails, gmail.mutes, applications, assessments, statusChanges]
   );
 
   const counts = useMemo(() => {
@@ -233,13 +241,16 @@ export default function TrackerPage() {
             </p>
           )}
         </div>
-        <ImportExport
-          applications={applications}
-          assessments={assessments}
-          questions={questions}
-          onImported={tracker.reload}
-          onClearAll={tracker.deleteAllApplications}
-        />
+        <div className="flex flex-wrap items-start gap-2">
+          <GmailScan tracker={tracker} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
+          <ImportExport
+            applications={applications}
+            assessments={assessments}
+            questions={questions}
+            onImported={tracker.reload}
+            onClearAll={tracker.deleteAllApplications}
+          />
+        </div>
       </header>
 
       <TimeTracker />
@@ -267,7 +278,17 @@ export default function TrackerPage() {
         <div role="tablist" className="flex gap-5 border-b border-neutral-200 dark:border-neutral-800">
           {tabButton("applications", "Applications", applications.length)}
           {tabButton("assessments", "Assessments & interviews", assessments.length)}
+          {(review.groups.length > 0 || tab === "gmail") && tabButton("gmail", "From Gmail", review.groups.length)}
         </div>
+
+        {tab === "gmail" &&
+          (tracker.loading ? (
+            <p className="py-8 text-center text-sm text-neutral-500">Loading…</p>
+          ) : review.groups.length === 0 ? (
+            <p className="py-8 text-center text-sm text-neutral-500">All caught up: nothing from Gmail is waiting for review.</p>
+          ) : (
+            <EmailReview tracker={tracker} review={review} />
+          ))}
 
         {!tracker.loading && tab === "applications" && statsApps.length > 0 && (
           <ApplicationStats
@@ -290,105 +311,109 @@ export default function TrackerPage() {
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {tab === "applications" ? (
-            <>
-              {chip("active", "Active")}
-              {chip("all", "All")}
-              <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
-              {STATUSES.map((s) => chip(s, STATUS_META[s].label))}
-            </>
-          ) : (
-            <>
-              {asmtChip("pending", "Pending")}
-              {asmtChip("completed", "Completed")}
-              {asmtChip("all", "All")}
-              <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
-              {(Object.keys(ASSESSMENT_KINDS) as AssessmentKind[]).map((k) => (
-                <Chip
-                  key={k}
-                  active={asmtFilters.kind === k}
-                  onClick={() => setAsmtFilters({ ...asmtFilters, kind: asmtFilters.kind === k ? null : k })}
-                  label={ASSESSMENT_KINDS[k]}
+        {tab !== "gmail" && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {tab === "applications" ? (
+                <>
+                  {chip("active", "Active")}
+                  {chip("all", "All")}
+                  <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
+                  {STATUSES.map((s) => chip(s, STATUS_META[s].label))}
+                </>
+              ) : (
+                <>
+                  {asmtChip("pending", "Pending")}
+                  {asmtChip("completed", "Completed")}
+                  {asmtChip("all", "All")}
+                  <span className="mx-1 h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
+                  {(Object.keys(ASSESSMENT_KINDS) as AssessmentKind[]).map((k) => (
+                    <Chip
+                      key={k}
+                      active={asmtFilters.kind === k}
+                      onClick={() => setAsmtFilters({ ...asmtFilters, kind: asmtFilters.kind === k ? null : k })}
+                      label={ASSESSMENT_KINDS[k]}
+                    />
+                  ))}
+                </>
+              )}
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  tab === "applications"
+                    ? "Search company, role, location, notes…"
+                    : "Search titles, notes, questions, answers…"
+                }
+                aria-label={tab === "applications" ? "Search applications" : "Search assessments"}
+                className="ml-auto w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-72 dark:border-neutral-700"
+              />
+            </div>
+
+            {tab === "applications" ? (
+              <ApplicationFilterBar
+                filters={appFilters}
+                onChange={setAppFilters}
+                typeCounts={typeCounts}
+                roleTypes={roleTypes}
+                onRoleTypes={setRoleTypes}
+                onClear={() => {
+                  setAppFilters(DEFAULT_APP_FILTERS);
+                  setRoleTypes(new Set());
+                }}
+              />
+            ) : (
+              <AssessmentFilterBar
+                filters={asmtFilters}
+                onChange={setAsmtFilters}
+                typeCounts={asmtTypeCounts}
+                roleTypes={roleTypes}
+                onRoleTypes={setRoleTypes}
+                onClear={() => {
+                  setAsmtFilters({ ...DEFAULT_ASSESSMENT_FILTERS, status: asmtFilters.status, kind: asmtFilters.kind });
+                  setRoleTypes(new Set());
+                }}
+              />
+            )}
+
+            {tracker.loading ? (
+              <p className="py-8 text-center text-sm text-neutral-500">Loading…</p>
+            ) : tab === "assessments" ? (
+              assessments.length === 0 ? (
+                <p className="py-8 text-center text-sm text-neutral-500">
+                  No assessments yet. Add one from an application&rsquo;s row, or import your OA sheet.
+                </p>
+              ) : (
+                <AssessmentsTable
+                  assessments={visibleAssessments}
+                  applicationsById={applicationsById}
+                  questionsByAssessment={questionsByAssessment}
+                  priority={priority}
+                  expandedId={expandedAsmtId}
+                  onToggle={(id) => setExpandedAsmtId((cur) => (cur === id ? null : id))}
+                  onOpenApplication={openApplication}
+                  tracker={tracker}
+                  now={now}
                 />
-              ))}
-            </>
-          )}
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              tab === "applications"
-                ? "Search company, role, location, notes…"
-                : "Search titles, notes, questions, answers…"
-            }
-            aria-label={tab === "applications" ? "Search applications" : "Search assessments"}
-            className="ml-auto w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-72 dark:border-neutral-700"
-          />
-        </div>
-
-        {tab === "applications" ? (
-          <ApplicationFilterBar
-            filters={appFilters}
-            onChange={setAppFilters}
-            typeCounts={typeCounts}
-            roleTypes={roleTypes}
-            onRoleTypes={setRoleTypes}
-            onClear={() => {
-              setAppFilters(DEFAULT_APP_FILTERS);
-              setRoleTypes(new Set());
-            }}
-          />
-        ) : (
-          <AssessmentFilterBar
-            filters={asmtFilters}
-            onChange={setAsmtFilters}
-            typeCounts={asmtTypeCounts}
-            roleTypes={roleTypes}
-            onRoleTypes={setRoleTypes}
-            onClear={() => {
-              setAsmtFilters({ ...DEFAULT_ASSESSMENT_FILTERS, status: asmtFilters.status, kind: asmtFilters.kind });
-              setRoleTypes(new Set());
-            }}
-          />
-        )}
-
-        {tracker.loading ? (
-          <p className="py-8 text-center text-sm text-neutral-500">Loading…</p>
-        ) : tab === "assessments" ? (
-          assessments.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-500">
-              No assessments yet. Add one from an application&rsquo;s row, or import your OA sheet.
-            </p>
-          ) : (
-            <AssessmentsTable
-              assessments={visibleAssessments}
-              applicationsById={applicationsById}
-              questionsByAssessment={questionsByAssessment}
-              priority={priority}
-              expandedId={expandedAsmtId}
-              onToggle={(id) => setExpandedAsmtId((cur) => (cur === id ? null : id))}
-              onOpenApplication={openApplication}
-              tracker={tracker}
-              now={now}
-            />
-          )
-        ) : applications.length === 0 ? (
-          <p className="py-8 text-center text-sm text-neutral-500">
-            No applications yet. Paste a job link above, or import your spreadsheet.
-          </p>
-        ) : (
-          <ApplicationsTable
-            applications={visible}
-            assessmentsByApp={assessmentsByApp}
-            questionsByAssessment={questionsByAssessment}
-            changesByApp={changesByApp}
-            expandedId={expandedId}
-            onToggle={(id) => setExpandedId((cur) => (cur === id ? null : id))}
-            tracker={tracker}
-            now={now}
-          />
+              )
+            ) : applications.length === 0 ? (
+              <p className="py-8 text-center text-sm text-neutral-500">
+                No applications yet. Paste a job link above, or import your spreadsheet.
+              </p>
+            ) : (
+              <ApplicationsTable
+                applications={visible}
+                assessmentsByApp={assessmentsByApp}
+                questionsByAssessment={questionsByAssessment}
+                changesByApp={changesByApp}
+                expandedId={expandedId}
+                onToggle={(id) => setExpandedId((cur) => (cur === id ? null : id))}
+                tracker={tracker}
+                now={now}
+              />
+            )}
+          </>
         )}
       </section>
     </div>
