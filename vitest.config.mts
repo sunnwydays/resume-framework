@@ -17,6 +17,8 @@ const DATE_SENSITIVE = [
   "tests/unit/import-roundtrip.test.ts",
   "tests/unit/email-rules.test.ts",
   "tests/unit/email-group.test.ts",
+  "tests/unit/email-review.test.ts",
+  "tests/unit/email-scan.test.ts",
   "tests/unit/arbitrage.test.ts",
   "tests/unit/next-steps.test.ts",
 ];

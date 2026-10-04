@@ -1,6 +1,8 @@
 import type {
   Application,
   Assessment,
+  EmailAccept,
+  EmailMessage,
   MessageTemplate,
   Move,
   Question,
@@ -121,6 +123,52 @@ export function makeTemplate(overrides: Partial<MessageTemplate> = {}): MessageT
     body: "Hi {name}, {ask}",
     created_at: "2026-09-28T12:00:00.000Z",
     updated_at: "2026-09-28T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeEmailMessage(overrides: Partial<EmailMessage> = {}): EmailMessage {
+  const n = ++seq;
+  return {
+    id: `email-${n}`,
+    user_id: "user-1",
+    gmail_id: `gm-${n}`,
+    thread_id: `th-${n}`,
+    received_at: "2026-09-28T12:00:00.000Z",
+    from_name: "Acme Recruiting",
+    from_address: "no-reply@ats.example",
+    subject: "Thank you for applying",
+    snippet: "",
+    kind: "confirmation",
+    matched_phrase: "thank you for applying",
+    company: "Acme",
+    role: "Software Engineer Intern",
+    job_id: null,
+    link: null,
+    due_at: null,
+    completed_at: null,
+    assessment_title: null,
+    field_origins: {},
+    application_id: null,
+    accept_id: null,
+    state: "pending",
+    created_at: "2026-09-28T12:05:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeAccept(overrides: Partial<EmailAccept> = {}): EmailAccept {
+  return {
+    id: id("accept"),
+    user_id: "user-1",
+    application_id: "app-1",
+    created_application: false,
+    before: null,
+    assessments_before: [],
+    created_assessment_ids: [],
+    status_change_ids: [],
+    created_at: "2026-09-28T12:00:00.000Z",
+    undone_at: null,
     ...overrides,
   };
 }

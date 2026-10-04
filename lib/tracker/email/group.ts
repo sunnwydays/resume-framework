@@ -371,6 +371,27 @@ function planGroup(
   return { steps, assessments: actions, fills, nothingToDo };
 }
 
+// The same emails planned against another target: what a card shows once an
+// application is picked for it (or "new application" is chosen instead).
+export function retarget(
+  group: JobGroup,
+  target: Target,
+  assessments: Assessment[],
+  statusChanges: StatusChange[]
+): JobGroup {
+  const app = target.type === "existing" ? target.application : null;
+  const plan = app
+    ? planGroup(
+        group.emails,
+        app,
+        assessments.filter((a) => a.application_id === app.id),
+        statusChanges.filter((c) => c.application_id === app.id)
+      )
+    : planGroup(group.emails, null, [], []);
+  const ready = target.type === "existing" || (target.type === "new" && Boolean(target.company && target.role));
+  return { ...group, target, ready, ...plan };
+}
+
 export function groupIntoJobs(
   items: Analyzed[],
   applications: Application[],

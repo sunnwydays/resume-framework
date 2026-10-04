@@ -1,0 +1,75 @@
+// When to scan from, how long ago the last scan was, and what a scan found.
+// Nothing here runs on its own: scans only happen when the button is pressed.
+
+import type { Analyzed } from "@/lib/tracker/email/group";
+import { EMAIL_KINDS, todayISO, type Application, type EmailKind, type GmailScan } from "@/lib/tracker/format";
+
+const DAY = 86_400_000;
+// Re-read a little before the last scan: mail that arrived during it, or was
+// delivered late, still gets seen. Already-stored emails are skipped.
+export const SCAN_OVERLAP_DAYS = 2;
+export const FIRST_SCAN_DAYS = 30;
+export const STALE_DAYS = 7;
+
+// "Scan from" as YYYY-MM-DD (local): just before the last scan, or the first
+// tracked application on the first scan, or a month back with nothing tracked.
+export function defaultScanFrom(
+  lastScan: Pick<GmailScan, "scanned_at"> | null,
+  applications: Pick<Application, "applied_on">[],
+  now: number = Date.now()
+): string {
+  if (lastScan) return todayISO(new Date(lastScan.scanned_at).getTime() - SCAN_OVERLAP_DAYS * DAY);
+  const earliest = applications.reduce<string | null>((min, a) => (min === null || a.applied_on < min ? a.applied_on : min), null);
+  return earliest ?? todayISO(now - FIRST_SCAN_DAYS * DAY);
+}
+
+// Local midnight at the start of a YYYY-MM-DD day.
+export function scanStart(day: string): Date {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function ago(ms: number): string {
+  if (ms < 60 * 60_000) return "just now";
+  if (ms < DAY) return `${Math.floor(ms / (60 * 60_000))}h ago`;
+  const days = Math.floor(ms / DAY);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
+export function scanNudge(lastScanAt: string | null, pending: number, now: number = Date.now()): { text: string; stale: boolean } {
+  const review = pending > 0 ? ` · ${pending} to review` : "";
+  if (!lastScanAt) return { text: `Gmail not scanned yet${review}`, stale: false };
+  const elapsed = Math.max(0, now - new Date(lastScanAt).getTime());
+  return { text: `Last scanned ${ago(elapsed)}${review}`, stale: elapsed >= STALE_DAYS * DAY };
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const KIND_NOUN: Record<EmailKind, [string, string]> = {
+  confirmation: ["confirmation", "confirmations"],
+  rejection: ["rejection", "rejections"],
+  oa_invite: ["OA invite", "OA invites"],
+  video_invite: ["video invite", "video invites"],
+  interview_invite: ["interview invite", "interview invites"],
+  assessment_done: ["completed assessment", "completed assessments"],
+  reminder: ["reminder", "reminders"],
+};
+
+// "12 confirmations, 4 rejections · 31 ignored · 3 muted · 9 seen before".
+export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: number }): string {
+  const counts = new Map<EmailKind, number>();
+  let ignored = 0;
+  for (const a of r.analyzed) {
+    if (a.kind) counts.set(a.kind, (counts.get(a.kind) ?? 0) + 1);
+    else ignored++;
+  }
+  const kinds = (Object.keys(EMAIL_KINDS) as EmailKind[])
+    .filter((k) => counts.has(k))
+    .map((k) => plural(counts.get(k)!, ...KIND_NOUN[k]));
+  const classified = r.analyzed.length - ignored;
+  const seen = classified - r.muted - r.saved;
+  const parts = [kinds.length ? kinds.join(", ") : "No job emails"];
+  if (ignored) parts.push(`${ignored} ignored`);
+  if (r.muted) parts.push(`${r.muted} muted`);
+  if (seen > 0) parts.push(`${seen} seen before`);
+  return parts.join(" · ");
+}
