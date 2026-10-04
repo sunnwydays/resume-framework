@@ -351,12 +351,13 @@ function planGroup(
   // ---- missing dates on rows that already have the status -----------------
   const fills: DateFill[] = [];
   if (app) {
-    for (const step of steps) {
-      if (step.status === app.status && !app.status_changed_at && step.status !== "applied") {
-        fills.push({ field: "status_changed_at", value: step.at, email: step.email });
-        step.apply = false;
-        step.note = "row already has this status; fills its date instead";
-      }
+    // The oldest mail with the row's status dates it; later ones (a second
+    // rejection) add nothing.
+    const dating = steps.find((s) => s.status === app.status && s.status !== "applied");
+    if (dating && !app.status_changed_at) {
+      fills.push({ field: "status_changed_at", value: dating.at, email: dating.email });
+      dating.apply = false;
+      dating.note = "row already has this status; fills its date instead";
     }
     // applied_on defaulted to the day the row was created (an import without a date).
     const first = steps.find((s) => s.status === "applied");

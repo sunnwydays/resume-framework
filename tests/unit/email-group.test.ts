@@ -269,6 +269,13 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.nothingToDo).toBe(false);
   });
 
+  it("two rejections on an undated rejected row make one fill, dated by the first", () => {
+    const app = makeApp({ company: "Initech", role: "Backend Intern", status: "rejected", status_changed_at: null });
+    const [g] = groupIntoJobs([rejection("Initech", "Backend Intern", 25), rejection("Initech", "Backend Intern", 27)], [app], [], []);
+    expect(g.fills).toEqual([expect.objectContaining({ field: "status_changed_at", value: at(25) })]);
+    expect(g.steps.map((s) => s.note)).toEqual(["row already has this status; fills its date instead", "already rejected"]);
+  });
+
   it("leaves a date that is already set alone", () => {
     const app = makeApp({ company: "Initech", role: "Backend Intern", status: "rejected", status_changed_at: at(26) });
     const [g] = groupIntoJobs([rejection("Initech", "Backend Intern", 25)], [app], [], []);
