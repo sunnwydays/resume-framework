@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Chip from "@/components/tracker/Chip";
 import EmailJobCard from "@/components/tracker/email/EmailJobCard";
 import { muteValue } from "@/lib/tracker/email/mute";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
-import { category, countByCategory, REVIEW_FILTERS, type Review, type ReviewFilter } from "@/lib/tracker/email/review";
+import { category, countByCategory, REVIEW_FILTERS, splitByAction, type Review, type ReviewFilter } from "@/lib/tracker/email/review";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import { MUTE_KINDS, buttonCls, type MuteKind } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
@@ -42,7 +42,8 @@ export default function EmailReview({ tracker, review }: Props) {
 
   const rowIdOf = (gmailId: string) => review.rowIdOf.get(gmailId)!;
   const counts = countByCategory(review.groups);
-  const visible = review.groups.filter((g) => filter === "all" || category(g) === filter);
+  const split = splitByAction(review.groups.filter((g) => filter === "all" || category(g) === filter));
+  const visible = [...split.action, ...split.nothing];
   const ready = review.groups.filter((g) => g.ready && !g.nothingToDo);
   const nothing = review.groups.filter((g) => category(g) === "nothing");
 
@@ -180,19 +181,27 @@ export default function EmailReview({ tracker, review }: Props) {
         </p>
       ) : (
         <div className="space-y-3">
-          {visible.slice(0, shown).map((g) => (
-            <EmailJobCard
-              key={g.key}
-              group={g}
-              applications={applications}
-              assessments={assessments}
-              statusChanges={statusChanges}
-              trims={trims}
-              rowIdOf={rowIdOf}
-              onAccept={accept}
-              onDismiss={tracker.dismissEmails}
-              onMute={(kind, value) => tracker.addMute(kind, muteValue(kind, value))}
-            />
+          {visible.slice(0, shown).map((g, i) => (
+            <Fragment key={g.key}>
+              {i === split.action.length && i > 0 && (
+                <div className="flex items-center gap-3 pt-3 text-xs font-medium text-neutral-500">
+                  <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+                  {split.nothing.length} already reflected in the tracker
+                  <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+                </div>
+              )}
+              <EmailJobCard
+                group={g}
+                applications={applications}
+                assessments={assessments}
+                statusChanges={statusChanges}
+                trims={trims}
+                rowIdOf={rowIdOf}
+                onAccept={accept}
+                onDismiss={tracker.dismissEmails}
+                onMute={(kind, value) => tracker.addMute(kind, muteValue(kind, value))}
+              />
+            </Fragment>
           ))}
           {visible.length > shown && (
             <button type="button" className={buttonCls} onClick={() => setShown((n) => n + PAGE)}>

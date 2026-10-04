@@ -98,6 +98,8 @@ export default function EmailJobCard({ group, applications, assessments, statusC
 
   const app = card.target.type === "existing" ? card.target.application : null;
   const isNew = card.target.type === "new";
+  // Nothing to accept: drawn quieter so the cards that need you stand out.
+  const quiet = card.nothingToDo && card.target.type === "existing";
   const missing = isNew ? { company: !inputs.company.trim(), role: !inputs.role.trim() } : { company: false, role: false };
   const canAccept = card.target.type === "existing" || (isNew && !missing.company && !missing.role);
 
@@ -139,7 +141,13 @@ export default function EmailJobCard({ group, applications, assessments, statusC
   );
 
   return (
-    <article className="space-y-3 rounded-lg border border-neutral-200 bg-surface p-4 dark:border-neutral-800">
+    <article
+      className={`space-y-3 rounded-lg border p-4 ${
+        quiet
+          ? "border-neutral-200/70 bg-neutral-100 opacity-75 transition-opacity focus-within:opacity-100 hover:opacity-100 dark:border-neutral-800/70 dark:bg-transparent"
+          : "border-neutral-200 bg-surface dark:border-neutral-800"
+      }`}
+    >
       {/* ---- which application ---- */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
@@ -267,7 +275,7 @@ export default function EmailJobCard({ group, applications, assessments, statusC
 
       {/* ---- actions ---- */}
       <div className="flex flex-wrap items-center gap-2">
-        {card.nothingToDo && card.target.type === "existing" ? (
+        {quiet ? (
           <span className="text-sm text-neutral-500">Already reflected in the tracker.</span>
         ) : (
           <button type="button" className={primaryButtonCls} onClick={accept} disabled={!canAccept || busy}>

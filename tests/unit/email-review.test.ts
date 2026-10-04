@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { analyze, groupIntoJobs, retarget, type Analyzed, type JobGroup } from "@/lib/tracker/email/group";
 import { canMuteSender, isMuted, muteValue } from "@/lib/tracker/email/mute";
 import { assessmentKey, buildPayload, defaultTicks, newAppDefaults, stepKey } from "@/lib/tracker/email/payload";
-import { buildReview, category, countByCategory } from "@/lib/tracker/email/review";
+import { buildReview, category, countByCategory, splitByAction } from "@/lib/tracker/email/review";
 import { fromRow, gmailLink, SNIPPET_MAX, snippetOf, toRow } from "@/lib/tracker/email/rows";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import type { EmailMessage } from "@/lib/tracker/format";
@@ -158,6 +158,20 @@ describe("buildReview", () => {
     );
     expect(groups.map(category).sort()).toEqual(["new", "new", "nothing", "pick"]);
     expect(countByCategory(groups)).toEqual({ all: 4, new: 2, updates: 0, pick: 1, nothing: 1 });
+  });
+
+  it("puts the cards that need action first, keeping each part's order", () => {
+    const app = makeApp({ company: "Globex", role: "Backend Intern", status: "rejected", status_changed_at: at(10) });
+    const groups = groupIntoJobs(
+      [rejection("Hooli", "ML Intern", 19), rejection("Globex", "Backend Intern", 20), oaInvite("Umbrella", "QA Intern", 22)],
+      [app],
+      [],
+      []
+    );
+    const { action, nothing } = splitByAction(groups);
+    expect(nothing.map(category)).toEqual(["nothing"]);
+    expect(action.map(category)).toEqual(["new", "new"]);
+    expect(action.map((g) => g.key)).toEqual(groups.filter((g) => category(g) !== "nothing").map((g) => g.key));
   });
 });
 

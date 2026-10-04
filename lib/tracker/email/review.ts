@@ -22,6 +22,15 @@ export function category(g: JobGroup): Exclude<ReviewFilter, "all"> {
   return g.target.type === "new" ? "new" : "updates";
 }
 
+// Cards that need something from you, then the ones already reflected in the
+// tracker, each keeping its order.
+export function splitByAction(groups: JobGroup[]): { action: JobGroup[]; nothing: JobGroup[] } {
+  return {
+    action: groups.filter((g) => category(g) !== "nothing"),
+    nothing: groups.filter((g) => category(g) === "nothing"),
+  };
+}
+
 export interface Review {
   groups: JobGroup[];
   rowIdOf: Map<string, string>; // Gmail id -> email_messages id
