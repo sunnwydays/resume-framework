@@ -312,6 +312,18 @@ export default function TrackerPage() {
         {tab !== "gmail" && (
           <>
             <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  tab === "applications"
+                    ? "Search company, role, location, notes…"
+                    : "Search titles, notes, questions, answers…"
+                }
+                aria-label={tab === "applications" ? "Search applications" : "Search assessments"}
+                className="w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-72 dark:border-neutral-700"
+              />
               {tab === "applications" ? (
                 <>
                   {chip("active", "Active")}
@@ -335,18 +347,6 @@ export default function TrackerPage() {
                   ))}
                 </>
               )}
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={
-                  tab === "applications"
-                    ? "Search company, role, location, notes…"
-                    : "Search titles, notes, questions, answers…"
-                }
-                aria-label={tab === "applications" ? "Search applications" : "Search assessments"}
-                className="ml-auto w-full rounded-md border border-neutral-300 bg-surface px-2.5 py-1 text-sm focus:border-neutral-500 focus:outline-none sm:w-72 dark:border-neutral-700"
-              />
             </div>
 
             {tab === "applications" ? (
