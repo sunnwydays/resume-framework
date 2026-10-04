@@ -173,13 +173,15 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`
-  (time spent per day), and for the Arbitrage page `moves` and
-  `message_templates` (below).
+  (time spent per day), for the Arbitrage page `moves` and
+  `message_templates` (below), and for the Gmail scan `email_messages`,
+  `email_accepts`, `gmail_scans`, `email_mutes` (below).
   Status, kind, outcome and question-source values are check constraints
   mirrored by `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` /
   `QUESTION_SOURCES` in `lib/tracker/format.ts` (and the move channel /
   stage / waiting-on values by `MOVE_CHANNELS` / `MOVE_STAGES` /
-  `WAITING_ON`); change both together.
+  `WAITING_ON`, the email kind / state / mute kind by `EMAIL_KINDS` /
+  `EMAIL_STATES` / `MUTE_KINDS`); change both together.
   `lib/tracker/database.types.ts` is generated; regenerate after schema
   changes.
 - **Timestamps are database triggers**, not app code: changing
@@ -187,15 +189,16 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `status_changes` row (users have no insert policy on it); completing an
   assessment sets `completed_at`. Each change is tagged with an `origin`
   (`manual | import | email`), read from the `app.status_origin`
-  transaction setting. The `import_rows(jsonb)` RPC sets it to `import`,
-  so imports keep their given dates (or none) instead of "now". Both are
+  transaction setting. The `import_rows(jsonb)` RPC sets it to `import`
+  and `apply_email_job(jsonb)` to `email`; both keep their given dates (or
+  none) instead of "now". Both are
   user-editable afterwards: `status_changed_at` ("Rejected on" etc.) in
   `ApplicationDetail`, `completed_at` ("Submitted" for OAs) in
   `AssessmentForm`. Editing `status_changed_at` doesn't touch the matching
   `status_changes` row (no update policy), so the timeline reads the current
-  status's date from the application row instead. A future
-  Gmail integration should do the same with `email`, and should *suggest*
-  status changes rather than apply them.
+  status's date from the application row instead. `status_changes` is
+  read-only to users except one policy: deleting your own `origin = 'email'`
+  rows, which Gmail undo needs.
 - **Time spent** (`components/tracker/TimeTracker.tsx`,
   `lib/tracker/useTimeLog.ts`): a stopwatch plus +1m/+5m/+15m buttons and
   a manual "Set…" for today's total. Stored in `time_log` (one row per user
@@ -311,7 +314,8 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   who/what, minutes spent, the furthest **stage** reached (sent → replied →
   conversation → positive → interview → offer; closing keeps the stage),
   `waiting_on` (whose turn), follow-ups, and an optional link to an
-  application (**ON DELETE SET NULL**, the one FK that doesn't cascade).
+  application (**ON DELETE SET NULL**; the only other non-cascading FKs are
+  `email_messages.application_id` / `accept_id`).
   `linkedin`/`email`/`warm`/`other` are outreach (they count in the reply
   funnel and get follow-up nudges); `project`/`community` are effort.
   - The `moves_before_write` trigger stamps `updated_at`, bumps
@@ -339,11 +343,40 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
     you") are in localStorage via `lib/tracker/useLocalSetting.ts`.
   - The Playbook panel's numbers are sourced (Ashby, Huntr, Pin); keep every
     claim linked, same rule as `WhyThisExists`.
-- **Gmail scan (in progress; the database and review UI are not built
-  yet)** (`lib/tracker/email/`). Finds what Sunny applied to, rejections and
-  OA/interview invites in their inbox, and will *suggest* tracker updates
-  (never auto-applied; status changes go through the trigger with origin
-  `email`). No AI: keyword and template rules only. The browser gets a
+- **Gmail scan** (`lib/tracker/email/`). Finds what Sunny applied to,
+  rejections and OA/interview invites in their inbox, and *suggests* tracker
+  updates (never auto-applied; status changes go through the trigger with
+  origin `email`, dated by the email). No AI: keyword and template rules only.
+  - **Flow**: "Scan Gmail" (`components/tracker/email/GmailScan.tsx`, header)
+    -> classified, unmuted emails stored in `email_messages` (facts plus a
+    200-char snippet, never bodies; `unique (user_id, gmail_id)` and an
+    ignore-duplicates upsert, so accepted/dismissed mail never comes back) and
+    a `gmail_scans` row (drives the "Last scanned…" nudge and the next default
+    "Scan from", `lib/tracker/email/scan.ts`) -> the "From Gmail" tab
+    (`EmailReview.tsx`, shown while anything is pending): `buildReview`
+    (`review.ts`) turns pending rows back into `Analyzed` (`rows.ts`) and
+    groups them every render, one `EmailJobCard` per job (existing match,
+    new application with editable company/role, or a pick via
+    `ApplicationPicker`; `retarget` re-plans after a pick). Accept builds a
+    payload (`payload.ts`; ticks start from the plan; every email on the card
+    is consumed) for the `apply_email_job` RPC: one transaction, which also
+    writes an `email_accepts` row recording what it changed. "Accept N ready"
+    does them one by one, re-matching after each.
+  - **Undo** (`undo_email_job(p_accept)`): newest accept first per
+    application; refused once the row was hand-edited after it (undoing a
+    newer accept doesn't count as an edit), or if an assessment it added has
+    questions. Deletes a row the card created, otherwise restores the row and
+    assessments and deletes the email history it logged; emails go back to
+    pending. `trail.ts` mirrors those checks for the Undo links (a toast after
+    accepting, and the Emails section in `ApplicationDetail`, which lists the
+    emails accepted onto that row).
+  - **Mutes** (`email_mutes`, `mute.ts`): by company (fuzzy) or exact sender
+    address; never an ATS/assessment platform's address (it sends for many
+    employers). Muted mail isn't stored on later scans and is hidden from
+    review; unmuting shows what was already stored.
+  - **applied_on fills** send `{from, to}` and the database only moves the
+    date if it still equals `from`, so a stale page can't overwrite a real
+    date (comparing against `created_at::date` would use UTC, not local). The browser gets a
   short-lived read-only Google token (Google Identity Services,
   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; held in memory, nothing stored or
   scheduled) and reads Gmail directly (`gmail.ts`). Pipeline, all pure
@@ -399,9 +432,11 @@ draft prompt), `lib/ats*` and `lib/rateLimit.ts`;
 the import and export round trip through real XLSX/CSV bytes; and, in the
 database, RLS on every table, the status/completion triggers, `import_rows`
 (fed by the app's real plan builder), the time-log functions, the moves
-trigger and `add_move_minutes`, and a schema contract (the check constraints
+trigger and `add_move_minutes`, `apply_email_job` / `undo_email_job`
+(`tests/db/email.test.ts`), and a schema contract (the check constraints
 must equal `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` / `QUESTION_SOURCES` /
-`EXTRACT_SOURCES` / `MOVE_CHANNELS` / `MOVE_STAGES` / `WAITING_ON`, and
+`EXTRACT_SOURCES` / `MOVE_CHANNELS` / `MOVE_STAGES` / `WAITING_ON` /
+`EMAIL_KINDS` / `EMAIL_STATES` / `MUTE_KINDS`, and
 `database.types.ts` must have the same columns and nullability as the
 database).
 
