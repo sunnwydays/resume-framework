@@ -4,8 +4,12 @@ import { useState } from "react";
 import AssessmentDetail from "@/components/tracker/AssessmentDetail";
 import AssessmentForm from "@/components/tracker/AssessmentForm";
 import AssessmentSummary from "@/components/tracker/AssessmentSummary";
+import { KIND_TONE } from "@/components/tracker/email/tone";
+import { gmailLink } from "@/lib/tracker/email/rows";
+import { emailTrail } from "@/lib/tracker/email/trail";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
+  EMAIL_KINDS,
   buttonCls,
   formatDate,
   formatDateTime,
@@ -17,6 +21,7 @@ import {
   toDatetimeLocal,
   type Application,
   type Assessment,
+  type EmailKind,
   type Question,
   type StatusChange,
 } from "@/lib/tracker/format";
@@ -103,6 +108,8 @@ export default function ApplicationDetail({ app, assessments, questionsByAssessm
     if (!b.at) return -1;
     return b.at.localeCompare(a.at);
   });
+
+  const trail = emailTrail(app, tracker.gmail.emails, tracker.gmail.accepts);
 
   const sortedAssessments = [...assessments].sort((a, b) =>
     (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999")
@@ -248,6 +255,34 @@ export default function ApplicationDetail({ app, assessments, questionsByAssessm
             <span className="tabular-nums">{formatDate(app.applied_on)}</span> Applied
           </li>
         </ol>
+
+        {trail.emails.length > 0 && (
+          <>
+            <h3 className={`${headingCls} pt-2`}>Emails</h3>
+            <ul className="space-y-1 text-sm">
+              {trail.emails.map((e) => {
+                const kind = e.kind as EmailKind;
+                return (
+                  <li key={e.id} className="flex items-baseline gap-2">
+                    <span className="tabular-nums text-neutral-500">{formatDate(e.received_at)}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${KIND_TONE[kind]?.pill ?? ""}`}>
+                      {EMAIL_KINDS[kind] ?? e.kind}
+                    </span>
+                    <a
+                      href={gmailLink(e.gmail_id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`${e.from_name || e.from_address}: open in Gmail`}
+                      className="min-w-0 truncate hover:underline"
+                    >
+                      {e.subject || "(no subject)"}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
       </section>
     </div>
   );
