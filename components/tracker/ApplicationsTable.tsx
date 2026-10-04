@@ -65,7 +65,7 @@ export default function ApplicationsTable({
   const { sort, setSort, sorted } = useSortedRows<Application, SortKey>(applications, value, { key: "applied", dir: "desc" });
 
   if (applications.length === 0) {
-    return <p className="py-8 text-center text-sm text-neutral-500">No applications match.</p>;
+    return <p className="py-8 text-center text-sm text-neutral-500">No applications match. Might have to select the All filter.</p>;
   }
 
   const header = (key: SortKey, label: string) => (
