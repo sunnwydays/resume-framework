@@ -8,6 +8,8 @@ import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from
 import { category, countByCategory, REVIEW_FILTERS, type Review, type ReviewFilter } from "@/lib/tracker/email/review";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import { MUTE_KINDS, buttonCls, type MuteKind } from "@/lib/tracker/format";
+import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 import type { Tracker } from "@/lib/tracker/useTracker";
 
 interface Props {
@@ -26,6 +28,10 @@ export default function EmailReview({ tracker, review }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [showMutes, setShowMutes] = useState(false);
   const [last, setLast] = useState<{ applicationId: string; label: string } | null>(null);
+  // How new cards tidy the role from the emails (same options as the add form).
+  const [trimSetting, setTrimSetting] = useLocalSetting("tracker.gmail.trims", trimsToString(DEFAULT_TRIMS));
+  const trims = trimsFromString(trimSetting);
+  const toggleTrim = (key: keyof RoleTrimOptions) => setTrimSetting(trimsToString({ ...trims, [key]: !trims[key] }));
 
   // Bulk accept re-reads the cards after every accept (a new row can change
   // what later cards match), so it needs the latest review, not a stale one.
@@ -75,7 +81,7 @@ export default function EmailReview({ tracker, review }: Props) {
       const g = latest.current.groups.find((x) => x.key === key);
       if (!g || !g.ready || g.nothingToDo) continue;
       const rowId = (gmailId: string) => latest.current.rowIdOf.get(gmailId)!;
-      const result = await tracker.applyEmailJob(buildPayload(g, defaultTicks(g), rowId, g.target.type === "new" ? newAppDefaults(g) : undefined));
+      const result = await tracker.applyEmailJob(buildPayload(g, defaultTicks(g), rowId, g.target.type === "new" ? newAppDefaults(g, trims) : undefined));
       if ("error" in result) {
         setMessage(`Stopped after ${done}: ${result.error}`);
         setBulk(null);
@@ -95,6 +101,15 @@ export default function EmailReview({ tracker, review }: Props) {
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-600 dark:text-neutral-400">
+        <span>Roles on new applications:</span>
+        {(Object.keys(TRIM_LABELS) as (keyof RoleTrimOptions)[]).map((key) => (
+          <label key={key} className="flex items-center gap-1">
+            <input type="checkbox" checked={trims[key]} onChange={() => toggleTrim(key)} />
+            {TRIM_LABELS[key]}
+          </label>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {(Object.keys(REVIEW_FILTERS) as ReviewFilter[]).map((f) => (
           <Chip
@@ -172,6 +187,7 @@ export default function EmailReview({ tracker, review }: Props) {
               applications={applications}
               assessments={assessments}
               statusChanges={statusChanges}
+              trims={trims}
               rowIdOf={rowIdOf}
               onAccept={accept}
               onDismiss={tracker.dismissEmails}

@@ -4,7 +4,7 @@
 
 import type { AssessmentAction, DateFill, JobGroup, Step } from "@/lib/tracker/email/group";
 import { todayISO, type AppStatus, type AssessmentKind } from "@/lib/tracker/format";
-import { DEFAULT_TRIMS, trimRole } from "@/lib/tracker/trimRole";
+import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 
 export const stepKey = (s: Step) => `step:${s.email.facts.gmailId}`;
 export const assessmentKey = (index: number) => `asmt:${index}`;
@@ -19,11 +19,11 @@ export function defaultTicks(group: JobGroup): Set<string> {
 }
 
 // A new card's editable company and role, starting from what the emails said
-// (the role tidied like the add form does).
-export function newAppDefaults(group: JobGroup): { company: string; role: string } {
+// (the role tidied like the add form does, with the Gmail tab's trim options).
+export function newAppDefaults(group: JobGroup, trims: RoleTrimOptions = DEFAULT_TRIMS): { company: string; role: string } {
   const t = group.target;
   const company = t.type === "existing" ? t.application.company : (t.company ?? "");
-  const role = t.type === "existing" ? t.application.role : t.role ? trimRole(t.role, DEFAULT_TRIMS) : "";
+  const role = t.type === "existing" ? t.application.role : t.role ? trimRole(t.role, trims) : "";
   return { company, role };
 }
 

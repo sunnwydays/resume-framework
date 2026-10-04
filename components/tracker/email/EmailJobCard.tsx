@@ -32,12 +32,14 @@ import {
   type StatusChange,
 } from "@/lib/tracker/format";
 import type { ApplicationOption } from "@/lib/tracker/io";
+import type { RoleTrimOptions } from "@/lib/tracker/trimRole";
 
 interface Props {
   group: JobGroup;
   applications: Application[];
   assessments: Assessment[];
   statusChanges: StatusChange[];
+  trims: RoleTrimOptions;
   rowIdOf: (gmailId: string) => string;
   onAccept: (payload: EmailJobPayload, label: string) => Promise<string | null>;
   onDismiss: (ids: string[]) => void;
@@ -66,10 +68,12 @@ function fillText(f: DateFill, app: Application | null): string {
   return `Set “${app ? statusLabel(app.status) : "status"} on” to ${formatDate(f.value)}`;
 }
 
-export default function EmailJobCard({ group, applications, assessments, statusChanges, rowIdOf, onAccept, onDismiss, onMute }: Props) {
+export default function EmailJobCard({ group, applications, assessments, statusChanges, trims, rowIdOf, onAccept, onDismiss, onMute }: Props) {
   const [choice, setChoice] = useState<Choice>({ type: "auto" });
   const [changing, setChanging] = useState(false);
-  const [inputs, setInputs] = useState(() => newAppDefaults(group));
+  // Only what's been typed; the rest follows the emails and the trim options.
+  const [edits, setEdits] = useState<{ company?: string; role?: string }>({});
+  const inputs = { ...newAppDefaults(group, trims), ...edits };
   // Ticks belong to one target: re-planning for another starts from its defaults.
   const [tickState, setTickState] = useState<{ key: string; ticks: Set<string> } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -128,7 +132,7 @@ export default function EmailJobCard({ group, applications, assessments, statusC
       </span>
       <input
         value={inputs[key]}
-        onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.value }))}
+        onChange={(e) => setEdits((v) => ({ ...v, [key]: e.target.value }))}
         className={`${inputCls} ${missing[key] ? "border-amber-400! dark:border-amber-500!" : ""}`}
       />
     </label>

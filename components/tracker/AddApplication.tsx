@@ -13,7 +13,7 @@ import {
   todayISO,
   type Application,
 } from "@/lib/tracker/format";
-import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import { DEFAULT_TRIMS, TRIM_LABELS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 
 const ORIGIN_LABEL: Record<string, string> = {
   greenhouse: "from Greenhouse",
@@ -24,12 +24,6 @@ const ORIGIN_LABEL: Record<string, string> = {
   jsonld: "from page data",
   meta: "guessed from page title",
   domain: "guessed from domain",
-};
-
-const TRIM_LABELS: Record<keyof RoleTrimOptions, string> = {
-  term: "Trim term",
-  intern: "Trim intern",
-  shorten: "Shorten title",
 };
 
 interface Draft {

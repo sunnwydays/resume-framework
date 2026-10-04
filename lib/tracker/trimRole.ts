@@ -10,6 +10,21 @@ export interface RoleTrimOptions {
 
 export const DEFAULT_TRIMS: RoleTrimOptions = { term: true, intern: true, shorten: true };
 
+export const TRIM_LABELS: Record<keyof RoleTrimOptions, string> = {
+  term: "Trim term",
+  intern: "Trim intern",
+  shorten: "Shorten title",
+};
+
+// For a setting kept as text: the trims that are on, comma-separated.
+export const trimsToString = (o: RoleTrimOptions) =>
+  (Object.keys(TRIM_LABELS) as (keyof RoleTrimOptions)[]).filter((k) => o[k]).join(",");
+
+export function trimsFromString(s: string): RoleTrimOptions {
+  const on = new Set(s.split(","));
+  return { term: on.has("term"), intern: on.has("intern"), shorten: on.has("shorten") };
+}
+
 const SEASON = "(?:spring|summer|fall|autumn|winter)";
 const SEASONS = `${SEASON}(?:\\s*[/&,-]\\s*${SEASON})*`;
 // "Summer 2027", "Summer '27", "2027 Summer", "Fall/Winter 2026".
@@ -25,6 +40,8 @@ function trimTerm(role: string): string {
       .replace(new RegExp(`${SEP}+${TERM}(?:\\s+(?:intern(?:ship)?|co-?op))?\\s*$`, "i"), "")
       // "Summer 2027 Software Engineer Intern"
       .replace(new RegExp(`\\b${TERM}${SEP}*`, "gi"), "")
+      // A bare year: "2027 Internship State Estimation", "SWE Intern - 2027"
+      .replace(new RegExp(`\\b20[2-3]\\d\\b${SEP}*`, "g"), "")
   );
 }
 

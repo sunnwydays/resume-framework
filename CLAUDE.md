@@ -356,7 +356,8 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
     (`EmailReview.tsx`, shown while anything is pending): `buildReview`
     (`review.ts`) turns pending rows back into `Analyzed` (`rows.ts`) and
     groups them every render, one `EmailJobCard` per job (existing match,
-    new application with editable company/role, or a pick via
+    new application with editable company/role, the role trimmed by the tab's
+    own trim checkboxes kept in localStorage, or a pick via
     `ApplicationPicker`; `retarget` re-plans after a pick). Accept builds a
     payload (`payload.ts`; ticks start from the plan; every email on the card
     is consumed) for the `apply_email_job` RPC: one transaction, which also

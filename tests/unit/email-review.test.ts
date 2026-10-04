@@ -266,6 +266,12 @@ describe("buildPayload", () => {
     const card: JobGroup = { ...g, target: { type: "new", company: "Hooli", role: "Software Engineer Intern, Test Automation (Summer 2027)" } };
     expect(newAppDefaults(card)).toEqual({ company: "Hooli", role: "SWE, Test Automation" });
   });
+
+  it("…and follows the Gmail tab's trim options", () => {
+    const [g] = groupIntoJobs([rejection("Hooli", "ML Intern", 25)], [], [], []);
+    const card: JobGroup = { ...g, target: { type: "new", company: "Hooli", role: "Software Engineer Intern (Summer 2027)" } };
+    expect(newAppDefaults(card, { term: true, intern: false, shorten: false }).role).toBe("Software Engineer Intern");
+  });
 });
 
 describe("emailTrail", () => {

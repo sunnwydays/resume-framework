@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import { DEFAULT_TRIMS, trimRole, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 
 const only = (o: Partial<RoleTrimOptions>): RoleTrimOptions => ({ term: false, intern: false, shorten: false, ...o });
 const NONE = only({});
@@ -21,6 +21,8 @@ describe("trimRole with the defaults", () => {
     ["Intern/Co-op Software Developer", "Co-op SWE"],
     ["Software Engineer Intern [Toronto]", "SWE [Toronto]"],
     ["Software Engineer (Remote)", "SWE (Remote)"],
+    ["2027 Internship Perception, Learned Mapping & SLAM", "Perception, Learned Mapping & SLAM"],
+    ["Software Engineer Intern - 2027", "SWE"],
   ])("%j -> %j", (input, expected) => expect(trimRole(input, DEFAULT_TRIMS)).toBe(expected));
 
   it("leaves words that merely contain 'intern' alone", () => {
@@ -47,6 +49,17 @@ describe("each trim on its own", () => {
   it("all off changes nothing but whitespace", () => {
     expect(trimRole(role, NONE)).toBe(role);
     expect(trimRole("  Software   Engineer  ", NONE)).toBe("Software Engineer");
+  });
+});
+
+describe("trim options as a stored setting", () => {
+  it("round-trips every combination, and reads junk as all off", () => {
+    fc.assert(
+      fc.property(fc.record({ term: fc.boolean(), intern: fc.boolean(), shorten: fc.boolean() }), (o) => {
+        expect(trimsFromString(trimsToString(o))).toEqual(o);
+      })
+    );
+    expect(trimsFromString("nonsense")).toEqual(NONE);
   });
 });
 
