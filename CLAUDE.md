@@ -173,10 +173,13 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`
-  (time spent per day).
+  (time spent per day), and for the Arbitrage page `moves` and
+  `message_templates` (below).
   Status, kind, outcome and question-source values are check constraints
   mirrored by `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` /
-  `QUESTION_SOURCES` in `lib/tracker/format.ts`; change both together.
+  `QUESTION_SOURCES` in `lib/tracker/format.ts` (and the move channel /
+  stage / waiting-on values by `MOVE_CHANNELS` / `MOVE_STAGES` /
+  `WAITING_ON`); change both together.
   `lib/tracker/database.types.ts` is generated; regenerate after schema
   changes.
 - **Timestamps are database triggers**, not app code: changing
@@ -300,6 +303,42 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `deleteAllApplications`; assessments, questions and history go with them
   by cascade. `ClearAllDialog.tsx` makes it three steps (continue, tick an
   acknowledgement, type "delete all").
+- **Arbitrage page (`/tracker/arbitrage`)**: the "spend little time, get
+  outsized return" side of the job search (DMs, founder emails, warm intros,
+  proof-of-work projects, events) instead of cold applying. A top nav
+  (`components/tracker/TrackerNav.tsx`, in `app/tracker/layout.tsx`) links it
+  with the main tracker. The unit is a **move** (`moves` table): a channel,
+  who/what, minutes spent, the furthest **stage** reached (sent → replied →
+  conversation → positive → interview → offer; closing keeps the stage),
+  `waiting_on` (whose turn), follow-ups, and an optional link to an
+  application (**ON DELETE SET NULL**, the one FK that doesn't cascade).
+  `linkedin`/`email`/`warm`/`other` are outreach (they count in the reply
+  funnel and get follow-up nudges); `project`/`community` are effort.
+  - The `moves_before_write` trigger stamps `updated_at`, bumps
+    `last_touch_at` on a stage / waiting_on / follow_ups change (not on notes
+    or time), and sets `replied_at` the first time the stage leaves `sent`.
+    Time is added with the atomic `add_move_minutes` RPC.
+  - Pure logic, all unit-tested: `lib/tracker/arbitrage.ts` (the funnel,
+    reward per hour by channel vs a cold-apply baseline at a flat
+    minutes-per-application, per-template reply rates, this week),
+    `lib/tracker/nextSteps.ts` (rule-based to-dos, thresholds as constants at
+    the top: replies waiting on you, follow-ups after 3 days up to 2, nudges
+    after 7, referral asks, weak templates, weekly target, a project every 14
+    days, rebalancing), `lib/tracker/templates.ts` (built-in templates with
+    `{name} {company} {about} {hook} {ask}` blanks), and
+    `lib/tracker/draftPrompt.ts`. A linked application lifts a move's stage
+    (`effectiveStage`: OA → positive, interview → interview, offer → offer)
+    and leaves the cold baseline.
+  - **Next steps are rules, not AI, on purpose.** The one AI piece is the
+    workshop's "Draft with Claude" (`POST /api/tracker/draft`,
+    `ANTHROPIC_API_KEY`, `claude-opus-5-5` at low effort with server-side
+    fallback, rate-limited per user). It only fills an editable box; nothing
+    is ever sent. Saved templates are `message_templates` rows; built-ins
+    live in code with `builtin:` keys.
+  - Per-viewer settings (minutes per application, weekly target, "about
+    you") are in localStorage via `lib/tracker/useLocalSetting.ts`.
+  - The Playbook panel's numbers are sourced (Ashby, Huntr, Pin); keep every
+    claim linked, same rule as `WhyThisExists`.
 - **Gmail scan (in progress; the database and review UI are not built
   yet)** (`lib/tracker/email/`). Finds what Sunny applied to, rejections and
   OA/interview invites in their inbox, and will *suggest* tracker updates
@@ -355,13 +394,16 @@ property tests. Config is `vitest.config.mts`; tests live in `tests/`.
 
 What's covered: every pure module under `lib/tracker/` (formats, roles,
 role trimming, do-first priority, filters, sorting, stats, import/export,
-link lookup against a fake `fetch`), `lib/ats*` and `lib/rateLimit.ts`;
+link lookup against a fake `fetch`, arbitrage, next steps, templates, the
+draft prompt), `lib/ats*` and `lib/rateLimit.ts`;
 the import and export round trip through real XLSX/CSV bytes; and, in the
 database, RLS on every table, the status/completion triggers, `import_rows`
-(fed by the app's real plan builder), the time-log functions, and a schema
-contract (the check constraints must equal `STATUSES` / `ASSESSMENT_KINDS` /
-`OUTCOMES` / `QUESTION_SOURCES` / `EXTRACT_SOURCES`, and `database.types.ts`
-must have the same columns and nullability as the database).
+(fed by the app's real plan builder), the time-log functions, the moves
+trigger and `add_move_minutes`, and a schema contract (the check constraints
+must equal `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` / `QUESTION_SOURCES` /
+`EXTRACT_SOURCES` / `MOVE_CHANNELS` / `MOVE_STAGES` / `WAITING_ON`, and
+`database.types.ts` must have the same columns and nullability as the
+database).
 
 Rules of the road:
 

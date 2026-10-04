@@ -1,4 +1,11 @@
-import type { Application, Assessment, Question, StatusChange } from "@/lib/tracker/format";
+import type {
+  Application,
+  Assessment,
+  MessageTemplate,
+  Move,
+  Question,
+  StatusChange,
+} from "@/lib/tracker/format";
 
 // Typed against the generated database rows, so a schema change breaks the
 // tests at compile time instead of letting stale fixtures slip through.
@@ -77,6 +84,43 @@ export function makeQuestion(overrides: Partial<Question> = {}): Question {
     question: "Reverse a linked list",
     answer: null,
     created_at: "2026-09-02T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeMove(overrides: Partial<Move> = {}): Move {
+  return {
+    id: id("move"),
+    user_id: "user-1",
+    channel: "linkedin",
+    target: "Priya (Acme)",
+    link: null,
+    minutes: 10,
+    stage: "sent",
+    waiting_on: "them",
+    closed: false,
+    follow_ups: 0,
+    last_touch_at: "2026-09-28T12:00:00.000Z",
+    replied_at: null,
+    template_key: null,
+    message: null,
+    application_id: null,
+    notes: null,
+    created_at: "2026-09-28T12:00:00.000Z",
+    updated_at: "2026-09-28T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeTemplate(overrides: Partial<MessageTemplate> = {}): MessageTemplate {
+  return {
+    id: id("tpl"),
+    user_id: "user-1",
+    channel: "linkedin",
+    name: "My DM",
+    body: "Hi {name}, {ask}",
+    created_at: "2026-09-28T12:00:00.000Z",
+    updated_at: "2026-09-28T12:00:00.000Z",
     ...overrides,
   };
 }

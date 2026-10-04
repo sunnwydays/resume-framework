@@ -11,6 +11,9 @@ interface Props {
   role: string;
   emptyLabel: string;
   onChange: (value: string) => void;
+  // Leaving it empty is normal (no warning border); and what "none" reads as.
+  optional?: boolean;
+  clearLabel?: string;
 }
 
 const PANEL_WIDTH = 320;
@@ -20,7 +23,16 @@ type Position = { left: number; top?: number; bottom?: number };
 
 // Chooses which application an imported assessment attaches to: likely ones
 // first (same company), then a searchable list of everything.
-export default function ApplicationPicker({ value, options, company, role, emptyLabel, onChange }: Props) {
+export default function ApplicationPicker({
+  value,
+  options,
+  company,
+  role,
+  emptyLabel,
+  onChange,
+  optional = false,
+  clearLabel = "Don’t attach (skip this one)",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -126,7 +138,7 @@ export default function ApplicationPicker({ value, options, company, role, empty
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex w-56 items-center justify-between gap-1 rounded border bg-surface px-1.5 py-1 text-left text-xs ${
-          selected ? "border-neutral-300 dark:border-neutral-700" : "border-amber-400"
+          selected || optional ? "border-neutral-300 dark:border-neutral-700" : "border-amber-400"
         }`}
       >
         <span className="truncate">{selected ? `${selected.company} · ${selected.role}` : emptyLabel}</span>
@@ -210,7 +222,7 @@ export default function ApplicationPicker({ value, options, company, role, empty
             onClick={() => pick("")}
             className="border-t border-neutral-200 px-3 py-1.5 text-left text-xs text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
           >
-            Don&rsquo;t attach (skip this one)
+            {clearLabel}
           </button>
         </div>
       )}
