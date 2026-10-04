@@ -427,6 +427,66 @@ describe("fixes from the second inbox review", () => {
   });
 });
 
+describe("fixes from the live test", () => {
+  it("a process timeline naming each round is a confirmation, not an invite", () => {
+    const m = mail({
+      fromAddress: "recruiting@globex.com",
+      subject: "Globex Software Engineer Internship Timeline",
+      text: [
+        "Hi Sam,",
+        "Thank you so much for applying to the Software Engineer, Intern role at Globex! Applications are now closed.",
+        "Timeline & Next Steps:",
+        "CodeSignal: All candidates invited to complete a CodeSignal will be notified by 10/7",
+        "Karat: All candidates invited to complete a Karat will be notified by 10/16",
+        "Virtual Onsites: Final round interview invites will be sent 10/20 - 10/30.",
+        "Thank you for your patience.",
+      ].join("\n"),
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("'if selected, you'll be invited to an assessment' is a confirmation", () => {
+    const m = mail({
+      fromAddress: "no-reply@us.greenhouse-mail.io",
+      subject: "Thanks for applying to Initech",
+      text: "Thank you for applying to Initech. If you are selected to move forward, you will receive an invitation to complete our online assessment.",
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("a portal's 'if the job goes inactive, you were not selected' is a confirmation, not a rejection", () => {
+    const m = mail({
+      fromAddress: "recruiting@globex.com",
+      subject: "Thank you for applying to Globex",
+      text: [
+        "Hi Sam,",
+        "Thank you for taking the time to submit your application for Software Engineer: Intern Opportunities, Springfield (Job number: 100000001). We're glad you're interested in a career at Globex.",
+        "You may not receive feedback from us on your application directly. If you're selected for an interview, you'll be notified by the recruiting team.",
+        "Updates regarding your application status can be viewed through your portal. If you see the job moved to an inactive state, that means the position is either no longer open, you withdrew from consideration, or you were not selected for the role.",
+      ].join("\n\n"),
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("…while a plain 'you were not selected' is still a rejection", () => {
+    const m = mail({
+      fromAddress: "recruiting@globex.com",
+      subject: "Your Globex application",
+      text: "Hi Sam, thank you for your interest. After review, you were not selected for the role.",
+    });
+    expect(kindOf(m)).toBe("rejection");
+  });
+
+  it("a real invite in the same mail still wins", () => {
+    const m = mail({
+      fromAddress: "recruiting@globex.com",
+      subject: "Next steps with Globex",
+      text: "Candidates selected for the final round will be notified separately.\nWe'd like to invite you to complete our coding assessment on CodeSignal by Friday.",
+    });
+    expect(kindOf(m)).toBe("oa_invite");
+  });
+});
+
 describe("extractFields: deadlines and completion", () => {
   it("platform 'End Login Date/Time' with a zone", () => {
     const f = extractFields(

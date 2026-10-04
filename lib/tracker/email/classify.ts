@@ -125,6 +125,22 @@ export const RULES = {
     /technical\s+screening\s+round/i,
   ],
 
+  // Sentences that describe the process rather than invite you ("Candidates
+  // invited to complete an assessment will be notified by 10/7", "If selected,
+  // you'll receive an invitation to interview"). Dropped before the invite
+  // rules run, so a timeline or confirmation isn't read as an invite.
+  hypothetical: [
+    /(?:\bwill|'ll)\s+be\s+notified\b/i,
+    /\b(?:invites|invitations)\s+will\s+be\s+sent\b/i,
+    /\bcandidates\s+(?:who\s+are\s+)?(?:invited|selected|chosen)\s+(?:to|for)\b/i,
+    /\bif\s+(?:you\s+are\s+|you're\s+)?(?:selected|invited|chosen|shortlisted|successful)\b/i,
+  ],
+  // Also dropped before the rejection rules: "If you see the job moved to an
+  // inactive state, that means ... you were not selected" explains the portal.
+  // Not before invites, since "If you'd like to proceed, complete the
+  // assessment" is a real one.
+  conditional: [/^\s*if\b/i],
+
   reminder: [
     /\breminder\b/i,
     /(?:haven't|have not)\s+(?:had\s+a\s+chance|yet)\s+(?:to\s+)?(?:complete|start|begin|finish)/i,
@@ -134,6 +150,7 @@ export const RULES = {
 
   confirmation: [
     /thank(?:s|\s+you)?(?:\s+so\s+much|\s+very\s+much)?\s+for\s+(?:applying|your\s+(?:application|interest|recent\s+application))/i,
+    /thank(?:s|\s+you)\s+for\s+(?:taking\s+the\s+time\s+to\s+)?submit(?:ting)?\s+your\s+application/i,
     /\b(?:received|got)\s+your\s+(?:application|resume)/i,
     /\byour\s+application\s+(?:has\s+been\s+|was\s+)?(?:received|submitted|is\s+in|was\s+sent)\b/i,
     /\bapplication\s+(?:received|confirmation|submitted)\b/i,
@@ -168,6 +185,14 @@ function firstMatch(patterns: readonly RegExp[], haystack: string): string | nul
   return null;
 }
 
+// Splits on sentence ends and line breaks, so only the matching sentence goes.
+function without(text: string, patterns: readonly RegExp[]): string {
+  return text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .filter((sentence) => !patterns.some((p) => p.test(sentence)))
+    .join("\n");
+}
+
 export function classify(facts: EmailFacts): Classification {
   const host = domainOf(facts.fromAddress);
   if (
@@ -190,7 +215,9 @@ export function classify(facts: EmailFacts): Classification {
 
   const body = `${facts.subject}\n${facts.text}`;
   // Tracking URLs carry signals (LinkedIn); search them as part of the text.
-  const haystack = `${body}\n${facts.links.map((l) => l.url).join("\n")}`;
+  const urls = facts.links.map((l) => l.url).join("\n");
+  // The body without sentences about what *might* happen.
+  const real = without(body, RULES.hypothetical);
 
   const knownSender = isAtsSender(facts.fromAddress) || isAssessmentSender(facts.fromAddress);
   if (!knownSender && !RULES.jobWords.test(body)) return { kind: null, reason: "not job-related" };
@@ -198,16 +225,16 @@ export function classify(facts: EmailFacts): Classification {
   const notYet = firstMatch(RULES.notYet, body);
   if (notYet) return { kind: null, reason: `application not finished ("${notYet}")` };
 
-  const rejection = firstMatch(RULES.rejection, haystack);
+  const rejection = firstMatch(RULES.rejection, `${without(real, RULES.conditional)}\n${urls}`);
   if (rejection) return { kind: "rejection", phrase: rejection };
 
   const done = firstMatch(RULES.assessmentDone, body);
   if (done) return { kind: "assessment_done", phrase: done };
 
   const invite =
-    ((p) => (p ? { kind: "video_invite" as const, phrase: p } : null))(firstMatch(RULES.video, body)) ??
-    ((p) => (p ? { kind: "oa_invite" as const, phrase: p } : null))(firstMatch(RULES.oa, body)) ??
-    ((p) => (p ? { kind: "interview_invite" as const, phrase: p } : null))(firstMatch(RULES.interview, haystack));
+    ((p) => (p ? { kind: "video_invite" as const, phrase: p } : null))(firstMatch(RULES.video, real)) ??
+    ((p) => (p ? { kind: "oa_invite" as const, phrase: p } : null))(firstMatch(RULES.oa, real)) ??
+    ((p) => (p ? { kind: "interview_invite" as const, phrase: p } : null))(firstMatch(RULES.interview, `${real}\n${urls}`));
   if (invite) {
     const reminder = firstMatch(RULES.reminder, body);
     return reminder ? { kind: "reminder", phrase: reminder } : invite;

@@ -395,7 +395,10 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `match.ts` holds the fuzzy company/role matching shared with the import.
   Gotchas learned from the real inbox: one company sends many roles (a
   thread is not a job; match on role and job id); "may not be able to reach
-  out to every applicant" is a confirmation, not a rejection; LinkedIn's
+  out to every applicant" is a confirmation, not a rejection; sentences about
+  what *might* happen (a round-by-round timeline, "if selected…", a portal's
+  "inactive means not selected") are dropped before the invite/rejection rules
+  (`RULES.hypothetical` / `conditional`); LinkedIn's
   plain text is empty but its tracking URLs name the mail type; some
   employers' links are tracking redirects, so assessment links are chosen by
   anchor text. Personal sender domains to ignore (e.g. Sunny's school) live in
