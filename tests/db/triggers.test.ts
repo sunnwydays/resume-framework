@@ -209,18 +209,20 @@ describe.skipIf(!dbReady)("status triggers", () => {
         });
       });
 
-      // CURRENT behavior, pinned so the Gmail work changes it on purpose: an
-      // email-origin change is stamped "now", not with the email's own date,
-      // since only 'import' is exempt. When the integration needs the
-      // message's date, applications_before_write must learn to keep it.
-      it("is currently stamped with now(), not the email's date", async () => {
+      // Like an import: a change suggested by an email is dated by the email,
+      // in both the row and its history.
+      it("keeps the email's date, not now()", async () => {
         await inTx(async (tx) => {
           const user = await createUser(tx);
           await asUser(tx, user, async () => {
             const id = await addApplication(tx);
             await setOrigin(tx, "email");
             await tx.query("update public.applications set status = 'rejected', status_changed_at = $2 where id = $1", [id, OLD]);
-            expect((await app(tx, id)).is_now).toBe(true);
+            const row = await app(tx, id);
+            expect(row.is_now).toBe(false);
+            expect(row.status_changed_at?.toISOString()).toBe(OLD);
+            const rejected = (await history(tx, id)).find((h) => h.status === "rejected");
+            expect(rejected?.changed_at?.toISOString()).toBe(OLD);
           });
         });
       });

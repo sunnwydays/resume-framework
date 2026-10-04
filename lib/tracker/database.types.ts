@@ -183,6 +183,197 @@ export type Database = {
           },
         ]
       }
+      email_accepts: {
+        Row: {
+          application_id: string
+          assessments_before: Json
+          before: Json | null
+          created_application: boolean
+          created_assessment_ids: string[]
+          created_at: string
+          id: string
+          status_change_ids: string[]
+          undone_at: string | null
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          assessments_before?: Json
+          before?: Json | null
+          created_application: boolean
+          created_assessment_ids?: string[]
+          created_at?: string
+          id?: string
+          status_change_ids?: string[]
+          undone_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          application_id?: string
+          assessments_before?: Json
+          before?: Json | null
+          created_application?: boolean
+          created_assessment_ids?: string[]
+          created_at?: string
+          id?: string
+          status_change_ids?: string[]
+          undone_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accepts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_messages: {
+        Row: {
+          accept_id: string | null
+          application_id: string | null
+          assessment_title: string | null
+          company: string | null
+          completed_at: string | null
+          created_at: string
+          due_at: string | null
+          field_origins: Json
+          from_address: string
+          from_name: string
+          gmail_id: string
+          id: string
+          job_id: string | null
+          kind: string
+          link: string | null
+          matched_phrase: string | null
+          received_at: string
+          role: string | null
+          snippet: string
+          state: string
+          subject: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          accept_id?: string | null
+          application_id?: string | null
+          assessment_title?: string | null
+          company?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          field_origins?: Json
+          from_address: string
+          from_name?: string
+          gmail_id: string
+          id?: string
+          job_id?: string | null
+          kind: string
+          link?: string | null
+          matched_phrase?: string | null
+          received_at: string
+          role?: string | null
+          snippet?: string
+          state?: string
+          subject?: string
+          thread_id: string
+          user_id?: string
+        }
+        Update: {
+          accept_id?: string | null
+          application_id?: string | null
+          assessment_title?: string | null
+          company?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          field_origins?: Json
+          from_address?: string
+          from_name?: string
+          gmail_id?: string
+          id?: string
+          job_id?: string | null
+          kind?: string
+          link?: string | null
+          matched_phrase?: string | null
+          received_at?: string
+          role?: string | null
+          snippet?: string
+          state?: string
+          subject?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_accept_id_fkey"
+            columns: ["accept_id"]
+            isOneToOne: false
+            referencedRelation: "email_accepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_mutes: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          user_id?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      gmail_scans: {
+        Row: {
+          fetched: number
+          id: string
+          saved: number
+          scanned_at: string
+          since: string
+          user_id: string
+        }
+        Insert: {
+          fetched?: number
+          id?: string
+          saved?: number
+          scanned_at?: string
+          since: string
+          user_id?: string
+        }
+        Update: {
+          fetched?: number
+          id?: string
+          saved?: number
+          scanned_at?: string
+          since?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           body: string
@@ -350,6 +541,7 @@ export type Database = {
         Returns: number
       }
       add_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
+      apply_email_job: { Args: { payload: Json }; Returns: string }
       import_rows: { Args: { payload: Json }; Returns: Json }
       set_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
       status_origin: { Args: never; Returns: string }

@@ -200,6 +200,23 @@ export const EMAIL_KINDS = {
 } as const;
 export type EmailKind = keyof typeof EMAIL_KINDS;
 
+export type EmailMessage = Tables<"email_messages">;
+export type EmailAccept = Tables<"email_accepts">;
+export type EmailMute = Tables<"email_mutes">;
+export type GmailScan = Tables<"gmail_scans">;
+
+// Must match the check constraint on email_messages.state. Accepted and
+// dismissed emails never come back as suggestions on a later scan.
+export const EMAIL_STATES = ["pending", "accepted", "dismissed"] as const;
+export type EmailState = (typeof EMAIL_STATES)[number];
+
+// Must match the check constraint on email_mutes.kind.
+export const MUTE_KINDS = {
+  sender: "Sender",
+  company: "Company",
+} as const;
+export type MuteKind = keyof typeof MUTE_KINDS;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // Today (or the day of `at`) as a local YYYY-MM-DD (what a <input

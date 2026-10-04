@@ -3,8 +3,11 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   ASSESSMENT_KINDS,
+  EMAIL_KINDS,
+  EMAIL_STATES,
   MOVE_CHANNELS,
   MOVE_STAGES,
+  MUTE_KINDS,
   OUTCOMES,
   QUESTION_SOURCES,
   STATUSES,
@@ -19,6 +22,10 @@ const TABLES = [
   "applications",
   "assessment_questions",
   "assessments",
+  "email_accepts",
+  "email_messages",
+  "email_mutes",
+  "gmail_scans",
   "message_templates",
   "moves",
   "status_changes",
@@ -61,9 +68,19 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       await check("assessments_status_check");
       expect(current).toEqual(["completed", "pending"]);
     });
-    it("applications.source = every link-lookup source, plus import", async () => {
+    it("applications.source = every link-lookup source, plus import and email", async () => {
       await check("applications_source_check");
-      expect(current).toEqual([...EXTRACT_SOURCES, "import"].sort());
+      expect(current).toEqual([...EXTRACT_SOURCES, "import", "email"].sort());
+    });
+    it("email_messages.kind = EMAIL_KINDS, state = EMAIL_STATES", async () => {
+      await check("email_messages_kind_check");
+      expect(current).toEqual(Object.keys(EMAIL_KINDS).sort());
+      await check("email_messages_state_check");
+      expect(current).toEqual([...EMAIL_STATES].sort());
+    });
+    it("email_mutes.kind = MUTE_KINDS", async () => {
+      await check("email_mutes_kind_check");
+      expect(current).toEqual(Object.keys(MUTE_KINDS).sort());
     });
     it("status_changes.origin is manual, import or email", async () => {
       await check("status_changes_origin_check");
@@ -164,6 +181,10 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["applications", "own applications", "ALL"],
           ["assessment_questions", "own assessment questions", "ALL"],
           ["assessments", "own assessments", "ALL"],
+          ["email_accepts", "own email accepts", "ALL"],
+          ["email_messages", "own email messages", "ALL"],
+          ["email_mutes", "own email mutes", "ALL"],
+          ["gmail_scans", "own gmail scans", "ALL"],
           ["message_templates", "own message templates", "ALL"],
           ["moves", "own moves", "ALL"],
           ["status_changes", "read own status changes", "SELECT"],
@@ -178,9 +199,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "select conname, confdeltype from pg_constraint where connamespace = 'public'::regnamespace and contype = 'f' order by 1"
         );
         expect(rows.length).toBeGreaterThanOrEqual(10);
-        // Every FK is ON DELETE CASCADE, except a move's link to an
-        // application: deleting the application just unlinks the move.
+        // Every FK is ON DELETE CASCADE, except links that should just
+        // unlink: a move's application, and an email's application and accept
+        // (the email row stays so a re-scan doesn't bring it back as new).
         expect(rows.filter((r) => r.confdeltype !== "c").map((r) => [r.conname, r.confdeltype])).toEqual([
+          ["email_messages_accept_id_fkey", "n"],
+          ["email_messages_application_id_fkey", "n"],
           ["moves_application_id_fkey", "n"],
         ]);
       });
@@ -231,6 +255,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "add_time",
           "applications_before_write",
           "applications_log_status",
+          "apply_email_job",
           "assessments_before_write",
           "import_rows",
           "message_templates_before_write",
@@ -253,6 +278,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "public.set_time(date, integer)",
           "public.import_rows(jsonb)",
           "public.add_move_minutes(uuid, integer)",
+          "public.apply_email_job(jsonb)",
         ]) {
           expect(await can("authenticated", fn), `authenticated ${fn}`).toBe(true);
           expect(await can("anon", fn), `anon ${fn}`).toBe(false);

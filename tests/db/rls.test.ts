@@ -2,7 +2,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   addApplication,
   addAssessment,
+  addEmail,
   addMove,
+  applyEmailJob,
   asAnon,
   asUser,
   closePool,
@@ -27,6 +29,9 @@ interface World {
   question: string;
   move: string;
   template: string;
+  email: string; // pending
+  accepted: string; // accepted onto `app`, so there's an email_accepts row
+  mute: string;
 }
 
 // Two users; user A owns one of everything.
@@ -38,6 +43,9 @@ async function world(tx: Tx): Promise<World> {
   let question = "";
   let move = "";
   let template = "";
+  let email = "";
+  let accepted = "";
+  let mute = "";
   await asUser(tx, a, async () => {
     app = await addApplication(tx, { company: "Owned by A" });
     asmt = await addAssessment(tx, app, { title: "A's OA" });
@@ -50,8 +58,13 @@ async function world(tx: Tx): Promise<World> {
     template = await tx.scalar<string>(
       "insert into public.message_templates (channel, name, body) values ('linkedin', 'A''s template', 'Hi {name}') returning id"
     );
+    email = await addEmail(tx);
+    accepted = await addEmail(tx);
+    await applyEmailJob(tx, { application_id: app, message_ids: [accepted] });
+    await tx.query("insert into public.gmail_scans (since) values (now() - interval '7 days')");
+    mute = await tx.scalar<string>("insert into public.email_mutes (kind, value) values ('company', 'Muted Co') returning id");
   });
-  return { a, b, app, asmt, question, move, template };
+  return { a, b, app, asmt, question, move, template, email, accepted, mute };
 }
 
 const READ_AS_OWNER = [
@@ -62,6 +75,10 @@ const READ_AS_OWNER = [
   ["time_log", "select user_id from public.time_log"],
   ["moves", "select id from public.moves"],
   ["message_templates", "select id from public.message_templates"],
+  ["email_messages", "select id from public.email_messages where state = 'pending'"],
+  ["email_accepts", "select id from public.email_accepts"],
+  ["gmail_scans", "select id from public.gmail_scans"],
+  ["email_mutes", "select id from public.email_mutes"],
 ] as const;
 
 describe.skipIf(!dbReady)("row-level security", () => {
@@ -188,6 +205,42 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect(u.message).toMatch(/row-level security/);
           const t = await failure(tx, "insert into public.message_templates (channel, name, body, user_id) values ('email', 'x', 'y', $1)", [w.a]);
           expect(t.message).toMatch(/row-level security/);
+        });
+      });
+    });
+
+    it("can't change the owner's emails, accepts, scans or mutes", async () => {
+      await inTx(async (tx) => {
+        const w = await world(tx);
+        await asUser(tx, w.b, async () => {
+          expect((await tx.query("update public.email_messages set state = 'dismissed' where id = $1", [w.email])).rowCount).toBe(0);
+          expect((await tx.query("delete from public.email_messages")).rowCount).toBe(0);
+          expect((await tx.query("update public.email_accepts set undone_at = now()")).rowCount).toBe(0);
+          expect((await tx.query("delete from public.gmail_scans")).rowCount).toBe(0);
+          expect((await tx.query("delete from public.email_mutes where id = $1", [w.mute])).rowCount).toBe(0);
+        });
+        await asUser(tx, w.a, async () => {
+          expect(await tx.scalar("select state from public.email_messages where id = $1", [w.email])).toBe("pending");
+          expect(await tx.scalar("select count(*)::int from public.email_accepts where undone_at is null")).toBe(1);
+          expect(await tx.scalar("select count(*)::int from public.gmail_scans")).toBe(1);
+        });
+      });
+    });
+
+    it("can't link an email to the owner's application, or accept onto it", async () => {
+      await inTx(async (tx) => {
+        const w = await world(tx);
+        await asUser(tx, w.b, async () => {
+          const e = await failure(tx, "insert into public.email_messages (gmail_id, thread_id, received_at, from_address, kind, application_id) values ('x', 'x', now(), 'a@b.example', 'rejection', $1)", [w.app]);
+          expect(e.message).toMatch(/row-level security/);
+          const mine = await addEmail(tx, { kind: "rejection" });
+          const onto = await failure(tx, "select public.apply_email_job($1::jsonb)", [JSON.stringify({ application_id: w.app, steps: [{ status: "rejected", at: "2026-09-26T10:00:00Z" }], message_ids: [mine] })]);
+          expect(onto.message).toMatch(/application not found/);
+          const theirs = await failure(tx, "select public.apply_email_job($1::jsonb)", [JSON.stringify({ new_application: { company: "x", role: "y" }, message_ids: [w.email] })]);
+          expect(theirs.message).toMatch(/already handled/);
+        });
+        await asUser(tx, w.a, async () => {
+          expect(await tx.scalar("select status from public.applications where id = $1", [w.app])).toBe("applied");
         });
       });
     });

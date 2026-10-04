@@ -168,6 +168,34 @@ export async function addMove(tx: Tx, fields: Record<string, unknown> = {}): Pro
   );
 }
 
+let emailCount = 0;
+
+// A classified email waiting for review (made-up sender and subject).
+export async function addEmail(tx: Tx, fields: Record<string, unknown> = {}): Promise<string> {
+  const n = ++emailCount;
+  const row = {
+    gmail_id: `test-${n}-${Date.now()}`,
+    thread_id: `thread-${n}`,
+    received_at: "2026-09-25T14:00:00.000Z",
+    from_address: "no-reply@ats.example",
+    subject: "Thank you for applying",
+    kind: "confirmation",
+    company: "Acme",
+    role: "SWE Intern",
+    ...fields,
+  };
+  const keys = Object.keys(row);
+  return tx.scalar<string>(
+    `insert into public.email_messages (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning id`,
+    Object.values(row)
+  );
+}
+
+// Calls apply_email_job and returns the application id.
+export async function applyEmailJob(tx: Tx, payload: Record<string, unknown>): Promise<string> {
+  return tx.scalar<string>("select public.apply_email_job($1::jsonb)", [JSON.stringify(payload)]);
+}
+
 export async function addAssessment(tx: Tx, applicationId: string, fields: Record<string, unknown> = {}): Promise<string> {
   const row = { application_id: applicationId, title: "Coding round", ...fields };
   const keys = Object.keys(row);
