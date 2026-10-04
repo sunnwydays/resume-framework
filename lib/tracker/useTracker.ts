@@ -2,8 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
-import type { Application, Assessment, Question, StatusChange } from "@/lib/tracker/format";
+import type { Json, TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
+import type { EmailJobPayload } from "@/lib/tracker/email/payload";
+import type {
+  Application,
+  Assessment,
+  EmailAccept,
+  EmailMessage,
+  EmailMute,
+  GmailScan,
+  MuteKind,
+  Question,
+  StatusChange,
+} from "@/lib/tracker/format";
 
 // Created lazily (first use in the browser) so prerendering the page at
 // build time doesn't need the Supabase env vars, which the deployed site
@@ -20,11 +31,21 @@ type FetchResult =
       assessments: Assessment[];
       questions: Question[];
       statusChanges: StatusChange[];
+      gmail: GmailData;
     };
+
+// Gmail review state: pending emails (the review tab) and accepted ones (each
+// application's email trail), mutes, open accepts (for undo), last scan.
+export interface GmailData {
+  emails: EmailMessage[];
+  mutes: EmailMute[];
+  accepts: EmailAccept[];
+  lastScan: GmailScan | null;
+}
 
 async function fetchAll(): Promise<FetchResult> {
   const sb = supabase();
-  const [apps, asmts, questions, changes] = await Promise.all([
+  const [apps, asmts, questions, changes, emails, mutes, accepts, scans] = await Promise.all([
     sb
       .from("applications")
       .select("*")
@@ -33,16 +54,29 @@ async function fetchAll(): Promise<FetchResult> {
     sb.from("assessments").select("*").order("due_at", { ascending: true }),
     sb.from("assessment_questions").select("*").order("created_at", { ascending: true }),
     sb.from("status_changes").select("*").order("changed_at", { ascending: true }),
+    sb.from("email_messages").select("*").in("state", ["pending", "accepted"]).order("received_at", { ascending: true }),
+    sb.from("email_mutes").select("*").order("created_at", { ascending: true }),
+    sb.from("email_accepts").select("*").is("undone_at", null),
+    sb.from("gmail_scans").select("*").order("scanned_at", { ascending: false }).limit(1),
   ]);
-  const err = apps.error ?? asmts.error ?? questions.error ?? changes.error;
+  const err =
+    apps.error ?? asmts.error ?? questions.error ?? changes.error ?? emails.error ?? mutes.error ?? accepts.error ?? scans.error;
   if (err) return { error: err.message };
   return {
     applications: apps.data ?? [],
     assessments: asmts.data ?? [],
     questions: questions.data ?? [],
     statusChanges: changes.data ?? [],
+    gmail: {
+      emails: emails.data ?? [],
+      mutes: mutes.data ?? [],
+      accepts: accepts.data ?? [],
+      lastScan: scans.data?.[0] ?? null,
+    },
   };
 }
+
+const NO_GMAIL: GmailData = { emails: [], mutes: [], accepts: [], lastScan: null };
 
 // A clock for "due in 3h" labels, ticking once a minute (render must not
 // read Date.now() directly).
@@ -63,6 +97,7 @@ export function useTracker() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [statusChanges, setStatusChanges] = useState<StatusChange[]>([]);
+  const [gmail, setGmail] = useState<GmailData>(NO_GMAIL);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +109,7 @@ export function useTracker() {
       setAssessments(result.assessments);
       setQuestions(result.questions);
       setStatusChanges(result.statusChanges);
+      setGmail(result.gmail);
     }
     setLoading(false);
   }, []);
@@ -252,11 +288,76 @@ export function useTracker() {
     [fail]
   );
 
+  // ---- Gmail -------------------------------------------------------------
+
+  // Stores classified emails from a scan. One already stored (pending,
+  // accepted or dismissed) is skipped, never revived. Returns how many were new.
+  const saveEmails = useCallback(
+    async (rows: TablesInsert<"email_messages">[]): Promise<{ saved: number } | { error: string }> => {
+      if (rows.length === 0) return { saved: 0 };
+      const { data, error } = await supabase()
+        .from("email_messages")
+        .upsert(rows, { onConflict: "user_id,gmail_id", ignoreDuplicates: true })
+        .select();
+      if (error) return { error: error.message };
+      setGmail((g) => ({ ...g, emails: [...g.emails, ...(data ?? [])] }));
+      return { saved: data?.length ?? 0 };
+    },
+    []
+  );
+
+  const recordScan = useCallback(async (row: TablesInsert<"gmail_scans">) => {
+    const { data, error } = await supabase().from("gmail_scans").insert(row).select().single();
+    if (error) return setError(error.message);
+    setGmail((g) => ({ ...g, lastScan: data }));
+  }, []);
+
+  // Applies one reviewed card in a single transaction, then reloads: the
+  // card can touch the application, its assessments, history and emails.
+  // Returns an error message.
+  const applyEmailJob = useCallback(
+    async (payload: EmailJobPayload): Promise<string | null> => {
+      const { error } = await supabase().rpc("apply_email_job", { payload: payload as unknown as Json });
+      await reload();
+      return error?.message ?? null;
+    },
+    [reload]
+  );
+
+  const dismissEmails = useCallback(
+    async (ids: string[]) => {
+      const gone = new Set(ids);
+      setGmail((g) => ({ ...g, emails: g.emails.filter((e) => !gone.has(e.id)) }));
+      const { error } = await supabase().from("email_messages").update({ state: "dismissed" }).in("id", ids);
+      if (error) fail(error.message);
+    },
+    [fail]
+  );
+
+  const addMute = useCallback(async (kind: MuteKind, value: string) => {
+    const { data, error } = await supabase()
+      .from("email_mutes")
+      .upsert({ kind, value }, { onConflict: "user_id,kind,value", ignoreDuplicates: true })
+      .select();
+    if (error) return setError(error.message);
+    setGmail((g) => ({ ...g, mutes: [...g.mutes, ...(data ?? [])] }));
+  }, []);
+
+  const removeMute = useCallback(
+    async (id: string) => {
+      setGmail((g) => ({ ...g, mutes: g.mutes.filter((m) => m.id !== id) }));
+      const { error } = await supabase().from("email_mutes").delete().eq("id", id);
+      if (error) fail(error.message);
+    },
+    [fail]
+  );
+
   return {
     applications,
     assessments,
     questions,
     statusChanges,
+    gmail,
     loading,
     error,
     clearError: () => setError(null),
@@ -271,6 +372,12 @@ export function useTracker() {
     addQuestion,
     updateQuestion,
     deleteQuestion,
+    saveEmails,
+    recordScan,
+    applyEmailJob,
+    dismissEmails,
+    addMute,
+    removeMute,
   };
 }
 
