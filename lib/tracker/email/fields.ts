@@ -352,6 +352,12 @@ function candidates(f: EmailFacts): Candidate[] {
     add("jobId", m[1], "body: Ref");
     add("role", m[2], "body: Ref - role");
   }
+  // RippleMatch: "After reviewing your profile, Vandelay Industries would like
+  // to move forward with next steps for the position: Import Analyst Intern."
+  if ((m = /\b([A-Z][\w&'.-]*(?: [A-Z][\w&'.-]*){0,3}) would like to (?:move forward|proceed)\b[^.]{0,60}?\b(?:position|role):\s*(.+?)(?=\.\s|\.$|$)/.exec(flat))) {
+    add("company", m[1], "body: … would like to move forward");
+    add("role", m[2], "body: … would like to move forward");
+  }
   const co = `(?:\\s+(?:here\\s+)?(?:at|with)\\s+${CO})?`;
   const roleThenWord = (lead: string, origin: string) => {
     const r = new RegExp(`${lead}${RO}\\s+${WORD}\\b${co}`, "i").exec(flat);
@@ -436,7 +442,10 @@ function candidates(f: EmailFacts): Candidate[] {
       .replace(/\s+/g, " ")
       .trim()
   );
-  const isPlatform = display && /linkedin|hackerrank|codesignal|indeed/i.test(display);
+  const host = sender.split("@")[1] ?? "";
+  const isPlatform =
+    (display && /linkedin|hackerrank|codesignal|indeed/i.test(display)) ||
+    RULES.relayDomains.some((d) => host === d || host.endsWith(`.${d}`));
   // On a company's own domain the domain is the safer guess (a display name
   // there is often a recruiter or a department); use the display name only
   // when it agrees with the domain, for its nicer spelling ("Zephyr" over

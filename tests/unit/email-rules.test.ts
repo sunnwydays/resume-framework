@@ -477,6 +477,29 @@ describe("fixes from the live test", () => {
     expect(kindOf(m)).toBe("rejection");
   });
 
+  it("RippleMatch: the company and role come from the body, not the recruiter's name", () => {
+    const m = mail({
+      fromAddress: "pat@ripplematch.com",
+      fromName: "Pat Lee",
+      subject: "Next steps with Vandelay Industries",
+      text: [
+        "Hi Sam,",
+        "Great news! After reviewing your profile, Vandelay Industries would like to move forward with next steps for the position: Import Analyst Internship.",
+        "A few more steps are required to get this moving forward:",
+        "Formally submit your application directly to Vandelay Industries",
+        "Best,\nPat @ RippleMatch",
+      ].join("\n\n"),
+    });
+    const f = extractFields(m, classify(m).kind);
+    expect(f.company).toBe("Vandelay Industries");
+    expect(f.role).toBe("Import Analyst Internship");
+  });
+
+  it("a relay platform's display name is never the company", () => {
+    const m = mail({ fromAddress: "pat@ripplematch.com", fromName: "Pat Lee", subject: "Checking in", text: "Thanks for applying." });
+    expect(extractFields(m, "confirmation").company).toBeNull();
+  });
+
   it("a real invite in the same mail still wins", () => {
     const m = mail({
       fromAddress: "recruiting@globex.com",

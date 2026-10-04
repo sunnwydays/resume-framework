@@ -27,6 +27,10 @@ export const RULES = {
     "karat.com", "hackerearth.com", "coderpad.io", "codingame.com", "vervoe.com", "harver.com", "pymetrics.ai",
     "criteriacorp.com", "mettl.com", "shl.com", "vidcruiter.com",
   ],
+  // Job platforms that write on behalf of many employers, often from a
+  // recruiter's own name ("Pat Lee <pat@ripplematch.com>"): their display name
+  // is never the company.
+  relayDomains: ["ripplematch.com", "joinhandshake.com", "wellfound.com", "linkedin.com", "indeed.com"],
   personalDomains: [
     "gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com", "live.com", "protonmail.com", "me.com",
   ],
