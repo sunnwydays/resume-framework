@@ -80,6 +80,113 @@ export const QUESTION_SOURCES = {
 } as const;
 export type QuestionSource = keyof typeof QUESTION_SOURCES;
 
+// ---------- arbitrage (moves) ----------
+
+export type Move = Tables<"moves">;
+export type MessageTemplate = Tables<"message_templates">;
+
+// Must match the check constraints on moves.channel and
+// message_templates.channel. Outreach channels are messages to a person:
+// they count in the reply funnel and get follow-up nudges. The others are
+// effort (building, showing up) that counts toward hours and outcomes.
+export const MOVE_CHANNELS = {
+  linkedin: {
+    label: "LinkedIn DM",
+    outreach: true,
+    tip: "Ask an engineer for a 15-minute chat, not a job. Name one specific thing about their work.",
+  },
+  email: {
+    label: "Cold email",
+    outreach: true,
+    tip: "Founders at small startups read their own inbox. 3–5 sentences: who you are, one thing you'd build for them, a link.",
+  },
+  warm: {
+    label: "Warm intro / alumni",
+    outreach: true,
+    tip: "Shared school, club or past team gets far more replies. Lead with the connection.",
+  },
+  project: {
+    label: "Proof-of-work project",
+    outreach: false,
+    tip: "Build something small aimed at a company's problem, then use it as the hook in a message.",
+  },
+  community: {
+    label: "Event / community",
+    outreach: false,
+    tip: "Hackathons, meetups, Discords, build-in-public posts: be findable so people come to you.",
+  },
+  other: {
+    label: "Other message",
+    outreach: true,
+    tip: "Twitter/X, Discord DM, a comment that turned into a chat: anything that reaches a person.",
+  },
+} as const;
+export type MoveChannel = keyof typeof MOVE_CHANNELS;
+
+export function isOutreach(channel: string): boolean {
+  return MOVE_CHANNELS[channel as MoveChannel]?.outreach ?? true;
+}
+
+export function channelLabel(channel: string): string {
+  return MOVE_CHANNELS[channel as MoveChannel]?.label ?? channel;
+}
+
+// Order matters: it's the funnel, and a move sits at the furthest stage it
+// reached. Must match the check constraint on moves.stage.
+export const MOVE_STAGES = ["sent", "replied", "conversation", "positive", "interview", "offer"] as const;
+export type MoveStage = (typeof MOVE_STAGES)[number];
+
+export const MOVE_STAGE_META: Record<MoveStage, { label: string; hint: string; cls: string }> = {
+  sent: {
+    label: "Sent",
+    hint: "Reached out, no reply yet",
+    cls: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+  },
+  replied: {
+    label: "Replied",
+    hint: "They wrote back",
+    cls: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  },
+  conversation: {
+    label: "Conversation",
+    hint: "Two or more back-and-forths",
+    cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
+  },
+  positive: {
+    label: "Positive",
+    hint: "Agreed to a call, offered a referral, or invited you to apply",
+    cls: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  },
+  interview: {
+    label: "Interview",
+    hint: "Led to an interview",
+    cls: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  },
+  offer: {
+    label: "Offer",
+    hint: "Led to an offer",
+    cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+};
+
+// Effort moves have nothing to "send"; their first stage reads as logged.
+export function moveStageLabel(stage: string, channel: string): string {
+  if (stage === "sent" && !isOutreach(channel)) return "Logged";
+  return MOVE_STAGE_META[stage as MoveStage]?.label ?? stage;
+}
+
+export function stageIndex(stage: string): number {
+  return Math.max(0, MOVE_STAGES.indexOf(stage as MoveStage));
+}
+
+// Whose turn it is in the conversation. Must match the check constraint on
+// moves.waiting_on.
+export const WAITING_ON = {
+  them: "Waiting on them",
+  me: "Your turn",
+} as const;
+export type WaitingOn = keyof typeof WAITING_ON;
+
 // What a Gmail message was recognized as. Must match the check constraint on
 // email_messages.kind.
 export const EMAIL_KINDS = {

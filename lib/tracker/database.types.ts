@@ -183,6 +183,107 @@ export type Database = {
           },
         ]
       }
+      message_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moves: {
+        Row: {
+          application_id: string | null
+          channel: string
+          closed: boolean
+          created_at: string
+          follow_ups: number
+          id: string
+          last_touch_at: string
+          link: string | null
+          message: string | null
+          minutes: number
+          notes: string | null
+          replied_at: string | null
+          stage: string
+          target: string
+          template_key: string | null
+          updated_at: string
+          user_id: string
+          waiting_on: string
+        }
+        Insert: {
+          application_id?: string | null
+          channel: string
+          closed?: boolean
+          created_at?: string
+          follow_ups?: number
+          id?: string
+          last_touch_at?: string
+          link?: string | null
+          message?: string | null
+          minutes?: number
+          notes?: string | null
+          replied_at?: string | null
+          stage?: string
+          target: string
+          template_key?: string | null
+          updated_at?: string
+          user_id?: string
+          waiting_on?: string
+        }
+        Update: {
+          application_id?: string | null
+          channel?: string
+          closed?: boolean
+          created_at?: string
+          follow_ups?: number
+          id?: string
+          last_touch_at?: string
+          link?: string | null
+          message?: string | null
+          minutes?: number
+          notes?: string | null
+          replied_at?: string | null
+          stage?: string
+          target?: string
+          template_key?: string | null
+          updated_at?: string
+          user_id?: string
+          waiting_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moves_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_changes: {
         Row: {
           application_id: string
@@ -244,6 +345,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_move_minutes: {
+        Args: { p_id: string; p_minutes: number }
+        Returns: number
+      }
       add_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
       import_rows: { Args: { payload: Json }; Returns: Json }
       set_time: { Args: { p_day: string; p_seconds: number }; Returns: number }

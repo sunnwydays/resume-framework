@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   addApplication,
   addAssessment,
+  addMove,
   asAnon,
   asUser,
   closePool,
@@ -24,6 +25,8 @@ interface World {
   app: string;
   asmt: string;
   question: string;
+  move: string;
+  template: string;
 }
 
 // Two users; user A owns one of everything.
@@ -33,6 +36,8 @@ async function world(tx: Tx): Promise<World> {
   let app = "";
   let asmt = "";
   let question = "";
+  let move = "";
+  let template = "";
   await asUser(tx, a, async () => {
     app = await addApplication(tx, { company: "Owned by A" });
     asmt = await addAssessment(tx, app, { title: "A's OA" });
@@ -41,8 +46,12 @@ async function world(tx: Tx): Promise<World> {
       [asmt]
     );
     await tx.query("select public.add_time(current_date, 600)");
+    move = await addMove(tx, { target: "A's contact", application_id: app });
+    template = await tx.scalar<string>(
+      "insert into public.message_templates (channel, name, body) values ('linkedin', 'A''s template', 'Hi {name}') returning id"
+    );
   });
-  return { a, b, app, asmt, question };
+  return { a, b, app, asmt, question, move, template };
 }
 
 const READ_AS_OWNER = [
@@ -51,6 +60,8 @@ const READ_AS_OWNER = [
   ["assessment_questions", "select id from public.assessment_questions"],
   ["status_changes", "select id from public.status_changes"],
   ["time_log", "select user_id from public.time_log"],
+  ["moves", "select id from public.moves"],
+  ["message_templates", "select id from public.message_templates"],
 ] as const;
 
 describe.skipIf(!dbReady)("row-level security", () => {
@@ -72,6 +83,10 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect((await tx.query("update public.assessments set notes = 'mine' where id = $1", [w.asmt])).rowCount).toBe(1);
           expect((await tx.query("update public.assessment_questions set answer = 'mine' where id = $1", [w.question])).rowCount).toBe(1);
           expect((await tx.query("delete from public.assessment_questions where id = $1", [w.question])).rowCount).toBe(1);
+          expect((await tx.query("update public.moves set notes = 'mine' where id = $1", [w.move])).rowCount).toBe(1);
+          expect((await tx.query("update public.message_templates set body = 'mine' where id = $1", [w.template])).rowCount).toBe(1);
+          expect((await tx.query("delete from public.message_templates where id = $1", [w.template])).rowCount).toBe(1);
+          expect((await tx.query("delete from public.moves where id = $1", [w.move])).rowCount).toBe(1);
           expect((await tx.query("delete from public.applications where id = $1", [w.app])).rowCount).toBe(1);
         });
       });
@@ -110,8 +125,16 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect((await tx.query("delete from public.assessments where id = $1", [w.asmt])).rowCount).toBe(0);
           expect((await tx.query("delete from public.applications where id = $1", [w.app])).rowCount).toBe(0);
           expect((await tx.query("delete from public.time_log")).rowCount).toBe(0);
+          expect((await tx.query("update public.moves set target = 'hacked' where id = $1", [w.move])).rowCount).toBe(0);
+          expect((await tx.query("select public.add_move_minutes($1, 60)", [w.move])).rows[0].add_move_minutes).toBeNull();
+          expect((await tx.query("update public.message_templates set body = 'hacked' where id = $1", [w.template])).rowCount).toBe(0);
+          expect((await tx.query("delete from public.moves where id = $1", [w.move])).rowCount).toBe(0);
+          expect((await tx.query("delete from public.message_templates where id = $1", [w.template])).rowCount).toBe(0);
         });
         await asUser(tx, w.a, async () => {
+          expect(await tx.scalar("select target from public.moves where id = $1", [w.move])).toBe("A's contact");
+          expect(await tx.scalar("select minutes from public.moves where id = $1", [w.move])).toBe(0);
+          expect(await tx.scalar("select body from public.message_templates where id = $1", [w.template])).toBe("Hi {name}");
           expect(await tx.scalar("select company from public.applications where id = $1", [w.app])).toBe("Owned by A");
           expect(await tx.scalar("select title from public.assessments where id = $1", [w.asmt])).toBe("A's OA");
           expect(await tx.scalar("select question from public.assessment_questions where id = $1", [w.question])).toBe("A's question");
@@ -150,6 +173,21 @@ describe.skipIf(!dbReady)("row-level security", () => {
         await asUser(tx, w.b, async () => {
           const e = await failure(tx, "insert into public.assessment_questions (assessment_id, question) values ($1, 'sneaky')", [w.asmt]);
           expect(e.message).toMatch(/row-level security/);
+        });
+      });
+    });
+
+    it("can't link a move to the owner's application, on insert or update", async () => {
+      await inTx(async (tx) => {
+        const w = await world(tx);
+        await asUser(tx, w.b, async () => {
+          const e = await failure(tx, "insert into public.moves (channel, target, application_id) values ('linkedin', 'x', $1)", [w.app]);
+          expect(e.message).toMatch(/row-level security/);
+          const mine = await addMove(tx);
+          const u = await failure(tx, "update public.moves set application_id = $1 where id = $2", [w.app, mine]);
+          expect(u.message).toMatch(/row-level security/);
+          const t = await failure(tx, "insert into public.message_templates (channel, name, body, user_id) values ('email', 'x', 'y', $1)", [w.a]);
+          expect(t.message).toMatch(/row-level security/);
         });
       });
     });
@@ -224,6 +262,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
             "select public.add_time(current_date, 60)",
             "select public.set_time(current_date, 60)",
             "select public.import_rows('{}'::jsonb)",
+            "select public.add_move_minutes(gen_random_uuid(), 5)",
           ]) {
             expect((await failure(tx, sql)).message, sql).toMatch(/permission denied/);
           }
@@ -277,6 +316,8 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect(await tx.scalar("select count(*)::int from public.assessments")).toBe(0);
           expect(await tx.scalar("select count(*)::int from public.assessment_questions")).toBe(0);
           expect(await tx.scalar("select count(*)::int from public.status_changes")).toBe(0);
+          // Moves survive, just unlinked from the deleted application.
+          expect(await tx.rows("select application_id from public.moves")).toEqual([{ application_id: null }]);
         });
         await asUser(tx, w.b, async () => {
           expect(await tx.scalar("select count(*)::int from public.applications")).toBe(1);
@@ -290,7 +331,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
       await inTx(async (tx) => {
         const w = await world(tx);
         await tx.query("delete from auth.users where id = $1", [w.a]);
-        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log"]) {
+        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log", "moves", "message_templates"]) {
           expect(await tx.scalar<number>(`select count(*)::int from public.${table} where user_id = $1`, [w.a]), table).toBe(0);
         }
       });

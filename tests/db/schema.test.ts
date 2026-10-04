@@ -3,16 +3,27 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   ASSESSMENT_KINDS,
+  MOVE_CHANNELS,
+  MOVE_STAGES,
   OUTCOMES,
   QUESTION_SOURCES,
   STATUSES,
+  WAITING_ON,
 } from "@/lib/tracker/format";
 import { EXTRACT_SOURCES } from "@/lib/tracker/extract";
 import { closePool, createUser, dbReady, failure, inTx, addApplication, addAssessment, asUser } from "./helpers";
 
 afterAll(closePool);
 
-const TABLES = ["applications", "assessment_questions", "assessments", "status_changes", "time_log"];
+const TABLES = [
+  "applications",
+  "assessment_questions",
+  "assessments",
+  "message_templates",
+  "moves",
+  "status_changes",
+  "time_log",
+];
 
 // Values allowed by a check constraint like  CHECK ((status = ANY (ARRAY['a'::text, 'b'::text])))
 const allowed = (def: string) => [...def.matchAll(/'([^']*)'::text/g)].map((m) => m[1]).sort();
@@ -58,6 +69,20 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       await check("status_changes_origin_check");
       expect(current).toEqual(["email", "import", "manual"]);
     });
+    it("moves.channel and message_templates.channel = MOVE_CHANNELS", async () => {
+      await check("moves_channel_check");
+      expect(current).toEqual(Object.keys(MOVE_CHANNELS).sort());
+      await check("message_templates_channel_check");
+      expect(current).toEqual(Object.keys(MOVE_CHANNELS).sort());
+    });
+    it("moves.stage = MOVE_STAGES", async () => {
+      await check("moves_stage_check");
+      expect(current).toEqual([...MOVE_STAGES].sort());
+    });
+    it("moves.waiting_on = WAITING_ON", async () => {
+      await check("moves_waiting_on_check");
+      expect(current).toEqual(Object.keys(WAITING_ON).sort());
+    });
   });
 
   describe("numeric limits", () => {
@@ -87,6 +112,23 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           for (const blank of ["", "   "]) {
             const e = await failure(tx, "insert into public.assessment_questions (assessment_id, question) values ($1, $2)", [asmt, blank]);
             expect(e.constraint).toBe("assessment_questions_question_check");
+          }
+        });
+      });
+    });
+    it("a move's time and follow-ups are never negative, and it has a target", async () => {
+      await inTx(async (tx) => {
+        const user = await createUser(tx);
+        await asUser(tx, user, async () => {
+          const cases = [
+            ["insert into public.moves (channel, target, minutes) values ('linkedin', 'x', -1)", "moves_minutes_check"],
+            ["insert into public.moves (channel, target, follow_ups) values ('linkedin', 'x', -1)", "moves_follow_ups_check"],
+            ["insert into public.moves (channel, target) values ('linkedin', '  ')", "moves_target_check"],
+            ["insert into public.message_templates (channel, name, body) values ('email', ' ', 'x')", "message_templates_name_check"],
+            ["insert into public.message_templates (channel, name, body) values ('email', 'x', '')", "message_templates_body_check"],
+          ];
+          for (const [sql, constraint] of cases) {
+            expect((await failure(tx, sql)).constraint, sql).toBe(constraint);
           }
         });
       });
@@ -122,6 +164,8 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["applications", "own applications", "ALL"],
           ["assessment_questions", "own assessment questions", "ALL"],
           ["assessments", "own assessments", "ALL"],
+          ["message_templates", "own message templates", "ALL"],
+          ["moves", "own moves", "ALL"],
           ["status_changes", "read own status changes", "SELECT"],
           ["time_log", "own time log", "ALL"],
         ]);
@@ -133,8 +177,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
         const rows = await tx.rows<{ conname: string; confdeltype: string }>(
           "select conname, confdeltype from pg_constraint where connamespace = 'public'::regnamespace and contype = 'f' order by 1"
         );
-        expect(rows.length).toBeGreaterThanOrEqual(8);
-        expect(rows.filter((r) => r.confdeltype !== "c").map((r) => r.conname)).toEqual([]); // every FK is ON DELETE CASCADE
+        expect(rows.length).toBeGreaterThanOrEqual(10);
+        // Every FK is ON DELETE CASCADE, except a move's link to an
+        // application: deleting the application just unlinks the move.
+        expect(rows.filter((r) => r.confdeltype !== "c").map((r) => [r.conname, r.confdeltype])).toEqual([
+          ["moves_application_id_fkey", "n"],
+        ]);
       });
     });
   });
@@ -179,11 +227,14 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "select proname, proconfig from pg_proc where pronamespace = 'public'::regnamespace order by 1"
         );
         expect(rows.map((r) => r.proname)).toEqual([
+          "add_move_minutes",
           "add_time",
           "applications_before_write",
           "applications_log_status",
           "assessments_before_write",
           "import_rows",
+          "message_templates_before_write",
+          "moves_before_write",
           "set_time",
           "status_origin",
         ]);
@@ -197,7 +248,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       await inTx(async (tx) => {
         const can = (role: string, fn: string) =>
           tx.scalar<boolean>("select has_function_privilege($1, $2, 'execute')", [role, fn]);
-        for (const fn of ["public.add_time(date, integer)", "public.set_time(date, integer)", "public.import_rows(jsonb)"]) {
+        for (const fn of [
+          "public.add_time(date, integer)",
+          "public.set_time(date, integer)",
+          "public.import_rows(jsonb)",
+          "public.add_move_minutes(uuid, integer)",
+        ]) {
           expect(await can("authenticated", fn), `authenticated ${fn}`).toBe(true);
           expect(await can("anon", fn), `anon ${fn}`).toBe(false);
         }
@@ -205,6 +261,8 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "public.applications_log_status()",
           "public.applications_before_write()",
           "public.assessments_before_write()",
+          "public.moves_before_write()",
+          "public.message_templates_before_write()",
         ]) {
           expect(await can("authenticated", fn), `authenticated ${fn}`).toBe(false);
           expect(await can("anon", fn), `anon ${fn}`).toBe(false);
@@ -212,17 +270,25 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       });
     });
 
-    it("the three triggers are in place", async () => {
+    it("the triggers are in place", async () => {
       await inTx(async (tx) => {
         const rows = await tx.rows<{ tgname: string; def: string }>(
           `select t.tgname, pg_get_triggerdef(t.oid) as def from pg_trigger t
            join pg_class c on c.oid = t.tgrelid
            where c.relnamespace = 'public'::regnamespace and not t.tgisinternal order by 1`
         );
-        expect(rows.map((r) => r.tgname)).toEqual(["applications_before_write", "applications_log_status", "assessments_before_write"]);
+        expect(rows.map((r) => r.tgname)).toEqual([
+          "applications_before_write",
+          "applications_log_status",
+          "assessments_before_write",
+          "message_templates_before_write",
+          "moves_before_write",
+        ]);
         expect(rows[0].def).toContain("BEFORE INSERT OR UPDATE ON public.applications");
         expect(rows[1].def).toContain("AFTER INSERT OR UPDATE OF status ON public.applications");
         expect(rows[2].def).toContain("BEFORE INSERT OR UPDATE ON public.assessments");
+        expect(rows[3].def).toContain("BEFORE INSERT OR UPDATE ON public.message_templates");
+        expect(rows[4].def).toContain("BEFORE INSERT OR UPDATE ON public.moves");
       });
     });
   });

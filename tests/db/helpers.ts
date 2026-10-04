@@ -159,6 +159,15 @@ export async function addApplication(tx: Tx, fields: Record<string, unknown> = {
   );
 }
 
+export async function addMove(tx: Tx, fields: Record<string, unknown> = {}): Promise<string> {
+  const row = { channel: "linkedin", target: "Priya (Acme)", ...fields };
+  const keys = Object.keys(row);
+  return tx.scalar<string>(
+    `insert into public.moves (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning id`,
+    Object.values(row)
+  );
+}
+
 export async function addAssessment(tx: Tx, applicationId: string, fields: Record<string, unknown> = {}): Promise<string> {
   const row = { application_id: applicationId, title: "Coding round", ...fields };
   const keys = Object.keys(row);
