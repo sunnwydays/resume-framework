@@ -80,6 +80,19 @@ export const QUESTION_SOURCES = {
 } as const;
 export type QuestionSource = keyof typeof QUESTION_SOURCES;
 
+// What a Gmail message was recognized as. Must match the check constraint on
+// email_messages.kind.
+export const EMAIL_KINDS = {
+  confirmation: "Applied",
+  rejection: "Rejection",
+  oa_invite: "OA invite",
+  video_invite: "Video interview invite",
+  interview_invite: "Interview invite",
+  assessment_done: "Assessment done",
+  reminder: "Reminder",
+} as const;
+export type EmailKind = keyof typeof EMAIL_KINDS;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // Today (or the day of `at`) as a local YYYY-MM-DD (what a <input

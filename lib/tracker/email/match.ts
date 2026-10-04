@@ -1,5 +1,5 @@
-// Fuzzy name matching, shared so other features can reuse what the
-// spreadsheet import uses to attach assessments to applications.
+// Fuzzy name matching shared by the spreadsheet import and the Gmail scan:
+// "is this email's company/role the same one as that application's?".
 
 // Optimal string alignment distance: edits plus adjacent swaps.
 export function editDistance(a: string, b: string): number {
@@ -38,4 +38,59 @@ export function companyCloseness(a: string, b: string): number {
   if (short.length >= 4 && long.includes(short)) return 70;
   if (short.length >= 4 && editDistance(x, y) <= (short.length >= 7 ? 2 : 1)) return 60;
   return 0;
+}
+
+// Words that say nothing about *which* internship it is: every role here is
+// a software internship in some term.
+const ROLE_NOISE = new Set([
+  "intern", "interns", "internship", "internships", "coop", "co", "op", "summer", "spring", "fall", "winter",
+  "software", "engineer", "engineering", "developer", "development", "swe", "sde", "swd", "test", "coding", "the",
+  "a", "an", "and", "of", "for", "in", "at", "new", "grad", "student", "students", "university", "program",
+  "role", "position", "opportunity", "opportunities", "toronto", "canada", "remote", "us", "usa", "2025", "2026", "2027", "2028",
+]);
+
+// Spelled-out and shorthand forms of the same thing, so a posting's "Machine
+// Learning" meets a tracked "swe ml" and "Database Engineering" meets "swe - db".
+const ROLE_SYNONYMS: [RegExp, string][] = [
+  [/\bmachine[\s-]+learning\b/g, "ml"],
+  [/\bartificial[\s-]+intelligence\b/g, "ai"],
+  [/\bfull[\s-]*stack\b/g, "fullstack"],
+  [/\bfront[\s-]*end\b/g, "frontend"],
+  [/\bback[\s-]*end\b/g, "backend"],
+  [/\bdatabases?\b|\bdb\b/g, "db"],
+  [/\binfrastructure\b/g, "infra"],
+  [/\btest[\s-]+automation\b/g, "testautomation"],
+  [/\bco-op\b/g, "coop"],
+];
+
+function roleTokens(role: string): string[] {
+  let text = key(role);
+  for (const [pattern, word] of ROLE_SYNONYMS) text = text.replace(pattern, word);
+  return text.split(/[^a-z0-9]+/).filter((t) => t && !ROLE_NOISE.has(t));
+}
+
+// Does this title say *which* job it is ("SWE, ML"), or only that it's a job ("swe")?
+export const hasDistinctRole = (role: string) => roleTokens(role).length > 0;
+
+// 0 = unrelated, 100 = same distinguishing words. "[Spring 2027] AI/ML SWE
+// Intern Coding Test" vs "Software Engineer Intern (AI / ML) - Spring 2027"
+// both reduce to [ai, ml]. Titles with nothing distinguishing (plain
+// "Software Engineer Intern") match each other at 50: weak, but not a clash.
+export function roleCloseness(a: string, b: string): number {
+  const x = roleTokens(a);
+  const y = roleTokens(b);
+  if (x.length === 0 && y.length === 0) return key(a) && key(b) ? 50 : 0;
+  if (x.length === 0 || y.length === 0) return 0;
+  const setY = new Set(y);
+  const shared = x.filter((t) => setY.has(t)).length;
+  // Dice coefficient over distinguishing words.
+  return Math.round((2 * shared * 100) / (x.length + new Set(y).size));
+}
+
+// Does this posting URL / notes text mention the job id?
+export function mentionsJobId(haystack: string | null | undefined, jobId: string | null | undefined): boolean {
+  if (!haystack || !jobId) return false;
+  const digits = jobId.replace(/\D/g, "");
+  // Short ids ("R-1") would match everything; real requisition numbers are 5+ digits.
+  return digits.length >= 5 && haystack.replace(/[\s-]/g, "").includes(digits);
 }

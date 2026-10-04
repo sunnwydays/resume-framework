@@ -300,6 +300,40 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `deleteAllApplications`; assessments, questions and history go with them
   by cascade. `ClearAllDialog.tsx` makes it three steps (continue, tick an
   acknowledgement, type "delete all").
+- **Gmail scan (in progress; the database and review UI are not built
+  yet)** (`lib/tracker/email/`). Finds what Sunny applied to, rejections and
+  OA/interview invites in their inbox, and will *suggest* tracker updates
+  (never auto-applied; status changes go through the trigger with origin
+  `email`). No AI: keyword and template rules only. The browser gets a
+  short-lived read-only Google token (Google Identity Services,
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; held in memory, nothing stored or
+  scheduled) and reads Gmail directly (`gmail.ts`). Pipeline, all pure
+  except `gmail.ts`: `parse.ts` (Gmail message -> `EmailFacts`: headers, text,
+  links with anchor text; `expandDigest` splits Workday's multi-notification
+  digests) -> `classify.ts` (`RULES` holds *every* phrase, sender list and
+  the Gmail search terms, so tuning is one place; the body decides, since
+  rejections often open with "Thank you for your application"; returns a
+  kind or an ignore reason) -> `fields.ts` (company, role, job id, link,
+  deadline or completion time; sender-specific templates first, then generic
+  ones, then sender-domain guesses, and each value records its origin) ->
+  `group.ts` (`matchApplications`: job id in a posting URL, then company, then
+  role; `groupIntoJobs`: one `JobGroup` per job with forward-only status
+  steps, assessment actions and missing-date fills; recomputed on every
+  render, so accepting one job makes the next match the new row).
+  `match.ts` holds the fuzzy company/role matching shared with the import.
+  Gotchas learned from the real inbox: one company sends many roles (a
+  thread is not a job; match on role and job id); "may not be able to reach
+  out to every applicant" is a confirmation, not a rejection; LinkedIn's
+  plain text is empty but its tracking URLs name the mail type; some
+  employers' links are tracking redirects, so assessment links are chosen by
+  anchor text. Personal sender domains to ignore (e.g. Sunny's school) live in
+  `NEXT_PUBLIC_GMAIL_IGNORE_DOMAINS` in `.env.local`, not in `RULES`.
+  **Tune the rules with the dev inspector at `/tracker/gmail-debug`**
+  (404 in production): a dry-run scan that shows every fetched email with
+  what the rules read from it, and "Copy as test fixture" for each mislabel.
+  Fixtures in `tests/unit/email-*.test.ts` use made-up companies in the shape
+  of real emails; never commit real names, addresses, requisition numbers or
+  message text, and keep comment examples fictional too (the repo is public).
 
 ## Testing
 

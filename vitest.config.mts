@@ -15,6 +15,8 @@ const DATE_SENSITIVE = [
   "tests/unit/import-parsers.test.ts",
   "tests/unit/import-plan.test.ts",
   "tests/unit/import-roundtrip.test.ts",
+  "tests/unit/email-rules.test.ts",
+  "tests/unit/email-group.test.ts",
 ];
 
 export default defineConfig({
