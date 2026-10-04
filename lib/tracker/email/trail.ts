@@ -1,5 +1,6 @@
 // The emails behind an application, for its expanded row, and whether the
-// last Gmail accept on it can still be undone.
+// last Gmail accept on it can still be undone. Mirrors the checks in the
+// undo_email_job RPC, which has the final say.
 
 import type { Application, EmailAccept, EmailMessage } from "@/lib/tracker/format";
 
@@ -11,14 +12,19 @@ export interface Trail {
   undoable: boolean;
 }
 
+const time = (value: string) => new Date(value).getTime();
+
 export function emailTrail(app: Pick<Application, "id" | "updated_at">, messages: EmailMessage[], accepts: EmailAccept[]): Trail {
   const emails = messages
     .filter((m) => m.state === "accepted" && m.application_id === app.id)
-    .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
-  const accept =
-    accepts
-      .filter((a) => a.application_id === app.id && !a.undone_at)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
-  const undoable = accept !== null && new Date(app.updated_at).getTime() <= new Date(accept.created_at).getTime();
-  return { emails, accept, undoable };
+    .sort((a, b) => time(b.received_at) - time(a.received_at));
+  const mine = accepts.filter((a) => a.application_id === app.id);
+  const accept = mine.filter((a) => !a.undone_at).sort((a, b) => time(b.created_at) - time(a.created_at))[0] ?? null;
+  if (!accept) return { emails, accept, undoable: false };
+  // Undoing a newer accept touches the row too; that isn't a hand edit.
+  const since = Math.max(
+    time(accept.created_at),
+    ...mine.filter((a) => a.undone_at && time(a.created_at) > time(accept.created_at)).map((a) => time(a.undone_at!))
+  );
+  return { emails, accept, undoable: time(app.updated_at) <= since };
 }

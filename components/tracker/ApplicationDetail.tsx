@@ -110,6 +110,16 @@ export default function ApplicationDetail({ app, assessments, questionsByAssessm
   });
 
   const trail = emailTrail(app, tracker.gmail.emails, tracker.gmail.accepts);
+  const [undoError, setUndoError] = useState<string | null>(null);
+
+  async function undoAccept() {
+    if (!trail.accept) return;
+    const what = trail.accept.created_application
+      ? `Delete this application (it was added from Gmail) and everything that came with it? Its emails go back to review.`
+      : `Revert the last change Gmail made here? Its emails go back to review.`;
+    if (!window.confirm(what)) return;
+    setUndoError(await tracker.undoEmailJob(trail.accept.id));
+  }
 
   const sortedAssessments = [...assessments].sort((a, b) =>
     (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999")
@@ -259,6 +269,22 @@ export default function ApplicationDetail({ app, assessments, questionsByAssessm
         {trail.emails.length > 0 && (
           <>
             <h3 className={`${headingCls} pt-2`}>Emails</h3>
+            {trail.accept && (
+              <p className="text-xs text-neutral-500">
+                Last changed from Gmail {formatDateTime(trail.accept.created_at)}
+                {trail.undoable ? (
+                  <>
+                    {" · "}
+                    <button type="button" className="underline" onClick={undoAccept}>
+                      Undo
+                    </button>
+                  </>
+                ) : (
+                  " · edited since, so change it by hand"
+                )}
+                {undoError && <span className="text-red-700 dark:text-red-400"> · {undoError}</span>}
+              </p>
+            )}
             <ul className="space-y-1 text-sm">
               {trail.emails.map((e) => {
                 const kind = e.kind as EmailKind;

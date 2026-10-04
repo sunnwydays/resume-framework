@@ -288,4 +288,12 @@ describe("emailTrail", () => {
     expect(emailTrail(edited, [], [older, newest])).toMatchObject({ accept: newest, undoable: false });
     expect(emailTrail(app, [], [])).toEqual({ emails: [], accept: null, undoable: false });
   });
+
+  it("after undoing the newer accept, the older one is next, unless the row was edited after that undo", () => {
+    const older = makeAccept({ application_id: "app-x", created_at: "2026-09-25T12:00:00.000Z" });
+    const undone = makeAccept({ application_id: "app-x", created_at: "2026-09-27T12:00:00.000Z", undone_at: "2026-09-29T12:00:00.000Z" });
+    // The undo itself stamped the row at 12:00.
+    expect(emailTrail(app, [], [older, undone])).toMatchObject({ accept: older, undoable: true });
+    expect(emailTrail({ ...app, updated_at: "2026-09-29T13:00:00.000Z" }, [], [older, undone])).toMatchObject({ accept: older, undoable: false });
+  });
 });

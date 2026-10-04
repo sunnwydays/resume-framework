@@ -172,7 +172,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       });
     });
 
-    it("have one own-rows policy each, and status_changes is read-only", async () => {
+    it("have one own-rows policy each; status_changes is read-only except deleting email-made rows", async () => {
       await inTx(async (tx) => {
         const rows = await tx.rows<{ tablename: string; policyname: string; cmd: string; roles: string[] }>(
           "select tablename, policyname, cmd, roles::text[] as roles from pg_policies where schemaname = 'public' order by 1, 2"
@@ -187,6 +187,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["gmail_scans", "own gmail scans", "ALL"],
           ["message_templates", "own message templates", "ALL"],
           ["moves", "own moves", "ALL"],
+          ["status_changes", "delete own email history", "DELETE"],
           ["status_changes", "read own status changes", "SELECT"],
           ["time_log", "own time log", "ALL"],
         ]);
@@ -262,6 +263,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "moves_before_write",
           "set_time",
           "status_origin",
+          "undo_email_job",
         ]);
         for (const r of rows) {
           expect(r.proconfig?.some((c) => c.startsWith("search_path=")), r.proname).toBe(true);
@@ -279,6 +281,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           "public.import_rows(jsonb)",
           "public.add_move_minutes(uuid, integer)",
           "public.apply_email_job(jsonb)",
+          "public.undo_email_job(uuid)",
         ]) {
           expect(await can("authenticated", fn), `authenticated ${fn}`).toBe(true);
           expect(await can("anon", fn), `anon ${fn}`).toBe(false);

@@ -258,6 +258,152 @@ describe.skipIf(!dbReady)("apply_email_job", () => {
   });
 });
 
+const undo = (tx: Tx, acceptId: string) => tx.query("select public.undo_email_job($1)", [acceptId]);
+const undoFails = (tx: Tx, acceptId: string) => failure(tx, "select public.undo_email_job($1)", [acceptId]);
+const acceptIdFor = (tx: Tx, app: string) =>
+  tx.scalar<string>("select id from public.email_accepts where application_id = $1 and undone_at is null order by created_at desc limit 1", [app]);
+// Everything in one test shares a transaction, so now() never moves: push an
+// accept into the past to make a later edit or accept come "after" it.
+const backdate = (tx: Tx, acceptId: string) =>
+  tx.query("update public.email_accepts set created_at = now() - interval '1 minute' where id = $1", [acceptId]);
+
+describe.skipIf(!dbReady)("undo_email_job", () => {
+  it("undoing a card that created the application removes it and puts its emails back", async () => {
+    await asNewUser(async (tx) => {
+      const emails = [await addEmail(tx, { received_at: T1 }), await addEmail(tx, { kind: "oa_invite", received_at: T2 })];
+      const id = await applyEmailJob(tx, {
+        new_application: { company: "Globex", role: "Backend Intern", status_changed_at: T1 },
+        steps: [{ status: "oa", at: T2 }],
+        assessments: [{ kind: "oa", title: "Globex coding test", completed_at: null }],
+        message_ids: emails,
+      });
+      await undo(tx, await acceptIdFor(tx, id));
+
+      expect(await tx.scalar("select count(*)::int from public.applications")).toBe(0);
+      expect(await tx.scalar("select count(*)::int from public.assessments")).toBe(0);
+      expect(await tx.scalar("select count(*)::int from public.email_accepts")).toBe(0);
+      expect(await tx.rows("select state, application_id, accept_id from public.email_messages order by received_at")).toEqual([
+        { state: "pending", application_id: null, accept_id: null },
+        { state: "pending", application_id: null, accept_id: null },
+      ]);
+    });
+  });
+
+  it("undoing a card on a tracked application restores the row, its assessments and its history", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx, { applied_on: "2026-09-27" });
+      const oa = await addAssessment(tx, app, { title: "OA", link: "https://mine.example" });
+      const before = await appRow(tx, app);
+      const manual = await history(tx, app);
+      const emails = [await addEmail(tx, { received_at: T1 }), await addEmail(tx, { kind: "rejection", received_at: T3 })];
+      await applyEmailJob(tx, {
+        application_id: app,
+        steps: [{ status: "rejected", at: T3 }],
+        assessments: [{ id: oa, completed_at: T2 }, { kind: "interview", title: "Onsite", completed_at: null }],
+        fill: { applied_on: { from: "2026-09-27", to: "2026-09-20" } },
+        message_ids: emails,
+      });
+      expect((await appRow(tx, app)).status).toBe("rejected");
+
+      const acceptId = await acceptIdFor(tx, app);
+      await undo(tx, acceptId);
+
+      const after = await appRow(tx, app);
+      expect(after).toMatchObject({ status: "applied", applied_on: "2026-09-27" });
+      expect(iso(after.status_changed_at)).toBe(iso(before.status_changed_at));
+      expect(await history(tx, app)).toEqual(manual);
+      expect(await tx.rows("select title, status, link, completed_at from public.assessments where application_id = $1", [app])).toEqual([
+        { title: "OA", status: "pending", link: "https://mine.example", completed_at: null },
+      ]);
+      expect(await tx.scalar("select undone_at is not null from public.email_accepts where id = $1", [acceptId])).toBe(true);
+      expect(await tx.scalar("select count(*)::int from public.email_messages where state = 'pending' and application_id is null")).toBe(2);
+      expect((await undoFails(tx, acceptId)).message).toMatch(/already undone/);
+    });
+  });
+
+  it("is refused once the application was edited by hand after the accept", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      await applyEmailJob(tx, { application_id: app, steps: [{ status: "rejected", at: T3 }], message_ids: [await addEmail(tx, { kind: "rejection" })] });
+      const acceptId = await acceptIdFor(tx, app);
+      await backdate(tx, acceptId);
+      await tx.query("update public.applications set notes = 'called them' where id = $1", [app]);
+      expect((await undoFails(tx, acceptId)).message).toMatch(/edited after/);
+      expect((await appRow(tx, app)).status).toBe("rejected");
+    });
+  });
+
+  it("goes newest first on one application", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      await applyEmailJob(tx, { application_id: app, steps: [{ status: "oa", at: T2 }], message_ids: [await addEmail(tx, { kind: "oa_invite" })] });
+      const first = await acceptIdFor(tx, app);
+      await backdate(tx, first);
+      await applyEmailJob(tx, { application_id: app, steps: [{ status: "rejected", at: T3 }], message_ids: [await addEmail(tx, { kind: "rejection" })] });
+      const second = await acceptIdFor(tx, app);
+
+      expect((await undoFails(tx, first)).message).toMatch(/later Gmail changes/);
+      await undo(tx, second);
+      expect((await appRow(tx, app)).status).toBe("oa");
+      // Undoing the second touched the row, but that isn't a hand edit.
+      await undo(tx, first);
+      expect((await appRow(tx, app)).status).toBe("applied");
+      expect((await history(tx, app)).map((h) => h.origin)).toEqual(["manual"]);
+    });
+  });
+
+  it("a hand edit after undoing the newer accept still blocks the older one", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      await applyEmailJob(tx, { application_id: app, steps: [{ status: "oa", at: T2 }], message_ids: [await addEmail(tx, { kind: "oa_invite" })] });
+      const first = await acceptIdFor(tx, app);
+      // first < second < the undo < the edit
+      await tx.query("update public.email_accepts set created_at = now() - interval '3 minutes' where id = $1", [first]);
+      await applyEmailJob(tx, { application_id: app, steps: [{ status: "rejected", at: T3 }], message_ids: [await addEmail(tx, { kind: "rejection" })] });
+      const second = await acceptIdFor(tx, app);
+      expect(second).not.toBe(first);
+      await undo(tx, second);
+      await tx.query(
+        "update public.email_accepts set created_at = now() - interval '2 minutes', undone_at = now() - interval '1 minute' where id = $1",
+        [second]
+      );
+      await tx.query("update public.applications set notes = 'called them' where id = $1", [app]);
+      expect((await undoFails(tx, first)).message).toMatch(/edited after/);
+    });
+  });
+
+  it("is refused when an assessment the card added has questions now", async () => {
+    await asNewUser(async (tx) => {
+      const id = await applyEmailJob(tx, {
+        new_application: { company: "Globex", role: "Backend Intern" },
+        assessments: [{ kind: "oa", title: "Globex coding test", completed_at: null }],
+        message_ids: [await addEmail(tx)],
+      });
+      const oa = await tx.scalar<string>("select id from public.assessments where application_id = $1", [id]);
+      await tx.query("insert into public.assessment_questions (assessment_id, question) values ($1, 'Two sum')", [oa]);
+      expect((await undoFails(tx, await acceptIdFor(tx, id))).message).toMatch(/has questions/);
+    });
+  });
+
+  it("can't undo another user's accept", async () => {
+    await inTx(async (tx) => {
+      const a = await createUser(tx, "a");
+      const b = await createUser(tx, "b");
+      let acceptId = "";
+      await asUser(tx, a, async () => {
+        const id = await applyEmailJob(tx, { new_application: { company: "Globex", role: "Intern" }, message_ids: [await addEmail(tx)] });
+        acceptId = await acceptIdFor(tx, id);
+      });
+      await asUser(tx, b, async () => {
+        expect((await undoFails(tx, acceptId)).message).toMatch(/nothing to undo/);
+      });
+      await asUser(tx, a, async () => {
+        expect(await tx.scalar("select count(*)::int from public.applications")).toBe(1);
+      });
+    });
+  });
+});
+
 describe.skipIf(!dbReady)("email_messages", () => {
   it("a re-scan never revives an email that was dismissed (upsert ignores duplicates)", async () => {
     await asNewUser(async (tx) => {

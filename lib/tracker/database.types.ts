@@ -545,6 +545,7 @@ export type Database = {
       import_rows: { Args: { payload: Json }; Returns: Json }
       set_time: { Args: { p_day: string; p_seconds: number }; Returns: number }
       status_origin: { Args: never; Returns: string }
+      undo_email_job: { Args: { p_accept: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

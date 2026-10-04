@@ -270,7 +270,25 @@ describe.skipIf(!dbReady)("row-level security", () => {
     });
   });
 
-  describe("status history is read-only for everyone", () => {
+  describe("status history is read-only, except email-made rows (for undo)", () => {
+    it("the owner can delete their own email-origin rows, nothing else, and nobody else can", async () => {
+      await inTx(async (tx) => {
+        const w = await world(tx);
+        await asUser(tx, w.a, async () => {
+          await tx.query("select set_config('app.status_origin', 'email', true)");
+          await tx.query("update public.applications set status = 'rejected' where id = $1", [w.app]);
+          await tx.query("select set_config('app.status_origin', '', true)");
+        });
+        await asUser(tx, w.b, async () => {
+          expect((await tx.query("delete from public.status_changes")).rowCount).toBe(0);
+        });
+        await asUser(tx, w.a, async () => {
+          expect((await tx.query("delete from public.status_changes")).rowCount).toBe(1);
+          expect(await tx.rows("select status, origin from public.status_changes")).toEqual([{ status: "applied", origin: "manual" }]);
+        });
+      });
+    });
+
     it("the owner can read it but not write it", async () => {
       await inTx(async (tx) => {
         const w = await world(tx);

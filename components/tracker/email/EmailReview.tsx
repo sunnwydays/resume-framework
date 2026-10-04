@@ -6,6 +6,7 @@ import EmailJobCard from "@/components/tracker/email/EmailJobCard";
 import { muteValue } from "@/lib/tracker/email/mute";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
 import { category, countByCategory, REVIEW_FILTERS, type Review, type ReviewFilter } from "@/lib/tracker/email/review";
+import { emailTrail } from "@/lib/tracker/email/trail";
 import { MUTE_KINDS, buttonCls, type MuteKind } from "@/lib/tracker/format";
 import type { Tracker } from "@/lib/tracker/useTracker";
 
@@ -24,6 +25,7 @@ export default function EmailReview({ tracker, review }: Props) {
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showMutes, setShowMutes] = useState(false);
+  const [last, setLast] = useState<{ applicationId: string; label: string } | null>(null);
 
   // Bulk accept re-reads the cards after every accept (a new row can change
   // what later cards match), so it needs the latest review, not a stale one.
@@ -39,24 +41,43 @@ export default function EmailReview({ tracker, review }: Props) {
   const nothing = review.groups.filter((g) => category(g) === "nothing");
 
   async function accept(payload: EmailJobPayload, label: string): Promise<string | null> {
-    const error = await tracker.applyEmailJob(payload);
-    setMessage(error ? null : `Saved ${label}.`);
-    return error;
+    const result = await tracker.applyEmailJob(payload);
+    if ("error" in result) return result.error;
+    setMessage(null);
+    setLast({ applicationId: result.applicationId, label });
+    return null;
+  }
+
+  // Undo for the card just accepted, while it's still the newest change on
+  // its row (the same check the database makes).
+  const lastApp = last ? applications.find((a) => a.id === last.applicationId) : undefined;
+  const lastTrail = lastApp ? emailTrail(lastApp, gmail.emails, gmail.accepts) : null;
+
+  async function undoLast() {
+    if (!last || !lastTrail?.accept) return;
+    const what = lastTrail.accept.created_application
+      ? `Delete ${last.label} and everything this card added? Its emails go back to review.`
+      : `Revert what this card changed on ${last.label}? Its emails go back to review.`;
+    if (!window.confirm(what)) return;
+    const error = await tracker.undoEmailJob(lastTrail.accept.id);
+    setLast(null);
+    setMessage(error ? `Couldn't undo: ${error}` : `Undid the change to ${last.label}.`);
   }
 
   async function acceptReady() {
     const keys = ready.map((g) => g.key);
     if (!window.confirm(`Accept ${keys.length} card${keys.length === 1 ? "" : "s"} as suggested? Check them over first; each can be undone from its application afterwards.`)) return;
     setMessage(null);
+    setLast(null);
     let done = 0;
     for (const key of keys) {
       setBulk({ done, total: keys.length });
       const g = latest.current.groups.find((x) => x.key === key);
       if (!g || !g.ready || g.nothingToDo) continue;
       const rowId = (gmailId: string) => latest.current.rowIdOf.get(gmailId)!;
-      const error = await tracker.applyEmailJob(buildPayload(g, defaultTicks(g), rowId, g.target.type === "new" ? newAppDefaults(g) : undefined));
-      if (error) {
-        setMessage(`Stopped after ${done}: ${error}`);
+      const result = await tracker.applyEmailJob(buildPayload(g, defaultTicks(g), rowId, g.target.type === "new" ? newAppDefaults(g) : undefined));
+      if ("error" in result) {
+        setMessage(`Stopped after ${done}: ${result.error}`);
         setBulk(null);
         return;
       }
@@ -124,9 +145,24 @@ export default function EmailReview({ tracker, review }: Props) {
       </div>
 
       {message && <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>}
+      {last && lastTrail && (
+        <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+          Saved {last.label}.
+          {lastTrail.undoable && (
+            <button type="button" className="underline" onClick={undoLast}>
+              Undo
+            </button>
+          )}
+          <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
+            Hide
+          </button>
+        </p>
+      )}
 
       {visible.length === 0 ? (
-        <p className="py-8 text-center text-sm text-neutral-500">Nothing here.</p>
+        <p className="py-8 text-center text-sm text-neutral-500">
+          {review.groups.length === 0 ? "All caught up: nothing from Gmail is waiting for review." : "Nothing here."}
+        </p>
       ) : (
         <div className="space-y-3">
           {visible.slice(0, shown).map((g) => (

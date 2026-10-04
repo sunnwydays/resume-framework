@@ -35,7 +35,7 @@ type FetchResult =
     };
 
 // Gmail review state: pending emails (the review tab) and accepted ones (each
-// application's email trail), mutes, open accepts (for undo), last scan.
+// application's email trail), mutes, accepts (for undo), last scan.
 export interface GmailData {
   emails: EmailMessage[];
   mutes: EmailMute[];
@@ -56,7 +56,7 @@ async function fetchAll(): Promise<FetchResult> {
     sb.from("status_changes").select("*").order("changed_at", { ascending: true }),
     sb.from("email_messages").select("*").in("state", ["pending", "accepted"]).order("received_at", { ascending: true }),
     sb.from("email_mutes").select("*").order("created_at", { ascending: true }),
-    sb.from("email_accepts").select("*").is("undone_at", null),
+    sb.from("email_accepts").select("*"),
     sb.from("gmail_scans").select("*").order("scanned_at", { ascending: false }).limit(1),
   ]);
   const err =
@@ -314,10 +314,20 @@ export function useTracker() {
 
   // Applies one reviewed card in a single transaction, then reloads: the
   // card can touch the application, its assessments, history and emails.
-  // Returns an error message.
   const applyEmailJob = useCallback(
-    async (payload: EmailJobPayload): Promise<string | null> => {
-      const { error } = await supabase().rpc("apply_email_job", { payload: payload as unknown as Json });
+    async (payload: EmailJobPayload): Promise<{ applicationId: string } | { error: string }> => {
+      const { data, error } = await supabase().rpc("apply_email_job", { payload: payload as unknown as Json });
+      await reload();
+      return error ? { error: error.message } : { applicationId: data };
+    },
+    [reload]
+  );
+
+  // Reverts one accepted card (the database refuses if the row was edited
+  // since, or a newer accept on it isn't undone). Returns an error message.
+  const undoEmailJob = useCallback(
+    async (acceptId: string): Promise<string | null> => {
+      const { error } = await supabase().rpc("undo_email_job", { p_accept: acceptId });
       await reload();
       return error?.message ?? null;
     },
@@ -375,6 +385,7 @@ export function useTracker() {
     saveEmails,
     recordScan,
     applyEmailJob,
+    undoEmailJob,
     dismissEmails,
     addMute,
     removeMute,

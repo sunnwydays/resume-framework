@@ -284,8 +284,6 @@ export default function TrackerPage() {
         {tab === "gmail" &&
           (tracker.loading ? (
             <p className="py-8 text-center text-sm text-neutral-500">Loading…</p>
-          ) : review.groups.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-500">All caught up: nothing from Gmail is waiting for review.</p>
           ) : (
             <EmailReview tracker={tracker} review={review} />
           ))}
