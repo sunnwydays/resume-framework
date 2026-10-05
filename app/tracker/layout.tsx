@@ -4,6 +4,7 @@ import TrackerNav from "@/components/tracker/TrackerNav";
 export const metadata: Metadata = {
   title: "Job Tracker",
   description: "Personal job application tracker.",
+  robots: { index: false, follow: false },
 };
 
 export default function TrackerLayout({
