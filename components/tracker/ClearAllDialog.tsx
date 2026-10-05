@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls } from "@/lib/tracker/format";
 
 interface Props {
@@ -36,7 +37,7 @@ export default function ClearAllDialog({ title, summary, advice, onConfirm, onCl
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+    <ModalBackdrop onDismiss={busy ? undefined : onClose}>
       <div className="w-full max-w-md space-y-4 rounded-lg border-2 border-red-700 bg-surface p-5 shadow-xl">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">{title}</h2>
@@ -111,6 +112,6 @@ export default function ClearAllDialog({ title, summary, advice, onConfirm, onCl
           </>
         )}
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

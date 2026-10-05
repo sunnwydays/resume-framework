@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { GmailError, alertQuery, fetchMessages, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
 import { scanStart } from "@/lib/tracker/email/scan";
+import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls, type JobPosting } from "@/lib/tracker/format";
 import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
 import { dedupePostings, defaultPostingScanFrom, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
@@ -88,7 +89,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+        <ModalBackdrop onDismiss={running ? undefined : () => setOpen(false)}>
           <div className="w-full max-w-lg space-y-4 rounded-lg bg-surface p-5 shadow-xl">
             <div className="flex items-baseline justify-between gap-4">
               <h2 className="text-lg font-semibold">Scan job alerts</h2>
@@ -136,7 +137,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
               {error && <p className="text-red-700 dark:text-red-400">{error}</p>}
             </div>
           </div>
-        </div>
+        </ModalBackdrop>
       )}
     </>
   );

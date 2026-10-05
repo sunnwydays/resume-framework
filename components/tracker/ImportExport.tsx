@@ -21,6 +21,7 @@ import {
 import { downloadTemplate, exportData } from "@/lib/tracker/export";
 import ApplicationPicker from "@/components/tracker/ApplicationPicker";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
+import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { supabase } from "@/lib/tracker/useTracker";
 import {
   buttonCls,
@@ -551,7 +552,7 @@ export default function ImportExport({
       )}
 
       {open && !sheets && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+        <ModalBackdrop onDismiss={close}>
           <div className="w-full max-w-3xl space-y-4 rounded-lg bg-surface p-5 shadow-xl">
             <div className="flex items-baseline justify-between gap-4">
               <h2 className="text-lg font-semibold">Import a spreadsheet</h2>
@@ -585,7 +586,7 @@ export default function ImportExport({
             <div className="flex items-center gap-3">{chooseFile}</div>
             <ColumnGuide />
           </div>
-        </div>
+        </ModalBackdrop>
       )}
 
       {sheets && draft && !plan && (

@@ -6,6 +6,7 @@ import { analyze } from "@/lib/tracker/email/group";
 import { isMuted } from "@/lib/tracker/email/mute";
 import { toRow } from "@/lib/tracker/email/rows";
 import { defaultScanFrom, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
+import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls } from "@/lib/tracker/format";
 import type { TablesInsert } from "@/lib/tracker/database.types";
 import type { Tracker } from "@/lib/tracker/useTracker";
@@ -82,7 +83,7 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
       <span className={`text-xs ${nudge.stale ? "text-amber-700 dark:text-amber-400" : "text-neutral-500"}`}>{nudge.text}</span>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+        <ModalBackdrop onDismiss={running ? undefined : () => setOpen(false)}>
           <div className="w-full max-w-lg space-y-4 rounded-lg bg-surface p-5 shadow-xl">
             <div className="flex items-baseline justify-between gap-4">
               <h2 className="text-lg font-semibold">Scan Gmail</h2>
@@ -134,7 +135,7 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
               {error && <p className="text-red-700 dark:text-red-400">{error}</p>}
             </div>
           </div>
-        </div>
+        </ModalBackdrop>
       )}
     </div>
   );
