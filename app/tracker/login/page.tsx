@@ -15,11 +15,15 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const linkFailed = useSearchParams().get("error") === "link";
+  const errorParam = useSearchParams().get("error");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(
-    linkFailed ? "That sign-in link was invalid or expired. Request a new one." : null
+    errorParam === "link"
+      ? "That sign-in link was invalid or expired. Request a new one."
+      : errorParam === "private"
+        ? "This tracker is private."
+        : null
   );
 
   async function send(e: React.FormEvent) {
@@ -28,9 +32,15 @@ function LoginForm() {
     setError(null);
     const { error } = await supabase().auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/tracker/auth/confirm` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/tracker/auth/confirm`,
+        // Sign-ups are closed; an unknown address must not create an account.
+        shouldCreateUser: false,
+      },
     });
-    if (error) {
+    // An address with no account gets the same screen as one that does, so
+    // the form can't be used to find out who has an account.
+    if (error && !/signups? not allowed|user not found/i.test(error.message)) {
       setError(error.message);
       setState("idle");
     } else {

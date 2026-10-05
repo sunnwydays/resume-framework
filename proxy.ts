@@ -1,16 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isTrackerUser } from "@/lib/tracker/access";
 
 // Only covers the job tracker (see config.matcher); the resume-framework
-// pages never hit this.
+// pages never hit this. Signed-out requests go to the login page; signed-in
+// ones must also be on TRACKER_ALLOWED_EMAILS.
 const PUBLIC_TRACKER_PATHS = ["/tracker/login", "/tracker/auth/confirm"];
 
 export async function proxy(request: NextRequest) {
-  // Local-only until the tracker is ironed out: the deployed site 404s it.
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not found", { status: 404 });
-  }
-
   // Refresh the Supabase session cookie on every tracker request.
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
@@ -38,14 +35,24 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims);
+  const claims = data?.claims;
   const { pathname } = request.nextUrl;
 
-  if (!signedIn && !PUBLIC_TRACKER_PATHS.includes(pathname)) {
+  if (PUBLIC_TRACKER_PATHS.includes(pathname)) return response;
+
+  if (!claims) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Not signed in" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/tracker/login", request.url));
+  }
+
+  // Signed in, but not on the allowlist (see lib/tracker/access.ts).
+  if (!isTrackerUser(claims.email)) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/tracker/login?error=private", request.url));
   }
 
   return response;

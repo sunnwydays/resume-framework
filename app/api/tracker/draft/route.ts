@@ -1,20 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { createClient } from "@/lib/supabase/server";
+import { getTrackerUserId } from "@/lib/supabase/server";
 import { buildDraftPrompt, parseDraftRequest } from "@/lib/tracker/draftPrompt";
 
 const MODEL = "claude-opus-5-5";
 
 // Drafts one outreach message for the Arbitrage workshop. The draft is only
 // shown in an editable box; nothing is ever sent from here. proxy.ts already
-// 401s signed-out requests; this re-checks since the call costs money.
+// 401s signed-out requests and 403s anyone off the allowlist; this re-checks
+// since the call costs money.
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
+  const userId = await getTrackerUserId();
   if (!userId) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return NextResponse.json({ error: "Not signed in or not allowed" }, { status: 401 });
   }
 
   const limit = checkRateLimit(`draft:${userId}`);
@@ -26,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set in .env.local" }, { status: 500 });
+    return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set on the server" }, { status: 500 });
   }
 
   let body: unknown;

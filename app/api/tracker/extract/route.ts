@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { extractJob } from "@/lib/tracker/extract";
+import { getTrackerUserId } from "@/lib/supabase/server";
+import { extractJob, isPublicHost } from "@/lib/tracker/extract";
 
 // Fetches a job posting server-side (no CORS) and returns whatever details
-// could be pulled out. proxy.ts already 401s signed-out requests; this
-// re-checks since the route makes outbound fetches on the caller's behalf.
+// could be pulled out. proxy.ts already 401s signed-out requests and 403s
+// anyone off the allowlist; this re-checks since the route makes outbound
+// fetches on the caller's behalf.
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!(await getTrackerUserId())) {
+    return NextResponse.json({ error: "Not signed in or not allowed" }, { status: 401 });
   }
 
   let url: URL;
@@ -21,6 +20,10 @@ export async function POST(req: NextRequest) {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return NextResponse.json({ error: "Only http(s) links are supported" }, { status: 400 });
+  }
+
+  if (!isPublicHost(url)) {
+    return NextResponse.json({ error: "That link points at a private address" }, { status: 400 });
   }
 
   return NextResponse.json(await extractJob(url.toString()));

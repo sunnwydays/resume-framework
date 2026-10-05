@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getTrackerUserId } from "@/lib/supabase/server";
 import { fetchPostingDetails, isJobrightJobUrl, type PostingDetails } from "@/lib/tracker/postings/details";
 
 const MAX_URLS = 10;
@@ -9,10 +9,8 @@ const AT_ONCE = 3;
 // CORS). Returns one entry per URL, in order: the details, or null when the
 // page couldn't be read (the caller leaves that posting to try again).
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!(await getTrackerUserId())) {
+    return NextResponse.json({ error: "Not signed in or not allowed" }, { status: 401 });
   }
 
   let urls: string[];

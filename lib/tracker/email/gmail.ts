@@ -69,7 +69,7 @@ function loadGoogleScript(): Promise<void> {
 export async function getToken(): Promise<string> {
   if (token && token.expiresAt - Date.now() > 60_000) return token.value;
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  if (!clientId) throw new GmailError("config", "NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set in .env.local.");
+  if (!clientId) throw new GmailError("config", "NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set (it is inlined at build time).");
   await loadGoogleScript();
   return new Promise<string>((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
