@@ -139,6 +139,12 @@ export const RULES = {
     /\b(?:invites|invitations)\s+will\s+be\s+sent\b/i,
     /\bcandidates\s+(?:who\s+are\s+)?(?:invited|selected|chosen)\s+(?:to|for)\b/i,
     /\bif\s+(?:you\s+are\s+|you're\s+)?(?:selected|invited|chosen|shortlisted|successful)\b/i,
+    // "If you are applying to a role that requires coding skills, you may
+    // receive an invitation to take a coding assessment. You will receive a
+    // separate email within 24 hours…" (a Workday confirmation)
+    /\b(?:may|might)\s+(?:also\s+)?receive\b/i,
+    /\bif\s+you(?:\s+are|'re)\s+applying\b/i,
+    /\bseparate\s+email\s+within\b/i,
   ],
   // Also dropped before the rejection rules: "If you see the job moved to an
   // inactive state, that means ... you were not selected" explains the portal.

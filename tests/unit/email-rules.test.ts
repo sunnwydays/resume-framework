@@ -454,6 +454,47 @@ describe("fixes from the live test", () => {
     expect(kindOf(m)).toBe("confirmation");
   });
 
+  it("'if you are not selected, keep an eye on our jobs page' is a confirmation, not a rejection", () => {
+    const m = mail({
+      fromAddress: "no-reply@hire.lever.co",
+      subject: "Thank you for your application to Globex",
+      text: [
+        "Hi Sam,",
+        "Thank you for your interest in Globex! We wanted to let you know we received your application for Product Research Internship - Summer 2027, and we are delighted that you would consider joining our team.",
+        "Our team will review your application and will be in touch if your qualifications match our needs for the role. If you are not selected for this position, keep an eye on our jobs page as we're growing and adding openings.",
+        "Best,\nThe Globex Team",
+      ].join("\n\n"),
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("'we've made the decision to not move forward' (Lever follow-up) is a rejection", () => {
+    const m = mail({
+      fromAddress: "no-reply@hire.lever.co",
+      subject: "Application Follow Up - Product Research Internship - Summer 2027 @ Globex",
+      text: [
+        "Hi Sam,",
+        "Thank you for your interest in the Product Research Internship - Summer 2027 position at Globex. Thanks so much for sending your resume our way.",
+        "After reviewing your work and experience, we've made the decision to not move forward at this time. This was a really competitive process. I hope you don't mind if we reach out to you if a similar position opens up down the line that would be a better fit.",
+      ].join("\n"),
+    });
+    expect(kindOf(m)).toBe("rejection");
+  });
+
+  it("'you may receive an invitation to take a coding assessment' is a confirmation", () => {
+    const m = mail({
+      fromAddress: "initech@myworkday.com",
+      subject: "Your application to 2027 Summer Intern - Robotics Engineer is in!",
+      text: [
+        "Dear Sam,",
+        "Thanks for applying to Initech. We appreciate your interest and will review your application promptly.",
+        "If you are applying to a role that requires coding skills, you may receive an invitation to take a coding assessment. You will receive a separate email within 24 hours (make sure to check your SPAM folder) providing further instructions to complete the coding assessment.",
+        "Once your initial application and assessment results (if applicable) have been reviewed, you will receive an update.",
+      ].join("\n\n"),
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
   it("a portal's 'if the job goes inactive, you were not selected' is a confirmation, not a rejection", () => {
     const m = mail({
       fromAddress: "recruiting@globex.com",
