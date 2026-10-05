@@ -84,43 +84,37 @@ only emails on `TRACKER_ALLOWED_EMAILS` get in. The rest of the setup is in
 
 ### Tracker screenshots
 
-<!--
-  TODO: add the screenshots. Save them in public/demo_screenshots/tracker/
-  using the names below, then delete the comment markers around each image
-  line. Use made-up companies (or blur real ones): this repo is public.
--->
-
 **Applications**: one row per application, with status, role type, and the
 OAs/interviews under each row:
 
-<!-- ![Applications table](./public/demo_screenshots/tracker/01-applications.png) -->
+![Applications table](./public/demo_screenshots/tracker/01-applications.png)
 
 **Add by link**: paste a posting URL and the company, role and location fill
 in:
 
-<!-- ![Add an application from a link](./public/demo_screenshots/tracker/02-add-from-link.png) -->
+![Add an application from a link](./public/demo_screenshots/tracker/02-add-from-link.png)
 
 **Assessments**: every OA and interview, sorted "do first", with a hover
 preview and an expandable panel for questions, prep and reflection:
 
-<!-- ![Assessments tab](./public/demo_screenshots/tracker/03-assessments.png) -->
+![Assessments tab](./public/demo_screenshots/tracker/03-assessments.png)
 
 **Stats**: how far applications got, reply rates, and timing:
 
-<!-- ![Stats panel](./public/demo_screenshots/tracker/04-stats.png) -->
+![Stats panel](./public/demo_screenshots/tracker/04-stats.png)
 
 **Gmail scan**: suggested updates from the inbox, with undo:
 
-<!-- ![Gmail scan review](./public/demo_screenshots/tracker/05-gmail-scan.png) -->
+![Gmail scan review](./public/demo_screenshots/tracker/05-gmail-scan.png)
 
 **Postings**: Jobright alert emails turned into one deduped row per job,
 filterable by US / not US:
 
-<!-- ![Postings page](./public/demo_screenshots/tracker/06-postings.png) -->
+![Postings page](./public/demo_screenshots/tracker/06-postings.png)
 
 **Arbitrage**: outreach moves, the reply funnel, and rule-based next steps:
 
-<!-- ![Arbitrage page](./public/demo_screenshots/tracker/07-arbitrage.png) -->
+![Arbitrage page](./public/demo_screenshots/tracker/07-arbitrage.png)
 
 ## Tech stack
 
