@@ -155,6 +155,9 @@ export const RULES = {
   // Not before invites, since "If you'd like to proceed, complete the
   // assessment" is a real one.
   conditional: [/^\s*if\b/i],
+  // Dropped before the completed-assessment rules: "Once you've completed all
+  // assessments, our team will review your results" is in the invite.
+  future: [/\b(?:once|when|after)\s+you(?:'ve|\s+have)?\s+(?:completed|submitted|finished)\b/i],
 
   reminder: [
     /\breminder\b/i,
@@ -243,7 +246,7 @@ export function classify(facts: EmailFacts): Classification {
   const rejection = firstMatch(RULES.rejection, `${without(real, RULES.conditional)}\n${urls}`);
   if (rejection) return { kind: "rejection", phrase: rejection };
 
-  const done = firstMatch(RULES.assessmentDone, body);
+  const done = firstMatch(RULES.assessmentDone, without(real, [...RULES.conditional, ...RULES.future]));
   if (done) return { kind: "assessment_done", phrase: done };
 
   const invite =

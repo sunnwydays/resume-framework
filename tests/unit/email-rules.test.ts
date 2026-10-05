@@ -572,6 +572,30 @@ describe("fixes from the live test", () => {
     expect(kindOf(m)).toBe("interview_invite");
   });
 
+  describe("'once you've completed' is about later, not done", () => {
+    const send = (text: string) =>
+      mail({ fromAddress: "no-reply@globex.example", fromName: "Globex Assessments", subject: "Invitation for assessments", text });
+
+    it("an invite", () => {
+      const m = send(
+        "Dear Sam, Thanks again for your interest in the Software Engineer Intern (Summer 2027) role here at Globex. We would like to invite you to complete the Globex assessments. Please complete the assessments by October 5, 2026.\n▪ Once you've completed all assessments, our team will review your results to determine next steps."
+      );
+      expect(kindOf(m)).toBe("oa_invite");
+    });
+
+    it("a reminder, with the company from the sender's name", () => {
+      const m = send(
+        "Dear Sam, This is a reminder to complete the Globex online assessments for the Software Engineer Intern role. Please ensure you complete the assessments by October 5, 2026.\nOnce you have completed all outstanding assessments, our recruiting team will review your results."
+      );
+      expect(kindOf(m)).toBe("reminder");
+      expect(extractFields(m, "reminder").company).toBe("Globex");
+    });
+
+    it("…while 'you have completed' on its own still is", () => {
+      expect(kindOf(send("Dear Sam, you have completed all Globex assessments. Our team will review your results."))).toBe("assessment_done");
+    });
+  });
+
   it("a real invite in the same mail still wins", () => {
     const m = mail({
       fromAddress: "recruiting@globex.com",

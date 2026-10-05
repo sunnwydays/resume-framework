@@ -436,7 +436,7 @@ function candidates(f: EmailFacts): Candidate[] {
   const display = tidyCompany(
     f.fromName
       .replace(
-        /\b(?:no[- ]?reply|do[- ]not[- ]reply|notifications?|workday|greenhouse|ashby|lever|icims|careers?|early careers?|recruiting|recruitment|talent(?: acquisition)?|hiring(?: team)?|team|hr|jobs|support|people)\b/gi,
+        /\b(?:no[- ]?reply|do[- ]not[- ]reply|notifications?|workday|greenhouse|ashby|lever|icims|careers?|early careers?|recruiting|recruitment|talent(?: acquisition)?|hiring(?: team)?|team|hr|jobs|support|people|assessments?)\b/gi,
         " "
       )
       .replace(/\s+/g, " ")
