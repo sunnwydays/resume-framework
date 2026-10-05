@@ -155,7 +155,7 @@ export interface JobGroup {
   ready: boolean; // the target is settled, so Accept needs no input
 }
 
-const STATUS_FOR: Partial<Record<EmailKind, AppStatus>> = {
+export const STATUS_FOR: Partial<Record<EmailKind, AppStatus>> = {
   confirmation: "applied",
   oa_invite: "oa",
   video_invite: "video_interview",

@@ -5,7 +5,18 @@ import Chip from "@/components/tracker/Chip";
 import EmailJobCard from "@/components/tracker/email/EmailJobCard";
 import { muteValue } from "@/lib/tracker/email/mute";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
-import { category, countByCategory, REVIEW_FILTERS, splitByAction, type Review, type ReviewFilter } from "@/lib/tracker/email/review";
+import {
+  category,
+  countByCategory,
+  countByStatus,
+  emailStatus,
+  REVIEW_FILTERS,
+  splitByAction,
+  STATUS_FILTERS,
+  type Review,
+  type ReviewFilter,
+  type StatusFilter,
+} from "@/lib/tracker/email/review";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import { MUTE_KINDS, buttonCls, type MuteKind } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
@@ -23,6 +34,7 @@ const PAGE = 40;
 export default function EmailReview({ tracker, review }: Props) {
   const { applications, assessments, statusChanges, gmail } = tracker;
   const [filter, setFilter] = useState<ReviewFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [shown, setShown] = useState(PAGE);
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -41,8 +53,12 @@ export default function EmailReview({ tracker, review }: Props) {
   });
 
   const rowIdOf = (gmailId: string) => review.rowIdOf.get(gmailId)!;
-  const counts = countByCategory(review.groups);
-  const split = splitByAction(review.groups.filter((g) => filter === "all" || category(g) === filter));
+  // Each row's counts hold the other row's filter, so a chip says what it would show.
+  const byStatus = review.groups.filter((g) => statusFilter === "all" || emailStatus(g) === statusFilter);
+  const byCategory = review.groups.filter((g) => filter === "all" || category(g) === filter);
+  const counts = countByCategory(byStatus);
+  const statusCounts = countByStatus(byCategory);
+  const split = splitByAction(byCategory.filter((g) => statusFilter === "all" || emailStatus(g) === statusFilter));
   const visible = [...split.action, ...split.nothing];
   const ready = review.groups.filter((g) => g.ready && !g.nothingToDo);
   const nothing = review.groups.filter((g) => category(g) === "nothing");
@@ -100,6 +116,11 @@ export default function EmailReview({ tracker, review }: Props) {
     tracker.dismissEmails(nothing.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
   }
 
+  function dismissAll() {
+    if (!window.confirm(`Dismiss ${visible.length} card${visible.length === 1 ? "" : "s"}? Their emails won't come back on later scans.`)) return;
+    tracker.dismissEmails(visible.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-600 dark:text-neutral-400">
@@ -124,6 +145,20 @@ export default function EmailReview({ tracker, review }: Props) {
             count={counts[f]}
           />
         ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {(Object.keys(STATUS_FILTERS) as StatusFilter[]).map((f) => (
+          <Chip
+            key={f}
+            active={statusFilter === f}
+            onClick={() => {
+              setStatusFilter(f);
+              setShown(PAGE);
+            }}
+            label={STATUS_FILTERS[f]}
+            count={statusCounts[f]}
+          />
+        ))}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {ready.length > 0 && (
             <button type="button" className={buttonCls} onClick={acceptReady} disabled={bulk !== null}>
@@ -133,6 +168,11 @@ export default function EmailReview({ tracker, review }: Props) {
           {nothing.length > 0 && (
             <button type="button" className={buttonCls} onClick={dismissNothing} disabled={bulk !== null}>
               Dismiss {nothing.length} with nothing to do
+            </button>
+          )}
+          {visible.length > 0 && (
+            <button type="button" className={buttonCls} onClick={dismissAll} disabled={bulk !== null}>
+              Dismiss all {visible.length}
             </button>
           )}
           {gmail.mutes.length > 0 && (

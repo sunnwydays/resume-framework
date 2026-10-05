@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { analyze, groupIntoJobs, retarget, type Analyzed, type JobGroup } from "@/lib/tracker/email/group";
 import { canMuteSender, isMuted, muteValue } from "@/lib/tracker/email/mute";
 import { assessmentKey, buildPayload, defaultTicks, newAppDefaults, stepKey } from "@/lib/tracker/email/payload";
-import { buildReview, category, countByCategory, splitByAction } from "@/lib/tracker/email/review";
+import { buildReview, category, countByCategory, countByStatus, emailStatus, splitByAction } from "@/lib/tracker/email/review";
 import { fromRow, gmailLink, SNIPPET_MAX, snippetOf, toRow } from "@/lib/tracker/email/rows";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import type { EmailMessage } from "@/lib/tracker/format";
@@ -158,6 +158,26 @@ describe("buildReview", () => {
     );
     expect(groups.map(category).sort()).toEqual(["new", "new", "nothing", "pick"]);
     expect(countByCategory(groups)).toEqual({ all: 4, new: 2, updates: 0, pick: 1, nothing: 1 });
+  });
+
+  it("sorts cards into the status chips by their newest status-bearing email", () => {
+    const groups = groupIntoJobs(
+      [
+        confirmation("Globex", "Backend Intern", 20),
+        oaInvite("Globex", "Backend Intern", 22),
+        rejection("Globex", "Backend Intern", 29), // newest says rejected
+        oaInvite("Umbrella", "QA Intern", 22),
+        confirmation("Hooli", "ML Intern", 21),
+        analyze(mail({ gmailId: "r", fromAddress: "support@hackerrankforwork.com", subject: "Reminder: your HackerRank test", text: "Reminder: your HackerRank assessment for Initech expires soon.", receivedAt: at(24) })),
+      ],
+      [],
+      [],
+      []
+    );
+    const counts = countByStatus(groups);
+    expect(counts).toMatchObject({ all: groups.length, rejected: 1, oa: 1, applied: 1 });
+    expect(counts.all).toBe(counts.applied + counts.oa + counts.video_interview + counts.interview + counts.rejected + counts.other);
+    expect(emailStatus(groups.find((g) => g.target.type === "new" && g.target.company === "Globex")!)).toBe("rejected");
   });
 
   it("puts the cards that need action first, keeping each part's order", () => {
