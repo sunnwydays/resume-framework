@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
@@ -14,7 +14,7 @@ import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TimeTracker from "@/components/tracker/TimeTracker";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
-import { supabase, useNow, useTracker } from "@/lib/tracker/useTracker";
+import { useNow, useTracker } from "@/lib/tracker/useTracker";
 import {
   CLOSED,
   DEFAULT_APP_FILTERS,
@@ -55,13 +55,6 @@ export default function TrackerPage() {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedAsmtId, setExpandedAsmtId] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase()
-      .auth.getUser()
-      .then(({ data }) => setEmail(data.user?.email ?? null));
-  }, []);
 
   const assessmentsByApp = useMemo(
     () => groupBy<Assessment>(assessments, (a) => a.application_id),
@@ -188,11 +181,6 @@ export default function TrackerPage() {
     );
   }
 
-  async function signOut() {
-    await supabase().auth.signOut();
-    window.location.href = "/tracker/login";
-  }
-
   const chip = (value: StatusFilter, label: string) => (
     <Chip
       key={value}
@@ -232,14 +220,6 @@ export default function TrackerPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
-          {email && (
-            <p className="mt-1 text-xs text-neutral-500">
-              {email} ·{" "}
-              <button type="button" onClick={signOut} className="underline">
-                Sign out
-              </button>
-            </p>
-          )}
         </div>
         <div className="flex flex-wrap items-start gap-2">
           <GmailScan tracker={tracker} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />

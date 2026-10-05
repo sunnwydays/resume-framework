@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import InputSection from "@/components/InputSection";
 import AtsResult, { SCROLL_MARGIN } from "@/components/AtsResult";
@@ -76,14 +77,22 @@ export default function Home() {
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
               Resume Framework
             </h1>
-            <a
-              href="https://github.com/sunnwydays/resume-framework"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 shrink-0 text-sm text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:decoration-neutral-700 dark:hover:text-neutral-100"
-            >
-              GitHub
-            </a>
+            <div className="mt-1 flex shrink-0 gap-4 text-sm">
+              <Link
+                href="/tracker"
+                className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+              >
+                Job tracker
+              </Link>
+              <a
+                href="https://github.com/sunnwydays/resume-framework"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+              >
+                GitHub
+              </a>
+            </div>
           </div>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-400">
             Stage 1 of 3. Parse your resume the way an ATS would, and see exactly
