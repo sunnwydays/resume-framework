@@ -67,15 +67,60 @@ You'll need an [Affinda API key](https://www.affinda.com/) set as
 4. In dev, a **Dev mocks** panel lists any JSON files dropped into
    `lib/mocks` and loads one straight into the app without hitting the API.
 
-## Job tracker (local only)
+## Job tracker
 
-A separate personal tool at [`/tracker`](http://localhost:3000/tracker):
-job applications plus their OAs / video interviews / interviews, with
-automatic status-change timestamps, paste-a-link detail lookup, and
-CSV/XLSX import/export. It's backed by Supabase (magic-link sign-in) and
-only runs under `npm run dev`; the deployed site 404s it. Needs
+A separate, private tool at [`/tracker`](https://resume-framework.vercel.app/tracker)
+(linked from the top of the resume page): job applications plus their OAs /
+video interviews / interviews, with automatic status-change timestamps,
+paste-a-link detail lookup, a Gmail scan that suggests updates from
+rejections and invites, a Postings page that dedupes job-alert emails, an
+"Arbitrage" page for DMs and warm intros, stats, and CSV/XLSX import/export.
+
+It's single-user. Sign-in is a Supabase magic link, sign-ups are off, and
+only emails on `TRACKER_ALLOWED_EMAILS` get in. The rest of the setup is in
+[`docs/hosting.md`](./docs/hosting.md). Locally it needs
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
-`.env.local`.
+`.env.local` (and `TRACKER_ALLOWED_EMAILS` is optional in dev).
+
+### Tracker screenshots
+
+<!--
+  TODO: add the screenshots. Save them in public/demo_screenshots/tracker/
+  using the names below, then delete the comment markers around each image
+  line. Use made-up companies (or blur real ones): this repo is public.
+-->
+
+**Applications**: one row per application, with status, role type, and the
+OAs/interviews under each row:
+
+<!-- ![Applications table](./public/demo_screenshots/tracker/01-applications.png) -->
+
+**Add by link**: paste a posting URL and the company, role and location fill
+in:
+
+<!-- ![Add an application from a link](./public/demo_screenshots/tracker/02-add-from-link.png) -->
+
+**Assessments**: every OA and interview, sorted "do first", with a hover
+preview and an expandable panel for questions, prep and reflection:
+
+<!-- ![Assessments tab](./public/demo_screenshots/tracker/03-assessments.png) -->
+
+**Stats**: how far applications got, reply rates, and timing:
+
+<!-- ![Stats panel](./public/demo_screenshots/tracker/04-stats.png) -->
+
+**Gmail scan**: suggested updates from the inbox, with undo:
+
+<!-- ![Gmail scan review](./public/demo_screenshots/tracker/05-gmail-scan.png) -->
+
+**Postings**: Jobright alert emails turned into one deduped row per job,
+filterable by US / not US:
+
+<!-- ![Postings page](./public/demo_screenshots/tracker/06-postings.png) -->
+
+**Arbitrage**: outreach moves, the reply funnel, and rule-based next steps:
+
+<!-- ![Arbitrage page](./public/demo_screenshots/tracker/07-arbitrage.png) -->
 
 ## Tech stack
 

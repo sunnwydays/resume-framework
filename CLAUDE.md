@@ -6,7 +6,7 @@ alone.
 
 ## What this is
 
-(Also hosts a separate, local-only job tracker at `/tracker`. See "Job
+(Also hosts a separate, private job tracker at `/tracker`. See "Job
 tracker" below. Everything else in this file is about the resume app.)
 
 A Next.js app, currently at **Stage 1 of a planned multi-stage redesign**:
@@ -159,11 +159,39 @@ is `[key: string]: unknown` and falls through to the generic renderer.
 ## Job tracker (`/tracker`, separate track)
 
 A personal job-application tracker that lives in this app but is **not
-part of the resume-framework stages**. Single user (Sunny), local-only for
-now: `proxy.ts` returns 404 for `/tracker/*` and `/api/tracker/*` when
-`NODE_ENV === "production"`, and otherwise refreshes the Supabase session
-and redirects signed-out requests to `/tracker/login` (401 for the API).
-The proxy matcher only covers tracker paths; the resume pages never hit it.
+part of the resume-framework stages**. Single user (Sunny), hosted on the
+same Vercel project as the resume app. `proxy.ts` refreshes the Supabase
+session on every tracker request, redirects signed-out requests to
+`/tracker/login` (401 for the API), and then checks the signed-in email
+against the **allowlist**: `TRACKER_ALLOWED_EMAILS` (server-only,
+comma-separated; `lib/tracker/access.ts`). Someone off the list gets a
+redirect to `/tracker/login?error=private` (403 for the API). It fails
+closed: in production an unset or empty list denies everyone; in dev an
+unset list allows any signed-in user. The proxy matcher only covers
+tracker paths; the resume pages never hit it.
+
+- **Hosting** (the dashboard steps and env vars are in `docs/hosting.md`): Supabase
+  sign-ups are turned off and the login form passes `shouldCreateUser:
+  false` (an unknown address sees the same "check your email" screen, so
+  the form doesn't reveal who has an account). The allowlist backs that up.
+  `/api/tracker/draft` (Anthropic spend), `/extract` and `/postings-details`
+  (outbound fetches) re-check sign-in *and* the allowlist through
+  `getTrackerUserId()` in `lib/supabase/server.ts`. The draft rate limit
+  is in memory, so on serverless it isn't a real cap; the Anthropic
+  console's spend limit is. `next.config.ts` sends `X-Frame-Options: DENY`,
+  `frame-ancestors 'none'` and `X-Robots-Tag: noindex` on tracker paths
+  (the layout also sets `robots` metadata). No full CSP on purpose (Next's
+  inline scripts, Google Identity Services and Supabase make one fiddly).
+  Preview deployments serve the tracker too, behind Vercel Authentication
+  (keep it on). `/tracker/gmail-debug` and `/api/dev-mocks*` still 404 in
+  production on their own checks.
+- **Link lookup is SSRF-hardened** (`isPublicHost`, `fetchText` in
+  `lib/tracker/extract.ts`): refuses localhost, `*.local`/`*.internal`,
+  private / loopback / link-local (incl. the 169.254 metadata address) /
+  CGNAT IPv4 and loopback / link-local / unique-local IPv6 (plus
+  IPv4-mapped); follows redirects by hand (5 hops max, each hop checked);
+  reads at most 5 MB. A public name that *resolves* to a private address
+  isn't caught (no DNS lookup).
 
 - **Backend**: Supabase project `job-tracker` (ref `zcsfiovwomnkdhnfkoqk`,
   ca-central-1), email magic-link auth, `NEXT_PUBLIC_SUPABASE_URL` +
