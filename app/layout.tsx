@@ -27,6 +27,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
+      // Reserve the scrollbar's width even while a page is short or still
+      // loading, so switching tabs doesn't shift the layout sideways.
+      style={{ scrollbarGutter: "stable" }}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
