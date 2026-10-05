@@ -54,8 +54,10 @@ const KIND_NOUN: Record<EmailKind, [string, string]> = {
   reminder: ["reminder", "reminders"],
 };
 
-// "12 confirmations, 4 rejections · 31 ignored · 3 muted · 9 seen before".
-export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: number }): string {
+// "12 confirmations, 4 rejections · 31 ignored · 3 muted · 2 re-read · 9 seen
+// before". Re-read: still waiting for review, and the current rules read it
+// differently from the scan that saved it.
+export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: number; updated?: number }): string {
   const counts = new Map<EmailKind, number>();
   let ignored = 0;
   for (const a of r.analyzed) {
@@ -66,10 +68,12 @@ export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: n
     .filter((k) => counts.has(k))
     .map((k) => plural(counts.get(k)!, ...KIND_NOUN[k]));
   const classified = r.analyzed.length - ignored;
-  const seen = classified - r.muted - r.saved;
+  const updated = r.updated ?? 0;
+  const seen = classified - r.muted - r.saved - updated;
   const parts = [kinds.length ? kinds.join(", ") : "No job emails"];
   if (ignored) parts.push(`${ignored} ignored`);
   if (r.muted) parts.push(`${r.muted} muted`);
+  if (updated) parts.push(`${updated} re-read`);
   if (seen > 0) parts.push(`${seen} seen before`);
   return parts.join(" · ");
 }

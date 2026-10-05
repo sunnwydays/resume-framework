@@ -62,6 +62,12 @@ describe("summarizeScan", () => {
     );
   });
 
+  it("counts pending emails the current rules re-read", () => {
+    expect(summarizeScan({ analyzed: [confirm, confirm, reject], muted: 0, saved: 1, updated: 1 })).toBe(
+      "2 confirmations, 1 rejection · 1 re-read · 1 seen before"
+    );
+  });
+
   it("says so when nothing was job mail", () => {
     expect(summarizeScan({ analyzed: [junk], muted: 0, saved: 0 })).toBe("No job emails · 1 ignored");
   });

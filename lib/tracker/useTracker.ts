@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Json, TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
 import type { EmailJobPayload } from "@/lib/tracker/email/payload";
+import { planSave } from "@/lib/tracker/email/rows";
 import type {
   Application,
   Assessment,
@@ -290,20 +291,35 @@ export function useTracker() {
 
   // ---- Gmail -------------------------------------------------------------
 
-  // Stores classified emails from a scan. One already stored (pending,
-  // accepted or dismissed) is skipped, never revived. Returns how many were new.
+  // Stores classified emails from a scan. One already stored is never revived;
+  // a still-pending one gets the current rules' reading (`planSave`). Returns
+  // how many were new and how many were re-read.
   const saveEmails = useCallback(
-    async (rows: TablesInsert<"email_messages">[]): Promise<{ saved: number } | { error: string }> => {
-      if (rows.length === 0) return { saved: 0 };
-      const { data, error } = await supabase()
-        .from("email_messages")
-        .upsert(rows, { onConflict: "user_id,gmail_id", ignoreDuplicates: true })
-        .select();
-      if (error) return { error: error.message };
-      setGmail((g) => ({ ...g, emails: [...g.emails, ...(data ?? [])] }));
-      return { saved: data?.length ?? 0 };
+    async (rows: TablesInsert<"email_messages">[]): Promise<{ saved: number; updated: number } | { error: string }> => {
+      const { insert, refresh } = planSave(rows, gmail.emails);
+      let inserted: EmailMessage[] = [];
+      if (insert.length > 0) {
+        const { data, error } = await supabase()
+          .from("email_messages")
+          .upsert(insert, { onConflict: "user_id,gmail_id", ignoreDuplicates: true })
+          .select();
+        if (error) return { error: error.message };
+        inserted = data ?? [];
+      }
+      // Only while still pending: one accepted in another tab keeps its reading.
+      const results = await Promise.all(
+        refresh.map(({ id, changes }) =>
+          supabase().from("email_messages").update(changes).eq("id", id).eq("state", "pending").select().maybeSingle()
+        )
+      );
+      const failed = results.find((r) => r.error);
+      const updated = results.flatMap((r) => (r.data ? [r.data] : []));
+      const byId = new Map(updated.map((e) => [e.id, e]));
+      setGmail((g) => ({ ...g, emails: [...g.emails.map((e) => byId.get(e.id) ?? e), ...inserted] }));
+      if (failed?.error) return { error: failed.error.message };
+      return { saved: inserted.length, updated: updated.length };
     },
-    []
+    [gmail.emails]
   );
 
   const recordScan = useCallback(async (row: TablesInsert<"gmail_scans">) => {

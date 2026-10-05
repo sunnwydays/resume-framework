@@ -450,7 +450,9 @@ tracker paths; the resume pages never hit it.
   - **Flow**: "Scan Gmail" (`components/tracker/email/GmailScan.tsx`, header)
     -> classified, unmuted emails stored in `email_messages` (facts plus a
     200-char snippet, never bodies; `unique (user_id, gmail_id)` and an
-    ignore-duplicates upsert, so accepted/dismissed mail never comes back) and
+    ignore-duplicates upsert, so accepted/dismissed mail never comes back;
+    a re-scan rewrites the rule columns of rows still pending, `planSave` in
+    `rows.ts`, so a rule fix reaches mail saved before it) and
     a `gmail_scans` row (drives the "Last scanned…" nudge and the next default
     "Scan from", `lib/tracker/email/scan.ts`) -> the "From Gmail" tab
     (`EmailReview.tsx`, shown while anything is pending): `buildReview`

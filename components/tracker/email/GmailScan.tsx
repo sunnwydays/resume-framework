@@ -61,8 +61,8 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
       await tracker.recordScan({ since: scanStart(since).toISOString(), fetched: result.listed, saved: saved.saved });
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = result.failed ? ` · ${result.failed} couldn't be read` : "";
-      setSummary(`${summarizeScan({ analyzed, muted, saved: saved.saved })}${failed}${capped}`);
-      if (saved.saved > 0) onScanned();
+      setSummary(`${summarizeScan({ analyzed, muted, saved: saved.saved, updated: saved.updated })}${failed}${capped}`);
+      if (saved.saved > 0 || saved.updated > 0) onScanned();
     } catch (e) {
       if ((e as Error).name === "AbortError") setError("Cancelled. Nothing from this scan was saved.");
       // Closing Google's popup is a change of mind, not a failure.
@@ -120,7 +120,7 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
             </div>
             <p className="text-xs text-neutral-500">
               {gmail.lastScan
-                ? "Starts a little before your last scan; emails already saved, accepted or dismissed are skipped."
+                ? "Starts a little before your last scan; emails already accepted or dismissed are skipped, and ones still waiting for review are re-read with the current rules."
                 : "First scan: starts at your earliest tracked application."}
             </p>
             <div aria-live="polite" className="text-sm">

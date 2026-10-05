@@ -75,5 +75,46 @@ export function fromRow(row: EmailMessage): Analyzed {
   };
 }
 
+// The columns the rules write. A re-scan rewrites them on a still-pending row,
+// so a rule fix reaches emails saved before it. Accepted rows are history and
+// dismissed ones stay dismissed: neither is touched.
+const RULE_COLUMNS = [
+  "kind", "matched_phrase", "company", "role", "job_id", "link", "due_at", "completed_at", "assessment_title",
+  "field_origins",
+] as const;
+type RuleColumn = (typeof RULE_COLUMNS)[number];
+export type RuleChanges = Pick<TablesInsert<"email_messages">, RuleColumn>;
+
+// jsonb hands keys back in its own order; timestamps come back as "+00:00".
+function same(column: RuleColumn, stored: unknown, fresh: unknown): boolean {
+  if (column === "due_at" || column === "completed_at") return isoOrNull(stored as string | null) === isoOrNull(fresh as string | null);
+  if (column === "field_origins") {
+    const sorted = (v: unknown) => JSON.stringify(Object.entries((v ?? {}) as object).sort(([a], [b]) => a.localeCompare(b)));
+    return sorted(stored) === sorted(fresh);
+  }
+  return (stored ?? null) === (fresh ?? null);
+}
+
+// Splits a scan's rows into new ones to insert and stored pending ones whose
+// rules' reading changed. `stored` is what the page has loaded (pending and
+// accepted); anything else stored (dismissed) is left to the insert, which
+// skips duplicates.
+export function planSave(
+  rows: TablesInsert<"email_messages">[],
+  stored: EmailMessage[]
+): { insert: TablesInsert<"email_messages">[]; refresh: { id: string; changes: RuleChanges }[] } {
+  const byGmailId = new Map(stored.map((s) => [s.gmail_id, s]));
+  const insert: TablesInsert<"email_messages">[] = [];
+  const refresh: { id: string; changes: RuleChanges }[] = [];
+  for (const row of rows) {
+    const old = byGmailId.get(row.gmail_id);
+    if (!old) insert.push(row);
+    else if (old.state === "pending" && RULE_COLUMNS.some((c) => !same(c, old[c], row[c]))) {
+      refresh.push({ id: old.id, changes: Object.fromEntries(RULE_COLUMNS.map((c) => [c, row[c] ?? null])) as RuleChanges });
+    }
+  }
+  return { insert, refresh };
+}
+
 // A digest's parts are stored as "<id>#1", "<id>#2"; Gmail knows the message.
 export const gmailLink = (gmailId: string) => `https://mail.google.com/mail/u/0/#all/${gmailId.split("#")[0]}`;

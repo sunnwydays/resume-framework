@@ -3,7 +3,7 @@ import { analyze, groupIntoJobs, retarget, type Analyzed, type JobGroup } from "
 import { canMuteSender, isMuted, muteValue } from "@/lib/tracker/email/mute";
 import { assessmentKey, buildPayload, defaultTicks, newAppDefaults, stepKey } from "@/lib/tracker/email/payload";
 import { buildReview, category, countByCategory, countByStatus, emailStatus, splitByAction } from "@/lib/tracker/email/review";
-import { fromRow, gmailLink, SNIPPET_MAX, snippetOf, toRow } from "@/lib/tracker/email/rows";
+import { fromRow, gmailLink, planSave, SNIPPET_MAX, snippetOf, toRow } from "@/lib/tracker/email/rows";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import type { EmailMessage } from "@/lib/tracker/format";
 import { local, makeAccept, makeApp, makeAssessment, makeEmailMessage, resetFixtureIds } from "../helpers/fixtures";
@@ -100,6 +100,48 @@ describe("rows: storing and reading back", () => {
     const a = fromRow(row);
     expect(a.facts.receivedAt).toBe("2026-09-28T12:00:00.000Z");
     expect(a.fields.dueAt).toBe("2026-10-01T03:59:00.000Z");
+  });
+
+  describe("planSave: a re-scan re-reads what's still pending", () => {
+    const fresh = () => confirmation("Globex", "Backend Intern", 20);
+
+    it("inserts mail it hasn't stored", () => {
+      const row = toRow(fresh())!;
+      expect(planSave([row], [])).toEqual({ insert: [row], refresh: [] });
+    });
+
+    it("rewrites a pending row an older rule read differently", () => {
+      const a = fresh();
+      const old = stored(a, { kind: "rejection", matched_phrase: "are not selected", company: "Pat Lee" });
+      const { insert, refresh } = planSave([toRow(a)!], [old]);
+      expect(insert).toEqual([]);
+      expect(refresh).toEqual([{ id: old.id, changes: expect.objectContaining({ kind: "confirmation", company: "Globex" }) }]);
+      // Only what the rules write; the row's state and links stay as they are.
+      expect(Object.keys(refresh[0].changes)).not.toContain("state");
+      expect(Object.keys(refresh[0].changes)).not.toContain("application_id");
+    });
+
+    it("leaves an unchanged pending row alone, however Postgres formats it", () => {
+      const a = analyze(
+        mail({
+          gmailId: "m-due",
+          fromAddress: "support@hackerrankforwork.com",
+          subject: "Your HackerRank Backend Intern Test Invitation",
+          text: "Thank you for your interest in joining Globex! We're excited to invite you to take the HackerRank coding test assessment. Please complete it by October 9, 2026 11:59 PM EDT.",
+          links: [{ url: "https://www.hackerrank.com/test/abc", label: "Start Test" }],
+        })
+      );
+      const row = toRow(a)!;
+      expect(row.due_at).toBeTruthy();
+      const origins = Object.fromEntries(Object.entries(row.field_origins as object).reverse());
+      const old = stored(a, { due_at: row.due_at!.replace(".000Z", "+00:00"), field_origins: origins });
+      expect(planSave([row], [old])).toEqual({ insert: [], refresh: [] });
+    });
+
+    it("never touches an accepted row", () => {
+      const a = fresh();
+      expect(planSave([toRow(a)!], [stored(a, { kind: "rejection", state: "accepted" })])).toEqual({ insert: [], refresh: [] });
+    });
   });
 
   it("links a digest's part to the Gmail message it came from", () => {
