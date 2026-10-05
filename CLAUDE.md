@@ -359,7 +359,17 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
     (`usePostings.ts`; upsert with ignore-duplicates on
     `(user_id, source, source_id)`, so a posting you saved, applied to or
     dismissed never comes back as new). The Gmail scan still ignores these
-    alerts on purpose (`RULES.jobAlertSenders`).
+    alerts on purpose (`RULES.jobAlertSenders`). After saving, the same scan
+    reads each still-`new` posting's Jobright page for the term and length the
+    title lacks (`readDetails` in `usePostings.ts` -> `POST
+    /api/tracker/postings-details`, server-side, Jobright posting URLs only,
+    10 per request). `details.ts` pulls `internHireDate` ("Start in 2027
+    Winter") and the first sentence `lengthFromText` can read out of
+    `__NEXT_DATA__`'s `dataSource.jobResult`, stored as `start_text` /
+    `length_text`; `details_read_at` marks a page as read (left null when the
+    fetch failed or wasn't a posting page, so the next scan retries; set even
+    when the page states nothing). Only text is stored, so term.ts tuning
+    still applies to old rows. Re-scanning also backfills older postings.
   - **Parsing** (`lib/tracker/postings/parse.ts`): the plain-text part is
     useless (cards collapse to "APPLY NOW"), so it reads the HTML, where each
     card is a link wrapping `<table id="job-section">` with fields found by
@@ -374,8 +384,11 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
     stored** (like role types), so tuning applies to old rows: `region.ts`
     (US / Canada / elsewhere / unclear: location `", XX"` code first, then
     country names, then for Remote/blank locations the pay currency and the
-    title), `term.ts` ("Summer 2027" and a length in months, read from the
-    *title only*; both are often absent, so "not stated" is its own chip, and a
+    title), `term.ts` ("Summer 2027" and a length in months. Term: season+year
+    in the title, else the page's `start_text`, else a bare season in the title
+    like "(Winter)" with the year worked out from `first_seen_at`. Length: the
+    title, else `length_text`, where the lower end of "8, or 12-month" decides
+    the bucket. Both are often absent, so "not stated" is its own chip, and a
     term or length chip hides everything that doesn't match it, including
     not-stated ones, unless that chip is on too), `eligibility.ts` (`ELIGIBILITY_RULES` holds the
     defense-employer list, the title phrases and the "check" industries; only

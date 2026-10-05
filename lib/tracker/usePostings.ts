@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
 import { todayISO, type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import type { PostingDetails } from "@/lib/tracker/postings/details";
 import { supabase } from "@/lib/tracker/useTracker";
+
+// Pages per request to the details route (its limit is 10).
+const DETAILS_BATCH = 8;
 
 type FetchResult = { error: string } | { postings: JobPosting[] };
 
@@ -49,16 +53,61 @@ export function usePostings() {
 
   // Stores postings from a scan. One already stored (new, saved, applied or
   // dismissed) is skipped, never revived. Returns how many were new.
-  const savePostings = useCallback(async (rows: TablesInsert<"job_postings">[]): Promise<{ saved: number } | { error: string }> => {
-    if (rows.length === 0) return { saved: 0 };
+  const savePostings = useCallback(async (rows: TablesInsert<"job_postings">[]): Promise<{ saved: number; rows: JobPosting[] } | { error: string }> => {
+    if (rows.length === 0) return { saved: 0, rows: [] };
     const { data, error } = await supabase()
       .from("job_postings")
       .upsert(rows, { onConflict: "user_id,source,source_id", ignoreDuplicates: true })
       .select();
     if (error) return { error: error.message };
     setPostings((list) => [...(data ?? []), ...list]);
-    return { saved: data?.length ?? 0 };
+    return { saved: data?.length ?? 0, rows: data ?? [] };
   }, []);
+
+  // Reads the start line and length off each posting's page (server-side) and
+  // stores them, so the Term and Length chips know more than the title says.
+  // Only postings not yet read are fetched; one whose page couldn't be read is
+  // left for next time. Returns how many were read.
+  const readDetails = useCallback(
+    async (candidates: JobPosting[], onProgress?: (done: number, total: number) => void): Promise<{ read: number } | { error: string }> => {
+      const todo = candidates.filter((p) => p.state === "new" && !p.details_read_at);
+      let read = 0;
+      for (let i = 0; i < todo.length; i += DETAILS_BATCH) {
+        onProgress?.(i, todo.length);
+        const batch = todo.slice(i, i + DETAILS_BATCH);
+        let results: (PostingDetails | null)[];
+        try {
+          const res = await fetch("/api/tracker/postings-details", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ urls: batch.map((p) => p.url) }),
+          });
+          const body = (await res.json()) as { results?: (PostingDetails | null)[]; error?: string };
+          if (!res.ok || !body.results) return { error: body.error ?? `Couldn't read posting pages (${res.status})` };
+          results = body.results;
+        } catch (e) {
+          return { error: (e as Error).message };
+        }
+        const stamp = new Date().toISOString();
+        const updates = batch.flatMap((p, j) => {
+          const d = results[j];
+          return d ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, details_read_at: stamp } }] : [];
+        });
+        const writes = await Promise.all(updates.map((u) => supabase().from("job_postings").update(u.changes).eq("id", u.id)));
+        const failed = writes.find((w) => w.error);
+        if (failed?.error) return { error: failed.error.message };
+        setPostings((list) =>
+          list.map((p) => {
+            const u = updates.find((x) => x.id === p.id);
+            return u ? { ...p, ...u.changes } : p;
+          })
+        );
+        read += updates.length;
+      }
+      return { read };
+    },
+    []
+  );
 
   const patch = useCallback(
     async (id: string, changes: TablesUpdate<"job_postings">) => {
@@ -112,6 +161,7 @@ export function usePostings() {
     clearError: () => setError(null),
     reload,
     savePostings,
+    readDetails,
     setState,
     markApplied,
     deleteAllPostings,

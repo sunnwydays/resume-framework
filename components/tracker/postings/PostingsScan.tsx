@@ -23,6 +23,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
   const [since, setSince] = useState("");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
+  const [reading, setReading] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -60,9 +61,14 @@ export default function PostingsScan({ store, postings, now }: Props) {
         setError(`Couldn't save the postings: ${saved.error}`);
         return;
       }
+      // The title seldom names the term or length; the posting page does.
+      // Covers older postings that were never read, too. A failure here
+      // doesn't undo the scan.
+      const details = await store.readDetails([...postings, ...saved.rows], (done, total) => setReading({ done, total }));
+      const detailsNote = "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term and length` : "";
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
-      setSummary(`${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${capped}`);
+      setSummary(`${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${detailsNote}${capped}`);
     } catch (e) {
       if ((e as Error).name === "AbortError") setError("Cancelled. Nothing from this scan was saved.");
       // Closing Google's popup is a change of mind, not a failure.
@@ -71,6 +77,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
     } finally {
       setRunning(false);
       setProgress(null);
+      setReading(null);
     }
   }
 
@@ -118,7 +125,9 @@ export default function PostingsScan({ store, postings, now }: Props) {
             </p>
             <div aria-live="polite" className="text-sm">
               {running &&
-                (progress
+                (reading
+                  ? `Reading posting pages… ${reading.done} of ${reading.total}`
+                  : progress
                   ? progress.phase === "listing"
                     ? `Finding alerts… ${progress.done}`
                     : `Reading ${progress.done} of ${progress.total} alerts…`

@@ -1,7 +1,9 @@
 // When an internship runs and for how long, read from the title ("Software
-// Engineer Intern, Backend (Summer 2027 - Toronto)", "Co-op, 8 months").
-// Titles often say neither, so both are nullable and the page treats "not
-// stated" as its own choice rather than guessing. Derived every render.
+// Engineer Intern, Backend (Summer 2027 - Toronto)", "Co-op, 8 months") and,
+// when the posting page has been read, from what it says (`start_text`, the
+// start line Jobright shows; `length_text`, the sentence naming the length).
+// Both are nullable and the page treats "not stated" as its own choice rather
+// than guessing. Derived every render.
 
 export type Season = "winter" | "spring" | "summer" | "fall";
 const SEASON_ORDER: Season[] = ["winter", "spring", "summer", "fall"];
@@ -36,7 +38,25 @@ function term(season: Season, year: number): Term {
   return { key: `${year}-${season}`, label: `${name} ${year}`, order: year * 10 + SEASON_ORDER.indexOf(season) };
 }
 
-export function postingTerm(role: string): Term | null {
+// A season with no year: "Intern (Winter)", "Fall Co-op". Only read next to a
+// bracket or a work-term word, so "Fall Protection Engineer" isn't a term.
+const WORK_TERM = "(?:intern(?:ship)?|co-?op|student|placement|term)s?";
+const BARE_SEASON = new RegExp(
+  String.raw`[(\[]\s*${SEASON_WORD}\s*[)\]]|\b${SEASON_WORD}\s+${WORK_TERM}\b|\b${WORK_TERM}\s*[,:-]?\s*${SEASON_WORD}\b`,
+  "i"
+);
+// The month each season starts in (the co-op convention above, plus spring).
+const SEASON_START: Record<Season, number> = { winter: 0, spring: 2, summer: 4, fall: 8 };
+
+// The soonest run of `season` that hasn't finished when the posting was first
+// seen: Winter seen in October is next year's, seen in January it's this year's.
+function inferYear(season: Season, seenAt: string): number | null {
+  const seen = new Date(seenAt);
+  if (Number.isNaN(seen.getTime())) return null;
+  return seen.getMonth() <= SEASON_START[season] + 1 ? seen.getFullYear() : seen.getFullYear() + 1;
+}
+
+function titleTerm(role: string): Term | null {
   const a = SEASON_THEN_YEAR.exec(role);
   if (a) return term(normalizeSeason(a[1]), fullYear(a[a.length - 1]));
   const b = YEAR_THEN_SEASON.exec(role);
@@ -47,6 +67,25 @@ export function postingTerm(role: string): Term | null {
     return term(start >= 8 ? "fall" : start >= 4 ? "summer" : "winter", Number(m[2]));
   }
   return null;
+}
+
+export interface TermSources {
+  startText?: string | null; // "Start in 2027 Winter", from the posting page
+  seenAt?: string | null; // when the alert arrived: gives a year to a bare season
+}
+
+// Order of trust: a season and year in the title, then the posting page's start
+// line, then a bare season in the title with the year worked out from `seenAt`.
+export function postingTerm(role: string, { startText, seenAt }: TermSources = {}): Term | null {
+  const fromTitle = titleTerm(role);
+  if (fromTitle) return fromTitle;
+  const fromPage = startText ? titleTerm(startText) : null;
+  if (fromPage) return fromPage;
+  const bare = BARE_SEASON.exec(role);
+  if (!bare || !seenAt) return null;
+  const season = normalizeSeason(bare.slice(1).find((g) => g && /^(?:spring|summer|fall|autumn|winter)$/i.test(g)) ?? "");
+  const year = inferYear(season, seenAt);
+  return year === null ? null : term(season, year);
 }
 
 // ---------------------------------------------------------------- length
@@ -69,12 +108,45 @@ function range(a: string, b: string | undefined, perUnit: number): Length | null
   return min >= 1 && max <= MAX_MONTHS ? { min, max } : null;
 }
 
-export function postingLength(role: string): Length | null {
+// "8, or 12-month position", "16-week internship program", "duration: 4
+// months". Needs a noun after the number or a word like "duration" before it,
+// so "within 12 months of graduating" isn't a length.
+const NUMS = String.raw`(\d{1,2}(?:\s*(?:,|/|-|–|—|to|or|and)\s*(?:or\s+|and\s+)?\d{1,2})*)`;
+const LENGTH_NOUN = String.raw`(?:position|term|internship|intern|co-?op|placement|work\s+term|program|programme|contract|role|opportunity|commitment)`;
+const TEXT_MONTHS = [
+  new RegExp(String.raw`\b${NUMS}[\s-]*months?\s+${LENGTH_NOUN}\b`, "i"),
+  new RegExp(String.raw`\b(?:duration|length|term|commitment)\b[^.\d]{0,30}?${NUMS}[\s-]*months?\b`, "i"),
+];
+const TEXT_WEEKS = [
+  new RegExp(String.raw`\b${NUMS}[\s-]*weeks?\s+${LENGTH_NOUN}\b`, "i"),
+  new RegExp(String.raw`\b(?:duration|length|term|commitment)\b[^.\d]{0,30}?${NUMS}[\s-]*weeks?\b`, "i"),
+];
+
+function textRange(nums: string, perUnit: number): Length | null {
+  const all = nums.match(/\d+/g)!.map(Number);
+  return range(String(Math.min(...all)), String(Math.max(...all)), perUnit);
+}
+
+// For sentences from the posting page, where the length sits in prose.
+export function lengthFromText(text: string): Length | null {
+  for (const re of TEXT_MONTHS) {
+    const m = re.exec(text);
+    if (m) return textRange(m[1], 1);
+  }
+  for (const re of TEXT_WEEKS) {
+    const m = re.exec(text);
+    if (m) return textRange(m[1], 1 / 4.345);
+  }
+  return null;
+}
+
+// The title first, then the sentence read from the posting page.
+export function postingLength(role: string, lengthText?: string | null): Length | null {
   const months = MONTHS_RE.exec(role);
   if (months) return range(months[1], months[2], 1);
   const weeks = WEEKS_RE.exec(role);
   if (weeks) return range(weeks[1], weeks[2], 1 / 4.345);
-  return null;
+  return lengthText ? lengthFromText(lengthText) : null;
 }
 
 export type LengthBucket = "short" | "medium" | "long" | "unstated";

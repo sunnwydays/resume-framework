@@ -230,6 +230,30 @@ describe("matchesPostingFilters", () => {
     expect(pick(["2030-summer"])).toEqual([]);
   });
 
+  it("the default filters hide a Winter intern and a long co-op that the title doesn't date or size", () => {
+    const seen = { first_seen_at: new Date(2026, 9, 4, 12).toISOString() };
+    const views = buildPostingViews(
+      [
+        // Title says only "(Winter)": the year comes from when it was seen.
+        makePosting({ id: "bare-winter", role: "Intern, Platform (Winter)", ...seen }),
+        // Title says nothing: the posting page gave the start and the length.
+        makePosting({
+          id: "page-winter-long",
+          role: "Intern Developer, Solutions",
+          start_text: "Start in 2027 Winter",
+          length_text: "This is a full-time, 8, or 12-month position, starting January 2027",
+          details_read_at: "2026-10-04T12:00:00.000Z",
+          ...seen,
+        }),
+        makePosting({ id: "page-summer-short", role: "Intern Developer", start_text: "Start in 2027 Summer", length_text: "A 16-week internship program", ...seen }),
+        makePosting({ id: "unread", role: "Software Intern", ...seen }),
+      ],
+      []
+    );
+    const shown = views.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).map((v) => v.posting.id);
+    expect(shown).toEqual(["page-summer-short", "unread"]);
+  });
+
   it("by length bucket", () => {
     const lengthViews = buildPostingViews(
       [

@@ -380,9 +380,11 @@ export type Database = {
           categories: string | null
           company: string
           created_at: string
+          details_read_at: string | null
           first_seen_at: string
           gmail_id: string
           id: string
+          length_text: string | null
           location: string | null
           match_pct: number | null
           pay: string | null
@@ -391,6 +393,7 @@ export type Database = {
           role: string
           source: string
           source_id: string
+          start_text: string | null
           state: string
           updated_at: string
           url: string
@@ -401,9 +404,11 @@ export type Database = {
           categories?: string | null
           company: string
           created_at?: string
+          details_read_at?: string | null
           first_seen_at: string
           gmail_id: string
           id?: string
+          length_text?: string | null
           location?: string | null
           match_pct?: number | null
           pay?: string | null
@@ -412,6 +417,7 @@ export type Database = {
           role: string
           source: string
           source_id: string
+          start_text?: string | null
           state?: string
           updated_at?: string
           url: string
@@ -422,9 +428,11 @@ export type Database = {
           categories?: string | null
           company?: string
           created_at?: string
+          details_read_at?: string | null
           first_seen_at?: string
           gmail_id?: string
           id?: string
+          length_text?: string | null
           location?: string | null
           match_pct?: number | null
           pay?: string | null
@@ -433,6 +441,7 @@ export type Database = {
           role?: string
           source?: string
           source_id?: string
+          start_text?: string | null
           state?: string
           updated_at?: string
           url?: string

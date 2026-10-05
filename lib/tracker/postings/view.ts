@@ -12,8 +12,8 @@ export interface PostingView {
   posting: JobPosting;
   region: RegionResult;
   eligibility: Eligibility;
-  term: Term | null; // "Summer 2027", when the title says
-  length: Length | null; // in months, when the title says
+  term: Term | null; // "Summer 2027", when the title or the posting page says
+  length: Length | null; // in months, when the title or the posting page says
   // The application it was marked applied as, else the closest match.
   tracked: Application | null;
 }
@@ -26,8 +26,8 @@ export function buildPostingViews(postings: JobPosting[], applications: Applicat
       posting,
       region,
       eligibility: postingEligibility(posting, region.region),
-      term: postingTerm(posting.role),
-      length: postingLength(posting.role),
+      term: postingTerm(posting.role, { startText: posting.start_text, seenAt: posting.first_seen_at }),
+      length: postingLength(posting.role, posting.length_text),
       tracked: (posting.application_id ? byId.get(posting.application_id) : undefined) ?? matchPosting(posting, applications),
     };
   });
