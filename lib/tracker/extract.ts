@@ -37,17 +37,99 @@ const UA =
 const TIMEOUT_MS = 8000;
 const MAX_DESCRIPTION = 20_000;
 
+const MAX_BODY_BYTES = 5 * 1024 * 1024;
+const MAX_REDIRECTS = 5;
+
+function ipv4Octets(host: string): number[] | null {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!m) return null;
+  const octets = m.slice(1).map(Number);
+  return octets.every((o) => o <= 255) ? octets : null;
+}
+
+function isPublicIpv4([a, b]: number[]): boolean {
+  if (a === 0 || a === 10 || a === 127) return false; // "this" network, private, loopback
+  if (a === 100 && b >= 64 && b <= 127) return false; // CGNAT
+  if (a === 169 && b === 254) return false; // link-local, incl. the cloud metadata address
+  if (a === 172 && b >= 16 && b <= 31) return false;
+  if (a === 192 && b === 168) return false;
+  if (a === 198 && (b === 18 || b === 19)) return false; // benchmarking
+  return a < 224; // multicast and reserved
+}
+
+// A job posting lives on a public host. The route fetches on a signed-in
+// caller's behalf, so refuse anything that would reach the server's own
+// network: localhost, private and link-local addresses, one-label names.
+// (The URL parser has already turned "0x7f.1" or "2130706433" into dotted
+// form, and writes an IPv6 address inside brackets.) A public name that
+// resolves to a private address isn't caught; there's no DNS lookup here.
+export function isPublicHost(url: URL): boolean {
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
+
+  if (host.startsWith("[")) {
+    const v6 = host.slice(1, -1);
+    if (v6 === "::" || v6 === "::1") return false;
+    if (/^fe[89ab]/.test(v6)) return false; // fe80::/10 link-local
+    if (/^f[cd]/.test(v6)) return false; // fc00::/7 unique-local
+    // IPv4-mapped (::ffff:7f00:1, which the parser writes in hex).
+    const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v6);
+    if (mapped) {
+      const hi = parseInt(mapped[1], 16);
+      const lo = parseInt(mapped[2], 16);
+      return isPublicIpv4([hi >> 8, hi & 255, lo >> 8, lo & 255]);
+    }
+    return true;
+  }
+
+  const v4 = ipv4Octets(host);
+  if (v4) return isPublicIpv4(v4);
+  if (!host.includes(".")) return false; // "localhost", "intranet"
+  return !/\.(local|localhost|internal|lan|home|corp)$/.test(host);
+}
+
+// Reads at most MAX_BODY_BYTES, so a huge or endless response can't fill memory.
+async function readCapped(res: Response): Promise<string> {
+  if (!res.body) return (await res.text()).slice(0, MAX_BODY_BYTES);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  while (bytes < MAX_BODY_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = value.subarray(0, MAX_BODY_BYTES - bytes);
+    bytes += chunk.byteLength;
+    text += decoder.decode(chunk, { stream: true });
+  }
+  await reader.cancel().catch(() => {});
+  return text;
+}
+
+// Follows redirects by hand so every hop is checked against isPublicHost.
 async function fetchText(url: string, init?: RequestInit): Promise<string | null> {
   try {
-    const res = await fetch(url, {
-      ...init,
-      headers: { "User-Agent": UA, Accept: "text/html,application/json", ...init?.headers },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      redirect: "follow",
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return await res.text();
+    let current = new URL(url);
+    for (let hops = 0; hops <= MAX_REDIRECTS; hops++) {
+      if (!isPublicHost(current)) return null;
+      const res = await fetch(current.toString(), {
+        ...init,
+        headers: { "User-Agent": UA, Accept: "text/html,application/json", ...init?.headers },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        redirect: "manual",
+        cache: "no-store",
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        await res.body?.cancel().catch(() => {});
+        if (!location) return null;
+        current = new URL(location, current);
+        continue;
+      }
+      if (!res.ok) return null;
+      return await readCapped(res);
+    }
+    return null; // too many redirects
   } catch {
     return null;
   }

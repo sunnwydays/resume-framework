@@ -6,6 +6,7 @@ import {
   fromJsonLd,
   fromTitle,
   htmlToText,
+  isPublicHost,
   prettifySlug,
 } from "@/lib/tracker/extract";
 
@@ -234,7 +235,7 @@ describe("companyFromDomain", () => {
 
 // ------------------------------------------------------------ extractJob
 
-type Reply = { status?: number; body: string } | Error;
+type Reply = { status?: number; body: string; headers?: Record<string, string> } | Error;
 let calls: string[] = [];
 
 // Maps a URL (exact, or a regex) to a canned reply; anything else is a 404.
@@ -248,7 +249,7 @@ function mockFetch(routes: [string | RegExp, Reply][]) {
       const hit = routes.find(([key]) => (typeof key === "string" ? key === url : key.test(url)));
       if (!hit) return new Response("not found", { status: 404 });
       if (hit[1] instanceof Error) throw hit[1];
-      return new Response(hit[1].body, { status: hit[1].status ?? 200 });
+      return new Response(hit[1].body, { status: hit[1].status ?? 200, headers: hit[1].headers });
     })
   );
 }
@@ -508,5 +509,97 @@ describe("extractJob: failures never throw", () => {
     const r = await extractJob("http://127.0.0.1:8080/jobs/1");
     expect(r.fields).toEqual({});
     expect(r.missing).toEqual(["company", "role", "location"]);
+  });
+});
+
+describe("isPublicHost", () => {
+  const ok = (u: string) => isPublicHost(new URL(u));
+
+  it.each([
+    "https://boards.greenhouse.io/acme/jobs/1",
+    "http://jobs.example.co.uk/x",
+    "https://93.184.216.34/x",
+    "https://172.32.0.1/x",
+    "https://100.63.0.1/x",
+    "https://[2606:4700::1111]/x",
+  ])("allows %s", (u) => expect(ok(u)).toBe(true));
+
+  it.each([
+    "http://localhost:3000/x",
+    "http://LOCALHOST./x",
+    "http://app.localhost/x",
+    "http://intranet/x",
+    "http://printer.local/x",
+    "http://db.internal/x",
+    "http://127.0.0.1/x",
+    "http://127.255.0.9/x",
+    "http://0.0.0.0/x",
+    "http://10.1.2.3/x",
+    "http://172.16.0.1/x",
+    "http://172.31.255.255/x",
+    "http://192.168.1.1/x",
+    "http://169.254.169.254/latest/meta-data",
+    "http://100.64.0.1/x",
+    "http://100.127.255.255/x",
+    "http://224.0.0.1/x",
+    "http://2130706433/x", // 127.0.0.1 as one number
+    "http://0x7f.1/x",
+    "http://[::1]/x",
+    "http://[::]/x",
+    "http://[fe80::1]/x",
+    "http://[fd12:3456::1]/x",
+    "http://[::ffff:127.0.0.1]/x",
+    "http://[::ffff:169.254.169.254]/x",
+    "ftp://example.com/x",
+  ])("refuses %s", (u) => expect(ok(u)).toBe(false));
+});
+
+describe("extractJob: outbound requests stay on public hosts", () => {
+  it("never fetches a private-address URL", async () => {
+    mockFetch([[/.*/, html("<title>Dev at Acme</title>")]]);
+    const r = await extractJob("http://169.254.169.254/latest/meta-data");
+    expect(calls).toEqual([]);
+    expect(r.fields).toEqual({});
+  });
+
+  it("refuses a redirect to a private address, without fetching it", async () => {
+    mockFetch([
+      ["https://www.acme.com/jobs/1", { status: 302, body: "", headers: { location: "http://127.0.0.1:8080/admin" } }],
+      [/127\.0\.0\.1/, html("<title>Secret at Internal</title>")],
+    ]);
+    const r = await extractJob("https://www.acme.com/jobs/1");
+    expect(calls).toEqual(["https://www.acme.com/jobs/1"]);
+    expect(r.fields).toEqual({ company: "Acme" });
+  });
+
+  it("follows a normal redirect, including a relative one", async () => {
+    mockFetch([
+      ["https://acme.com/jobs/1", { status: 301, body: "", headers: { location: "https://www.acme.com/careers/1" } }],
+      ["https://www.acme.com/careers/1", { status: 302, body: "", headers: { location: "/final" } }],
+      ["https://www.acme.com/final", html("<title>Dev at Acme</title>")],
+    ]);
+    const r = await extractJob("https://acme.com/jobs/1");
+    expect(r.fields).toMatchObject({ role: "Dev", company: "Acme" });
+  });
+
+  it("gives up on a redirect loop", async () => {
+    mockFetch([[/.*/, { status: 302, body: "", headers: { location: "https://www.acme.com/loop" } }]]);
+    const r = await extractJob("https://www.acme.com/loop");
+    expect(calls.length).toBeLessThanOrEqual(6);
+    expect(r.fields).toEqual({ company: "Acme" });
+  });
+
+  it("reads at most about 5 MB of a page", async () => {
+    // The title sits past the cap, so it must not be read.
+    const padding = "x".repeat(6 * 1024 * 1024);
+    mockFetch([["https://www.acme.com/jobs/1", { body: `<html><head>${padding}<title>Late at Acme</title></head></html>` }]]);
+    const r = await extractJob("https://www.acme.com/jobs/1");
+    expect(r.fields.role).toBeUndefined();
+  });
+
+  it("still reads a page just under the cap", async () => {
+    mockFetch([["https://www.acme.com/jobs/1", html(`<title>Dev at Acme</title>${"x".repeat(1024 * 1024)}`)]]);
+    const r = await extractJob("https://www.acme.com/jobs/1");
+    expect(r.fields).toMatchObject({ role: "Dev", company: "Acme" });
   });
 });
