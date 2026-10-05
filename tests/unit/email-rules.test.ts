@@ -541,6 +541,37 @@ describe("fixes from the live test", () => {
     expect(extractFields(m, "confirmation").company).toBeNull();
   });
 
+  it.each([
+    "If you are not selected for this position, keep an eye on our jobs page as we're growing.",
+    "If you are a top candidate for the role, you will receive a message regarding next steps. If you are not selected, please continue to view our careers page.",
+  ])("a confirmation's 'if you are not selected' aside is not a rejection: %s", (aside) => {
+    const m = mail({
+      fromAddress: "no-reply@ashbyhq.com",
+      subject: "Thank you for applying to Globex!",
+      text: `Hi Sam, Thanks for applying to our Software Engineer Intern (Summer 2027) position! Your application has been received. ${aside}`,
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("naming the meeting tool in boilerplate isn't an interview invite", () => {
+    const m = mail({
+      fromAddress: "no-reply@us.greenhouse-mail.io",
+      subject: "Thank you for applying to Globex!",
+      text: "Hi Sam, Thanks for applying to Globex! Your application for the Software Engineering Intern role has been received.\n\nPlease note that all official communication from Globex will come from email addresses ending with @globex.example or @goodtime.io (our meeting tool).",
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("…while a booking link is one", () => {
+    const m = mail({
+      fromAddress: "recruiting@globex.example",
+      subject: "Next steps with Globex",
+      text: "Hi Sam, thanks for your application. Please pick a slot that works for you using the link below.",
+      links: [{ url: "https://app.goodtime.io/booking/abc123", label: "Pick a time" }],
+    });
+    expect(kindOf(m)).toBe("interview_invite");
+  });
+
   it("a real invite in the same mail still wins", () => {
     const m = mail({
       fromAddress: "recruiting@globex.com",

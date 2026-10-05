@@ -126,9 +126,13 @@ export const RULES = {
     /invite\s+you\s+to\s+(?:an?\s+|a\s+)?(?:\w+\s+){0,2}interview/i,
     /would\s+like\s+to\s+(?:interview|meet\s+with|speak\s+with|chat\s+with|talk\s+to)\s+you/i,
     /interview\s+(?:invitation|invite|availability|scheduling|request)/i,
-    /\bcalendly\.com\b|\bgoodtime\.io\b/i,
     /technical\s+screening\s+round/i,
   ],
+  // A booking link is an invite; the tool's name in the text isn't ("mail
+  // will come from @databricks.com or @goodtime.io (our meeting tool)" is a
+  // confirmation's boilerplate). Checked against the links only (one per
+  // line), and only a link with a path.
+  schedulingLinks: [/^https?:\/\/(?:[\w-]+\.)*(?:calendly\.com|goodtime\.io)\/\S/im],
 
   // Sentences that describe the process rather than invite you ("Candidates
   // invited to complete an assessment will be notified by 10/7", "If selected,
@@ -245,7 +249,9 @@ export function classify(facts: EmailFacts): Classification {
   const invite =
     ((p) => (p ? { kind: "video_invite" as const, phrase: p } : null))(firstMatch(RULES.video, real)) ??
     ((p) => (p ? { kind: "oa_invite" as const, phrase: p } : null))(firstMatch(RULES.oa, real)) ??
-    ((p) => (p ? { kind: "interview_invite" as const, phrase: p } : null))(firstMatch(RULES.interview, `${real}\n${urls}`));
+    ((p) => (p ? { kind: "interview_invite" as const, phrase: p } : null))(
+      firstMatch(RULES.interview, `${real}\n${urls}`) ?? firstMatch(RULES.schedulingLinks, urls)
+    );
   if (invite) {
     const reminder = firstMatch(RULES.reminder, body);
     return reminder ? { kind: "reminder", phrase: reminder } : invite;
