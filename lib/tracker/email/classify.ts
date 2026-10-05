@@ -102,6 +102,11 @@ export const RULES = {
     // Only about a test: "Thank you for completing the first part of your
     // application" is the start of an invite, not a finished assessment.
     /thank you for completing\s+(?:the|your|our)\s+[^.]{0,50}?(?:assessment|test|challenge|exercise)/i,
+    // "Thank you for completing the pre-recorded video interview. Your video
+    // responses will now be reviewed": done, though the words "video
+    // interview" are also the invite rule's.
+    /(?:thank you for|you(?:'ve| have))\s+(?:completing|completed|submitted|finished)\s+(?:the|your|our)\s+[^.]{0,50}?\bvideo\s+interview/i,
+    /\b(?:video\s+(?:interview|responses?)|recording)\s+(?:has\s+been\s+|was\s+)?(?:completed|submitted|received)\b/i,
   ],
 
   video: [

@@ -340,6 +340,15 @@ describe("fixes from the first inbox review", () => {
     expect(f.dueAt).toBeNull();
   });
 
+  it("'thank you for completing the pre-recorded video interview' is done, not a video invite", () => {
+    const m = mail({
+      fromAddress: "zephyr@hiringplatform.com",
+      subject: "Thank you for completing your video interview",
+      text: "Hello Sam,\n\nThank you for completing the pre-recorded video interview. Your video responses will now be reviewed by our team. If you are selected to move forward for the Summer 2027 Zephyr Software Engineering Intern position, we will contact you with instructions for the next steps.\n\nRegards,\n\nZephyr Team",
+    });
+    expect(classify(m).kind).toBe("assessment_done");
+  });
+
   it("'your assessments expire in 24 hours' is an OA reminder, with its deadline", () => {
     const m = mail({
       fromAddress: "noreply@email.initech.com",

@@ -4,7 +4,7 @@
 // tracker data, so accepting one job immediately makes the next one's match
 // land on the new row. Nothing here is applied automatically.
 
-import { classify } from "@/lib/tracker/email/classify";
+import { RULES, classify } from "@/lib/tracker/email/classify";
 import { extractFields, type EmailFields } from "@/lib/tracker/email/fields";
 import { companyCloseness, hasDistinctRole, key, mentionsJobId, roleCloseness } from "@/lib/tracker/email/match";
 import type { EmailFacts } from "@/lib/tracker/email/parse";
@@ -315,8 +315,12 @@ function planGroup(
       }
     } else if (email.kind === "assessment_done") {
       const at = email.fields.completedAt ?? email.facts.receivedAt;
-      const mine = actions.find((a) => !a.completedAt) ?? null;
-      const only = pending("oa").length === 1 ? pending("oa")[0] : null;
+      // A finished video interview completes a video interview, not an OA.
+      const done: AssessmentKind = RULES.video.some((r) => r.test(`${email.facts.subject}\n${email.facts.text}`))
+        ? "video_interview"
+        : "oa";
+      const mine = actions.find((a) => !a.completedAt && a.kind === done) ?? null;
+      const only = pending(done).length === 1 ? pending(done)[0] : null;
       if (mine) {
         mine.emails.push(email);
         mine.completedAt = at;
@@ -325,7 +329,7 @@ function planGroup(
       } else if (only) {
         actions.push({
           emails: [email],
-          kind: "oa",
+          kind: done,
           title: only.title,
           link: null,
           dueAt: null,
@@ -333,11 +337,11 @@ function planGroup(
           completedAt: at,
           apply: true,
         });
-      } else if (!assessments.some((a) => a.status === "completed" && a.kind === "oa" && email.fields.assessmentTitle && key(a.title) === key(email.fields.assessmentTitle))) {
+      } else if (!assessments.some((a) => a.status === "completed" && a.kind === done && email.fields.assessmentTitle && key(a.title) === key(email.fields.assessmentTitle))) {
         actions.push({
           emails: [email],
-          kind: "oa",
-          title: assessmentTitle(email, "oa"),
+          kind: done,
+          title: assessmentTitle(email, done),
           link: null,
           dueAt: null,
           existing: null,
