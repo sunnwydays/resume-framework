@@ -475,6 +475,12 @@ tracker paths; the resume pages never hit it.
     pending. `trail.ts` mirrors those checks for the Undo links (a toast after
     accepting, and the Emails section in `ApplicationDetail`, which lists the
     emails accepted onto that row).
+  - **Dismissed** (`DismissedEmails.tsx`, `dismissedEmails` in `review.ts`):
+    the page loads emails in every state, and a collapsed "Dismissed N" list
+    under the review cards offers Restore (one or all), which sets them back
+    to pending (`restoreEmails`; the write only matches rows still dismissed).
+    `buildReview` and `planSave` ignore non-pending rows, so a re-scan still
+    never touches a dismissed one until it is restored.
   - **Mutes** (`email_mutes`, `mute.ts`): by company (fuzzy) or exact sender
     address; never an ATS/assessment platform's address (it sends for many
     employers). Muted mail isn't stored on later scans and is hidden from

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { analyze, groupIntoJobs, retarget, type Analyzed, type JobGroup } from "@/lib/tracker/email/group";
 import { canMuteSender, isMuted, muteValue } from "@/lib/tracker/email/mute";
 import { assessmentKey, buildPayload, defaultTicks, newAppDefaults, stepKey } from "@/lib/tracker/email/payload";
-import { buildReview, category, countByCategory, countByStatus, emailStatus, splitByAction } from "@/lib/tracker/email/review";
+import { buildReview, category, countByCategory, countByStatus, dismissedEmails, emailStatus, splitByAction } from "@/lib/tracker/email/review";
 import { fromRow, gmailLink, planSave, SNIPPET_MAX, snippetOf, toRow } from "@/lib/tracker/email/rows";
 import { emailTrail } from "@/lib/tracker/email/trail";
 import type { EmailMessage } from "@/lib/tracker/format";
@@ -142,6 +142,11 @@ describe("rows: storing and reading back", () => {
       const a = fresh();
       expect(planSave([toRow(a)!], [stored(a, { kind: "rejection", state: "accepted" })])).toEqual({ insert: [], refresh: [] });
     });
+
+    it("never touches a dismissed row, now that the page loads them", () => {
+      const a = fresh();
+      expect(planSave([toRow(a)!], [stored(a, { kind: "rejection", state: "dismissed" })])).toEqual({ insert: [], refresh: [] });
+    });
   });
 
   it("links a digest's part to the Gmail message it came from", () => {
@@ -181,6 +186,13 @@ describe("buildReview", () => {
     expect(r.groups.map((g) => g.target.type === "new" && g.target.company)).toEqual(["Globex"]);
     expect(r.muted).toBe(1);
     expect([...r.rowIdOf.values()]).toEqual([rows[0].id]);
+  });
+
+  it("lists dismissed emails newest first, and nothing else", () => {
+    const old = stored(rejection("Umbrella", "QA Intern", 10), { state: "dismissed" });
+    const recent = stored(rejection("Hooli", "ML Intern", 23), { state: "dismissed" });
+    const rows = [old, stored(confirmation("Globex", "Backend Intern", 20)), recent, stored(rejection("Initech", "Data Intern", 22), { state: "accepted" })];
+    expect(dismissedEmails(rows).map((r) => r.id)).toEqual([recent.id, old.id]);
   });
 
   it("sorts cards into the filter chips", () => {

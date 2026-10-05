@@ -96,9 +96,9 @@ function same(column: RuleColumn, stored: unknown, fresh: unknown): boolean {
 }
 
 // Splits a scan's rows into new ones to insert and stored pending ones whose
-// rules' reading changed. `stored` is what the page has loaded (pending and
-// accepted); anything else stored (dismissed) is left to the insert, which
-// skips duplicates.
+// rules' reading changed. `stored` is what the page has loaded (every state);
+// accepted and dismissed rows are skipped, and the insert skips duplicates as
+// a backstop.
 export function planSave(
   rows: TablesInsert<"email_messages">[],
   stored: EmailMessage[]

@@ -35,8 +35,9 @@ type FetchResult =
       gmail: GmailData;
     };
 
-// Gmail review state: pending emails (the review tab) and accepted ones (each
-// application's email trail), mutes, accepts (for undo), last scan.
+// Gmail review state: pending emails (the review tab), accepted ones (each
+// application's email trail) and dismissed ones (the restore list), mutes,
+// accepts (for undo), last scan.
 export interface GmailData {
   emails: EmailMessage[];
   mutes: EmailMute[];
@@ -55,7 +56,7 @@ async function fetchAll(): Promise<FetchResult> {
     sb.from("assessments").select("*").order("due_at", { ascending: true }),
     sb.from("assessment_questions").select("*").order("created_at", { ascending: true }),
     sb.from("status_changes").select("*").order("changed_at", { ascending: true }),
-    sb.from("email_messages").select("*").in("state", ["pending", "accepted"]).order("received_at", { ascending: true }),
+    sb.from("email_messages").select("*").order("received_at", { ascending: true }),
     sb.from("email_mutes").select("*").order("created_at", { ascending: true }),
     sb.from("email_accepts").select("*"),
     sb.from("gmail_scans").select("*").order("scanned_at", { ascending: false }).limit(1),
@@ -350,15 +351,21 @@ export function useTracker() {
     [reload]
   );
 
-  const dismissEmails = useCallback(
-    async (ids: string[]) => {
-      const gone = new Set(ids);
-      setGmail((g) => ({ ...g, emails: g.emails.filter((e) => !gone.has(e.id)) }));
-      const { error } = await supabase().from("email_messages").update({ state: "dismissed" }).in("id", ids);
+  // Moves pending emails to dismissed, or dismissed ones back to pending. The
+  // write only matches rows still in the other state, so a stale page can't
+  // touch an email accepted in another tab.
+  const setEmailState = useCallback(
+    async (ids: string[], from: "pending" | "dismissed", to: "pending" | "dismissed") => {
+      const moved = new Set(ids);
+      setGmail((g) => ({ ...g, emails: g.emails.map((e) => (moved.has(e.id) && e.state === from ? { ...e, state: to } : e)) }));
+      const { error } = await supabase().from("email_messages").update({ state: to }).in("id", ids).eq("state", from);
       if (error) fail(error.message);
     },
     [fail]
   );
+
+  const dismissEmails = useCallback((ids: string[]) => setEmailState(ids, "pending", "dismissed"), [setEmailState]);
+  const restoreEmails = useCallback((ids: string[]) => setEmailState(ids, "dismissed", "pending"), [setEmailState]);
 
   const addMute = useCallback(async (kind: MuteKind, value: string) => {
     const { data, error } = await supabase()
@@ -403,6 +410,7 @@ export function useTracker() {
     applyEmailJob,
     undoEmailJob,
     dismissEmails,
+    restoreEmails,
     addMute,
     removeMute,
   };

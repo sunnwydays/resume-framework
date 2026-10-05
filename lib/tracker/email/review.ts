@@ -89,6 +89,14 @@ export function buildReview(
   return { groups: groupIntoJobs(shown, applications, assessments, statusChanges), rowIdOf, muted };
 }
 
+// Dismissed emails, newest first, for the "Dismissed" list where they can be
+// restored.
+export function dismissedEmails(messages: EmailMessage[]): EmailMessage[] {
+  return messages
+    .filter((m) => m.state === "dismissed")
+    .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
+}
+
 export function countByCategory(groups: JobGroup[]): Record<ReviewFilter, number> {
   const counts: Record<ReviewFilter, number> = { all: groups.length, new: 0, updates: 0, pick: 0, nothing: 0 };
   for (const g of groups) counts[category(g)]++;

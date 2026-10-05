@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import Chip from "@/components/tracker/Chip";
+import DismissedEmails from "@/components/tracker/email/DismissedEmails";
 import EmailJobCard from "@/components/tracker/email/EmailJobCard";
 import { muteValue } from "@/lib/tracker/email/mute";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
@@ -9,6 +10,7 @@ import {
   category,
   countByCategory,
   countByStatus,
+  dismissedEmails,
   emailStatus,
   REVIEW_FILTERS,
   splitByAction,
@@ -250,6 +252,7 @@ export default function EmailReview({ tracker, review }: Props) {
           )}
         </div>
       )}
+      <DismissedEmails emails={dismissedEmails(gmail.emails)} onRestore={tracker.restoreEmails} />
     </div>
   );
 }
