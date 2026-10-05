@@ -572,6 +572,26 @@ describe("fixes from the live test", () => {
     expect(kindOf(m)).toBe("interview_invite");
   });
 
+  it("LinkedIn Easy Apply: company from the subject, role and job id from the job card", () => {
+    const m = mail({
+      fromAddress: "jobs-noreply@linkedin.com",
+      fromName: "LinkedIn",
+      subject: "Sam, your application was sent to Globex Labs",
+      text: [
+        "Your application was sent to Globex Labs",
+        "",
+        "Backend Developer Intern\nGlobex Labs\nSpringfield, OH (Remote)\nView job: https://www.linkedin.com/comm/jobs/view/4400000001/?trackingId=abc",
+        "",
+        "Applied on September 25, 2026",
+        "View similar jobs you may be interested in",
+        "Data Engineer Intern\nInitech\nToronto, ON\nView job: https://www.linkedin.com/comm/jobs/view/4400000002/?trackingId=def",
+      ].join("\n"),
+    });
+    const f = extractFields(m, classify(m).kind);
+    expect(kindOf(m)).toBe("confirmation");
+    expect([f.company, f.role, f.jobId]).toEqual(["Globex Labs", "Backend Developer Intern", "4400000001"]);
+  });
+
   describe("'once you've completed' is about later, not done", () => {
     const send = (text: string) =>
       mail({ fromAddress: "no-reply@globex.example", fromName: "Globex Assessments", subject: "Invitation for assessments", text });

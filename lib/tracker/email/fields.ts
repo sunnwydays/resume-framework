@@ -323,6 +323,16 @@ function candidates(f: EmailFacts): Candidate[] {
     const employer = f.links.find((l) => /indeed\.[a-z.]+\/cmp\//i.test(l.url) && l.label);
     if (employer) add("company", employer.label, "Indeed company link");
   }
+  // LinkedIn Easy Apply: "Sam, your application was sent to Globex"; the body
+  // lists "Your application was sent to Globex / <Role> / Globex / <Location> /
+  // View job: …/jobs/view/<id>/" (later job links are suggestions, not this one).
+  if (/(?:^|\.)linkedin\.com$/.test(sender.split("@")[1] ?? "") && (m = /^(?:[^,]+,\s*)?your application was sent to (.+?)$/i.exec(subject))) {
+    add("company", m[1], "LinkedIn subject");
+    const card = /your application was sent to (.+)\n+(.+)\n(.+)\n/i.exec(f.text);
+    if (card && card[3].trim().toLowerCase() === card[1].trim().toLowerCase()) add("role", card[2], "LinkedIn job card");
+    const view = /linkedin\.com\/(?:comm\/)?jobs\/view\/(\d{5,})/.exec(f.text);
+    if (view) add("jobId", view[1], "LinkedIn job link");
+  }
   // VidCruiter: "Sam, you are moving forward to a Video Interview with Umbrella for the Summer 2027 Umbrella Software Engineering Intern position"
   if ((m = /\bwith ([A-Z][\w&'. -]{1,40}?) for the (.+?) (?:position|role)$/.exec(subject))) {
     add("company", m[1], "subject");
