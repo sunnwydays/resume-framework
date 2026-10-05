@@ -342,6 +342,9 @@ function candidates(f: EmailFacts): Candidate[] {
   if (/hackerrank/.test(sender) && (m = /^Your HackerRank (.+?)\s+(?:Test\s+)?Invitation$/i.exec(subject))) {
     add("role", m[1], "HackerRank test name");
   }
+  // Reminder: "Your invite to [Spring 2027] AI/ML SWE Intern Coding Test expires in 5 days";
+  // the test name is the only role hint.
+  if ((m = /^Your invite to (.+?) expires\b/i.exec(subject))) add("role", m[1], "invite reminder test name");
   // HackerRank sends the employer's role title: "Software Engineer Intern (Core) at Cyberdyne"
   if (/hackerrank/.test(sender) && (m = /^(.+?) at (.+?)$/.exec(subject))) {
     add("role", m[1], "HackerRank subject");
@@ -475,6 +478,7 @@ function assessmentTitleOf(f: EmailFacts): string | null {
   if ((m = /^(.+?) invited you to take (.+?) on /i.exec(f.subject))) return m[2].trim();
   if ((m = /^Reminder:\s*(.+?) is waiting for your (.+?) result\b/i.exec(f.subject))) return m[2].trim();
   if ((m = /Reminder:\s*(.+?) from (.+?) is still pending/i.exec(f.subject.replace(/\s+/g, " ")))) return m[1].trim();
+  if ((m = /^Your invite to (.+?) expires\b/i.exec(f.subject))) return m[1].trim();
   return null;
 }
 

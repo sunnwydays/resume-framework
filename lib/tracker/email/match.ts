@@ -46,7 +46,7 @@ const ROLE_NOISE = new Set([
   "intern", "interns", "internship", "internships", "coop", "co", "op", "summer", "spring", "fall", "winter",
   "software", "engineer", "engineering", "developer", "development", "swe", "sde", "swd", "test", "coding", "the",
   "a", "an", "and", "of", "for", "in", "at", "new", "grad", "student", "students", "university", "program",
-  "role", "position", "opportunity", "opportunities", "toronto", "canada", "remote", "us", "usa", "2025", "2026", "2027", "2028",
+  "role", "position", "opportunity", "opportunities", "clone", "toronto", "canada", "remote", "us", "usa", "2025", "2026", "2027", "2028",
 ]);
 
 // Spelled-out and shorthand forms of the same thing, so a posting's "Machine

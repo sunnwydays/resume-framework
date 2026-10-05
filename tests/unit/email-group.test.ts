@@ -79,6 +79,8 @@ describe("roleCloseness", () => {
     ["Database Engineering Intern Test", "Software Engineer Intern (Database Engineering) - Spring 2027", 100],
     ["[Spring 2027] AI/ML SWE Intern Coding Test", "Software Engineer Intern (Database Engineering) - Spring 2027", 0],
     ["Software Engineer Intern", "Software Engineering Intern 2027", 50],
+    // HackerRank's "(Clone)" on a copied test says nothing about the job.
+    ["Software Engineer Intern (Core Engineering/Security) (Clone)", "swe - (Core, Infrastructure & Security)", 80],
   ])("%s ~ %s = %i", (a, b, expected) => {
     expect(roleCloseness(a, b)).toBe(expected);
   });
@@ -140,6 +142,35 @@ describe("matchApplications", () => {
     expect(pick("Vandelay", "Software Engineer Intern, Full-Stack (Summer 2027)")).toEqual(["swe fullstack"]);
     expect(pick("Cyberdyne", "[Spring 2027] Database Engineering Intern")).toEqual(["swe - db"]);
     expect(pick("Cyberdyne", "Software Engineer Intern (Core, Infrastructure & Security) — Spring 2027")).toEqual(["swe - (Core, Infrastructure & Security)"]);
+  });
+
+  it("an 'invite expires' reminder's test name picks the role", () => {
+    const tracked = [
+      makeApp({ company: "cyberdyne", role: "swe - db" }),
+      makeApp({ company: "cyberdyne", role: "swe - ai/ml" }),
+      makeApp({ company: "cyberdyne", role: "swe - (Core, Infrastructure & Security)" }),
+    ];
+    const pick = (test: string) => {
+      const e = analyze(
+        mail({
+          gmailId: `m${++n}`,
+          threadId: `t${n}`,
+          fromName: "Cyberdyne Hiring Team",
+          fromAddress: "no-reply@cyberdyne.com",
+          subject: `Your invite to ${test} expires in 5 days`,
+          text: `Hi Sam, this is a reminder that your invite to ${test} expires in 5 days.`,
+          receivedAt: at(20),
+        })
+      );
+      expect(e.fields.assessmentTitle).toBe(test);
+      return matchApplications(e.fields, tracked).matches.map((a) => a.role);
+    };
+    expect(pick("[Spring 2027] AI/ML SWE Intern Coding Test")).toEqual(["swe - ai/ml"]);
+    expect(pick("[Spring 2027] Core Engineering/Infrastructure/Security Intern Test")).toEqual(["swe - (Core, Infrastructure & Security)"]);
+    expect(pick("[Spring 2027] Database Engineering Intern Test")).toEqual(["swe - db"]);
+    expect(pick("Software Engineer Intern (Core Engineering/Security) (Clone)")).toEqual(["swe - (Core, Infrastructure & Security)"]);
+    // A test name that doesn't say which job still asks.
+    expect(pick("Software Engineer Intern Test")).toHaveLength(3);
   });
 
   it("a role you don't track at a company you do is a new job, not a pick", () => {
