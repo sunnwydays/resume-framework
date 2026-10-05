@@ -107,10 +107,14 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   explains most of the "vanished into a void" feeling). Keep every claim
   linked to its source, and don't add the unsourced "75% auto-rejected"
   myth back as a fact — it's called out explicitly as debunked.
-- **`components/InputSection.tsx`** — text/PDF radio toggle, textarea or
+- **`components/InputSection.tsx`** — PDF/Text/JSON toggle, textarea or
   file upload, "Run ATS parse" button (posts `FormData` to
-  `/api/ats-parse`), and a dev-only "Load ats sample" button that loads
-  `lib/mocks/affindaSample.json` without hitting the API.
+  `/api/ats-parse`). The JSON tab is the fallback while the Affinda key is
+  expired: the user parses at affinda.com/free-resume-parser and pastes the
+  JSON, which `lib/atsJson.ts` (`parseAtsJson`) normalizes locally (full
+  response or bare `data`, array fields defaulted) with no API call. Also has a dev-only
+  "Load ats sample" button that loads `lib/mocks/affindaSample.json`
+  without hitting the API.
 - **`components/AtsResult.tsx`** — renders a `ScoreCard` (grade from
   `lib/atsGrade.ts`, not affected by the "Hide errors" toggle), then a
   formatted breakdown by section (contact/personal, education, work

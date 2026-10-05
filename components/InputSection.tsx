@@ -2,6 +2,7 @@
 
 import DevMockPanel from "@/components/DevMockPanel";
 import SampleGallery from "@/components/SampleGallery";
+import { parseAtsJson } from "@/lib/atsJson";
 import { SampleResume } from "@/lib/samples";
 import { AtsParseResponse } from "@/lib/types";
 import { useRef, useState } from "react";
@@ -16,7 +17,9 @@ interface Props {
   disabled: boolean;
 }
 
-type ResumeFormat = "pdf" | "text";
+type ResumeFormat = "pdf" | "text" | "json";
+
+const AFFINDA_FREE_PARSER = "https://www.affinda.com/free-resume-parser/";
 
 export default function InputSection({
   resumeText,
@@ -29,6 +32,7 @@ export default function InputSection({
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("pdf");
+  const [jsonText, setJsonText] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -49,8 +53,19 @@ export default function InputSection({
     }`;
   }
 
+  const missingInput =
+    resumeFormat === "pdf"
+      ? !resumePdf
+      : resumeFormat === "text"
+        ? !resumeText.trim()
+        : !jsonText.trim();
+
   async function runAtsParse() {
-    if (disabled || (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())) {
+    if (disabled || missingInput) return;
+
+    // Pasted Affinda JSON is read locally: no API call, no key needed.
+    if (resumeFormat === "json") {
+      setAtsResult(parseAtsJson(jsonText));
       return;
     }
 
@@ -90,10 +105,44 @@ export default function InputSection({
           >
             Text
           </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setResumeFormat("json")}
+            className={toggleCls(resumeFormat === "json")}
+          >
+            JSON
+          </button>
         </div>
       </div>
 
-      {resumeFormat === "text" ? (
+      {resumeFormat === "json" ? (
+        <div className="space-y-2">
+          <textarea
+            className={`${inputCls} font-mono text-xs`}
+            rows={14}
+            placeholder="Paste the JSON output from Affinda here"
+            value={jsonText}
+            disabled={disabled}
+            spellCheck={false}
+            onChange={(e) => setJsonText(e.target.value)}
+          />
+          <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+            The live parser&apos;s API key has expired, so parse your resume on{" "}
+            <a
+              href={AFFINDA_FREE_PARSER}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-neutral-300 underline-offset-2 transition-colors hover:text-neutral-900 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+            >
+              Affinda&apos;s free resume parser
+            </a>
+            , copy the JSON it gives you, and paste it here. Everything after
+            that (the breakdown, issues and score) runs in this app, and your
+            JSON never leaves your browser.
+          </p>
+        </div>
+      ) : resumeFormat === "text" ? (
         <div className="space-y-2">
           <textarea
             className={inputCls}
@@ -171,13 +220,10 @@ export default function InputSection({
         <button
           type="button"
           className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:disabled:hover:bg-neutral-100"
-          disabled={
-            disabled ||
-            (resumeFormat == "pdf" ? !resumePdf : !resumeText.trim())
-          }
+          disabled={disabled || missingInput}
           onClick={runAtsParse}
         >
-          Run ATS parse
+          {resumeFormat === "json" ? "Load JSON" : "Run ATS parse"}
         </button>
 
         {loading && (

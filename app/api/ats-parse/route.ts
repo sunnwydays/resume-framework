@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const KEY_DOWN_MESSAGE =
-    "The demo's Affinda API key has expired or stopped working, so live parsing is unavailable right now. You can still view common mistakes and fixes using the sample resumes which were parsed with Affinda.";
+    "The demo's Affinda API key has expired or stopped working, so live parsing is unavailable right now. You can still parse your resume at affinda.com/free-resume-parser and paste the JSON into the JSON tab, or view common mistakes and fixes using the sample resumes which were parsed with Affinda.";
 
   const apiKey = process.env.AFFINDA_API_KEY;
   if (!apiKey) {
