@@ -18,7 +18,7 @@ import { ROLE_TYPES, roleTypeLabel, type RoleType } from "@/lib/tracker/roles";
 const selectCls =
   "rounded-md border border-neutral-300 bg-surface px-2 py-1 text-xs focus:border-neutral-500 focus:outline-none dark:border-neutral-700";
 
-function RoleTypeChips({
+export function RoleTypeChips({
   counts,
   selected,
   onChange,

@@ -9,6 +9,7 @@ import {
   MOVE_STAGES,
   MUTE_KINDS,
   OUTCOMES,
+  POSTING_STATES,
   QUESTION_SOURCES,
   STATUSES,
   WAITING_ON,
@@ -26,6 +27,7 @@ const TABLES = [
   "email_messages",
   "email_mutes",
   "gmail_scans",
+  "job_postings",
   "message_templates",
   "moves",
   "status_changes",
@@ -68,9 +70,9 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       await check("assessments_status_check");
       expect(current).toEqual(["completed", "pending"]);
     });
-    it("applications.source = every link-lookup source, plus import and email", async () => {
+    it("applications.source = every link-lookup source, plus import, email and alert", async () => {
       await check("applications_source_check");
-      expect(current).toEqual([...EXTRACT_SOURCES, "import", "email"].sort());
+      expect(current).toEqual([...EXTRACT_SOURCES, "import", "email", "alert"].sort());
     });
     it("email_messages.kind = EMAIL_KINDS, state = EMAIL_STATES", async () => {
       await check("email_messages_kind_check");
@@ -91,6 +93,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
       expect(current).toEqual(Object.keys(MOVE_CHANNELS).sort());
       await check("message_templates_channel_check");
       expect(current).toEqual(Object.keys(MOVE_CHANNELS).sort());
+    });
+    it("job_postings.state = POSTING_STATES, source is jobright", async () => {
+      await check("job_postings_state_check");
+      expect(current).toEqual([...POSTING_STATES].sort());
+      await check("job_postings_source_check");
+      expect(current).toEqual(["jobright"]);
     });
     it("moves.stage = MOVE_STAGES", async () => {
       await check("moves_stage_check");
@@ -130,6 +138,24 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
             const e = await failure(tx, "insert into public.assessment_questions (assessment_id, question) values ($1, $2)", [asmt, blank]);
             expect(e.constraint).toBe("assessment_questions_question_check");
           }
+        });
+      });
+    });
+    it("a posting's match is 0 to 100, and its state must be one the app knows", async () => {
+      await inTx(async (tx) => {
+        const user = await createUser(tx);
+        await asUser(tx, user, async () => {
+          const cols = "source, source_id, url, company, role, first_seen_at, gmail_id";
+          const base = "'jobright', 'x', 'u', 'c', 'r', now(), 'g'";
+          for (const ok of [0, 100]) {
+            await tx.query(`insert into public.job_postings (${cols}, match_pct) values ('jobright', 'ok-${ok}', 'u', 'c', 'r', now(), 'g', ${ok})`);
+          }
+          for (const bad of [-1, 101]) {
+            const e = await failure(tx, `insert into public.job_postings (${cols}, match_pct) values (${base}, ${bad})`);
+            expect(e.constraint).toBe("job_postings_match_pct_check");
+          }
+          const state = await failure(tx, `insert into public.job_postings (${cols}, state) values (${base}, 'archived')`);
+          expect(state.constraint).toBe("job_postings_state_check");
         });
       });
     });
@@ -185,6 +211,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["email_messages", "own email messages", "ALL"],
           ["email_mutes", "own email mutes", "ALL"],
           ["gmail_scans", "own gmail scans", "ALL"],
+          ["job_postings", "own job postings", "ALL"],
           ["message_templates", "own message templates", "ALL"],
           ["moves", "own moves", "ALL"],
           ["status_changes", "delete own email history", "DELETE"],
@@ -201,11 +228,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
         );
         expect(rows.length).toBeGreaterThanOrEqual(10);
         // Every FK is ON DELETE CASCADE, except links that should just
-        // unlink: a move's application, and an email's application and accept
-        // (the email row stays so a re-scan doesn't bring it back as new).
+        // unlink: a move's or posting's application, and an email's application
+        // and accept (the email row stays so a re-scan doesn't bring it back as new).
         expect(rows.filter((r) => r.confdeltype !== "c").map((r) => [r.conname, r.confdeltype])).toEqual([
           ["email_messages_accept_id_fkey", "n"],
           ["email_messages_application_id_fkey", "n"],
+          ["job_postings_application_id_fkey", "n"],
           ["moves_application_id_fkey", "n"],
         ]);
       });

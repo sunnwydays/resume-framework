@@ -3,6 +3,7 @@ import type {
   Assessment,
   EmailAccept,
   EmailMessage,
+  JobPosting,
   MessageTemplate,
   Move,
   Question,
@@ -110,6 +111,31 @@ export function makeMove(overrides: Partial<Move> = {}): Move {
     notes: null,
     created_at: "2026-09-28T12:00:00.000Z",
     updated_at: "2026-09-28T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makePosting(overrides: Partial<JobPosting> = {}): JobPosting {
+  return {
+    id: id("posting"),
+    user_id: "user-1",
+    source: "jobright",
+    source_id: `${seq}`.padStart(24, "a"),
+    url: "https://jobright.ai/jobs/info/aaaaaaaaaaaaaaaaaaaaaaaa",
+    company: "Vandelay Industries",
+    role: "Software Engineer Intern",
+    location: "Toronto, ON",
+    pay: null,
+    referrals: null,
+    categories: "Software · Public Company",
+    match_pct: 85,
+    posted_at: "2026-10-04T10:00:00.000Z",
+    first_seen_at: "2026-10-04T11:00:00.000Z",
+    gmail_id: "gmail-1",
+    state: "new",
+    application_id: null,
+    created_at: "2026-10-04T11:00:00.000Z",
+    updated_at: "2026-10-04T11:00:00.000Z",
     ...overrides,
   };
 }

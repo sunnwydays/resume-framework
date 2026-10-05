@@ -51,7 +51,7 @@ const NAMED_ENTITIES: Record<string, string> = {
   ndash: "-", mdash: "-", hellip: "...", copy: "(c)", reg: "(r)", trade: "(tm)", bull: "*", middot: "·",
 };
 
-function decodeEntities(s: string): string {
+export function decodeEntities(s: string): string {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
     if (body[0] === "#") {
       const code = body[1].toLowerCase() === "x" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
@@ -119,6 +119,14 @@ function collect(part: GmailPart | undefined, out: { plain: string[]; html: stri
     else if (part.mimeType === "text/html") out.html.push(decodeBase64Url(part.body.data));
   }
   for (const child of part.parts ?? []) collect(child, out);
+}
+
+// The raw HTML part(s), for senders whose plain text is useless (job alerts
+// whose cards collapse to "APPLY NOW" links).
+export function messageHtml(msg: GmailMessage): string {
+  const bodies = { plain: [] as string[], html: [] as string[] };
+  collect(msg.payload, bodies);
+  return bodies.html.join("\n");
 }
 
 const header = (msg: GmailMessage, name: string) =>

@@ -217,6 +217,13 @@ export const MUTE_KINDS = {
 } as const;
 export type MuteKind = keyof typeof MUTE_KINDS;
 
+// Job postings pulled from alert emails. Must match the check constraint on
+// job_postings.state. Dismissed ones never come back on a later scan.
+export const POSTING_STATES = ["new", "saved", "applied", "dismissed"] as const;
+export type PostingState = (typeof POSTING_STATES)[number];
+
+export type JobPosting = Tables<"job_postings">;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // Today (or the day of `at`) as a local YYYY-MM-DD (what a <input
@@ -277,6 +284,18 @@ export function relativeDue(value: string, now = Date.now()): string {
   const hours = Math.round(Math.abs(diff) / 3_600_000);
   const span = hours < 24 ? `${hours}h` : `${Math.round(hours / 24)}d`;
   return diff < 0 ? `overdue ${span}` : `due in ${span}`;
+}
+
+// "just now", "37m ago", "3h ago", "2d ago" -- for postings, where the hour matters.
+export function formatAgo(value: string | null | undefined, now = Date.now()): string {
+  if (!value) return "—";
+  const ms = now - new Date(value).getTime();
+  if (Number.isNaN(ms)) return "—";
+  const minutes = Math.floor(Math.max(0, ms) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }
 
 // timestamptz <-> <input type="datetime-local"> (local time, no seconds).

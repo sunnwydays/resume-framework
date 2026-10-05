@@ -4,6 +4,7 @@ import {
   addAssessment,
   addEmail,
   addMove,
+  addPosting,
   applyEmailJob,
   asAnon,
   asUser,
@@ -28,6 +29,7 @@ interface World {
   asmt: string;
   question: string;
   move: string;
+  posting: string;
   template: string;
   email: string; // pending
   accepted: string; // accepted onto `app`, so there's an email_accepts row
@@ -42,6 +44,7 @@ async function world(tx: Tx): Promise<World> {
   let asmt = "";
   let question = "";
   let move = "";
+  let posting = "";
   let template = "";
   let email = "";
   let accepted = "";
@@ -55,6 +58,7 @@ async function world(tx: Tx): Promise<World> {
     );
     await tx.query("select public.add_time(current_date, 600)");
     move = await addMove(tx, { target: "A's contact", application_id: app });
+    posting = await addPosting(tx, { company: "A's posting", application_id: app });
     template = await tx.scalar<string>(
       "insert into public.message_templates (channel, name, body) values ('linkedin', 'A''s template', 'Hi {name}') returning id"
     );
@@ -64,7 +68,7 @@ async function world(tx: Tx): Promise<World> {
     await tx.query("insert into public.gmail_scans (since) values (now() - interval '7 days')");
     mute = await tx.scalar<string>("insert into public.email_mutes (kind, value) values ('company', 'Muted Co') returning id");
   });
-  return { a, b, app, asmt, question, move, template, email, accepted, mute };
+  return { a, b, app, asmt, question, move, posting, template, email, accepted, mute };
 }
 
 const READ_AS_OWNER = [
@@ -74,6 +78,7 @@ const READ_AS_OWNER = [
   ["status_changes", "select id from public.status_changes"],
   ["time_log", "select user_id from public.time_log"],
   ["moves", "select id from public.moves"],
+  ["job_postings", "select id from public.job_postings"],
   ["message_templates", "select id from public.message_templates"],
   ["email_messages", "select id from public.email_messages where state = 'pending'"],
   ["email_accepts", "select id from public.email_accepts"],
@@ -101,6 +106,8 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect((await tx.query("update public.assessment_questions set answer = 'mine' where id = $1", [w.question])).rowCount).toBe(1);
           expect((await tx.query("delete from public.assessment_questions where id = $1", [w.question])).rowCount).toBe(1);
           expect((await tx.query("update public.moves set notes = 'mine' where id = $1", [w.move])).rowCount).toBe(1);
+          expect((await tx.query("update public.job_postings set state = 'saved' where id = $1", [w.posting])).rowCount).toBe(1);
+          expect((await tx.query("delete from public.job_postings where id = $1", [w.posting])).rowCount).toBe(1);
           expect((await tx.query("update public.message_templates set body = 'mine' where id = $1", [w.template])).rowCount).toBe(1);
           expect((await tx.query("delete from public.message_templates where id = $1", [w.template])).rowCount).toBe(1);
           expect((await tx.query("delete from public.moves where id = $1", [w.move])).rowCount).toBe(1);
@@ -144,6 +151,8 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect((await tx.query("delete from public.time_log")).rowCount).toBe(0);
           expect((await tx.query("update public.moves set target = 'hacked' where id = $1", [w.move])).rowCount).toBe(0);
           expect((await tx.query("select public.add_move_minutes($1, 60)", [w.move])).rows[0].add_move_minutes).toBeNull();
+          expect((await tx.query("update public.job_postings set state = 'dismissed' where id = $1", [w.posting])).rowCount).toBe(0);
+          expect((await tx.query("delete from public.job_postings where id = $1", [w.posting])).rowCount).toBe(0);
           expect((await tx.query("update public.message_templates set body = 'hacked' where id = $1", [w.template])).rowCount).toBe(0);
           expect((await tx.query("delete from public.moves where id = $1", [w.move])).rowCount).toBe(0);
           expect((await tx.query("delete from public.message_templates where id = $1", [w.template])).rowCount).toBe(0);
@@ -151,6 +160,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
         await asUser(tx, w.a, async () => {
           expect(await tx.scalar("select target from public.moves where id = $1", [w.move])).toBe("A's contact");
           expect(await tx.scalar("select minutes from public.moves where id = $1", [w.move])).toBe(0);
+          expect(await tx.scalar("select state from public.job_postings where id = $1", [w.posting])).toBe("new");
           expect(await tx.scalar("select body from public.message_templates where id = $1", [w.template])).toBe("Hi {name}");
           expect(await tx.scalar("select company from public.applications where id = $1", [w.app])).toBe("Owned by A");
           expect(await tx.scalar("select title from public.assessments where id = $1", [w.asmt])).toBe("A's OA");
@@ -205,6 +215,21 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect(u.message).toMatch(/row-level security/);
           const t = await failure(tx, "insert into public.message_templates (channel, name, body, user_id) values ('email', 'x', 'y', $1)", [w.a]);
           expect(t.message).toMatch(/row-level security/);
+        });
+      });
+    });
+
+    it("can't link a posting to the owner's application, or create one in the owner's name", async () => {
+      await inTx(async (tx) => {
+        const w = await world(tx);
+        await asUser(tx, w.b, async () => {
+          const e = await failure(tx, "insert into public.job_postings (source, source_id, url, company, role, first_seen_at, gmail_id, application_id) values ('jobright', 'x', 'u', 'c', 'r', now(), 'g', $1)", [w.app]);
+          expect(e.message).toMatch(/row-level security/);
+          const mine = await addPosting(tx);
+          const u = await failure(tx, "update public.job_postings set application_id = $1 where id = $2", [w.app, mine]);
+          expect(u.message).toMatch(/row-level security/);
+          const forged = await failure(tx, "insert into public.job_postings (source, source_id, url, company, role, first_seen_at, gmail_id, user_id) values ('jobright', 'y', 'u', 'c', 'r', now(), 'g', $1)", [w.a]);
+          expect(forged.message).toMatch(/row-level security/);
         });
       });
     });
@@ -389,6 +414,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
           expect(await tx.scalar("select count(*)::int from public.status_changes")).toBe(0);
           // Moves survive, just unlinked from the deleted application.
           expect(await tx.rows("select application_id from public.moves")).toEqual([{ application_id: null }]);
+          expect(await tx.rows("select application_id, state from public.job_postings")).toEqual([{ application_id: null, state: "new" }]);
         });
         await asUser(tx, w.b, async () => {
           expect(await tx.scalar("select count(*)::int from public.applications")).toBe(1);
@@ -402,7 +428,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
       await inTx(async (tx) => {
         const w = await world(tx);
         await tx.query("delete from auth.users where id = $1", [w.a]);
-        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log", "moves", "message_templates"]) {
+        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log", "moves", "job_postings", "message_templates"]) {
           expect(await tx.scalar<number>(`select count(*)::int from public.${table} where user_id = $1`, [w.a]), table).toBe(0);
         }
       });

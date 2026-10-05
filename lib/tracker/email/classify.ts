@@ -54,7 +54,8 @@ export const RULES = {
   ],
 
   // Job-board alerts ("Vandelay just posted a 89% match … role"): new postings,
-  // not your applications. Set aside for now; a later feature may triage them.
+  // not your applications. Set aside here; Jobright's are read by the Postings
+  // page (lib/tracker/postings/).
   // Whole domains for alert-only services; exact addresses where the same
   // service also confirms applications (indeedapply@indeed.com is a real one).
   jobAlertSenders: [

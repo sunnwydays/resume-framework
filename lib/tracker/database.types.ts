@@ -374,6 +374,80 @@ export type Database = {
         }
         Relationships: []
       }
+      job_postings: {
+        Row: {
+          application_id: string | null
+          categories: string | null
+          company: string
+          created_at: string
+          first_seen_at: string
+          gmail_id: string
+          id: string
+          location: string | null
+          match_pct: number | null
+          pay: string | null
+          posted_at: string | null
+          referrals: string | null
+          role: string
+          source: string
+          source_id: string
+          state: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          categories?: string | null
+          company: string
+          created_at?: string
+          first_seen_at: string
+          gmail_id: string
+          id?: string
+          location?: string | null
+          match_pct?: number | null
+          pay?: string | null
+          posted_at?: string | null
+          referrals?: string | null
+          role: string
+          source: string
+          source_id: string
+          state?: string
+          updated_at?: string
+          url: string
+          user_id?: string
+        }
+        Update: {
+          application_id?: string | null
+          categories?: string | null
+          company?: string
+          created_at?: string
+          first_seen_at?: string
+          gmail_id?: string
+          id?: string
+          location?: string | null
+          match_pct?: number | null
+          pay?: string | null
+          posted_at?: string | null
+          referrals?: string | null
+          role?: string
+          source?: string
+          source_id?: string
+          state?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_postings_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_templates: {
         Row: {
           body: string

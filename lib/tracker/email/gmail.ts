@@ -153,24 +153,21 @@ export interface ScanProgress {
   total: number;
 }
 
-export interface ScanOptions {
-  since: Date;
-  mode: ScanMode;
+export interface FetchOptions {
   cap?: number;
   onProgress?: (progress: ScanProgress) => void;
   signal?: AbortSignal;
 }
 
-export interface ScanResult {
-  facts: EmailFacts[];
+export interface FetchResult {
+  messages: GmailMessage[];
   listed: number;
   failed: number;
   capped: boolean;
-  query: string;
 }
 
-export async function scanGmail({ since, mode, cap = 1500, onProgress, signal }: ScanOptions): Promise<ScanResult> {
-  const query = gmailQuery(since, mode);
+// Lists the messages matching a Gmail search and reads each one in full.
+export async function fetchMessages(query: string, { cap = 1500, onProgress, signal }: FetchOptions = {}): Promise<FetchResult> {
   const ids: string[] = [];
   let pageToken: string | undefined;
   let capped = false;
@@ -189,7 +186,7 @@ export async function scanGmail({ since, mode, cap = 1500, onProgress, signal }:
     }
   } while (pageToken);
 
-  const facts: EmailFacts[] = [];
+  const messages: GmailMessage[] = [];
   let next = 0;
   let done = 0;
   let failed = 0;
@@ -197,8 +194,7 @@ export async function scanGmail({ since, mode, cap = 1500, onProgress, signal }:
     while (next < ids.length) {
       const id = ids[next++];
       try {
-        const message = await api<GmailMessage>(`/messages/${id}?format=full`, signal);
-        facts.push(...expandDigest(parseGmailMessage(message)));
+        messages.push(await api<GmailMessage>(`/messages/${id}?format=full`, signal));
       } catch (error) {
         // One deleted or odd message shouldn't sink the scan; sign-in problems should.
         if (error instanceof GmailError && error.code !== "api") throw error;
@@ -209,7 +205,39 @@ export async function scanGmail({ since, mode, cap = 1500, onProgress, signal }:
     }
   }
   await Promise.all(Array.from({ length: Math.min(READ_CONCURRENCY, ids.length) }, worker));
+  return { messages, listed: ids.length, failed, capped };
+}
 
+// Jobright's instant alerts since a date (the Postings page reads these).
+export function alertQuery(since: Date): string {
+  return `after:${Math.floor(since.getTime() / 1000)} from:noreply@jobright.ai subject:"just posted" -in:sent`;
+}
+
+export interface ScanOptions extends FetchOptions {
+  since: Date;
+  mode: ScanMode;
+}
+
+export interface ScanResult {
+  facts: EmailFacts[];
+  listed: number;
+  failed: number;
+  capped: boolean;
+  query: string;
+}
+
+export async function scanGmail({ since, mode, ...options }: ScanOptions): Promise<ScanResult> {
+  const query = gmailQuery(since, mode);
+  const fetched = await fetchMessages(query, options);
+  const facts: EmailFacts[] = [];
+  let failed = fetched.failed;
+  for (const message of fetched.messages) {
+    try {
+      facts.push(...expandDigest(parseGmailMessage(message)));
+    } catch {
+      failed++; // an undecodable message, same as one that couldn't be read
+    }
+  }
   facts.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
-  return { facts, listed: ids.length, failed, capped, query };
+  return { facts, listed: fetched.listed, failed, capped: fetched.capped, query };
 }

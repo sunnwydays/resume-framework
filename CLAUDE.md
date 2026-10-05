@@ -174,14 +174,16 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`
   (time spent per day), for the Arbitrage page `moves` and
-  `message_templates` (below), and for the Gmail scan `email_messages`,
-  `email_accepts`, `gmail_scans`, `email_mutes` (below).
+  `message_templates` (below), for the Postings page `job_postings` (below),
+  and for the Gmail scan `email_messages`, `email_accepts`, `gmail_scans`,
+  `email_mutes` (below).
   Status, kind, outcome and question-source values are check constraints
   mirrored by `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` /
   `QUESTION_SOURCES` in `lib/tracker/format.ts` (and the move channel /
   stage / waiting-on values by `MOVE_CHANNELS` / `MOVE_STAGES` /
   `WAITING_ON`, the email kind / state / mute kind by `EMAIL_KINDS` /
-  `EMAIL_STATES` / `MUTE_KINDS`); change both together.
+  `EMAIL_STATES` / `MUTE_KINDS`, the posting state by `POSTING_STATES`);
+  change both together.
   `lib/tracker/database.types.ts` is generated; regenerate after schema
   changes.
 - **Timestamps are database triggers**, not app code: changing
@@ -248,7 +250,7 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   highlights and focuses. Known misses: IBM careers (bot wall), LinkedIn
   (usually), and Ashby boards embedded via JS (e.g. Superhuman). The
   looked-up role is tidied client-side by `lib/tracker/trimRole.ts` (trim
-  term, trim intern, shorten title; three checkboxes under the Role field,
+  term, trim intern/co-op, shorten title; three checkboxes under the Role field,
   all on by default); the server still returns the raw title.
 - **Export** (`lib/tracker/export.ts`): XLSX is written with ExcelJS (the
   community SheetJS build can't write styles); CSV is still plain SheetJS
@@ -343,6 +345,54 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
     you") are in localStorage via `lib/tracker/useLocalSetting.ts`.
   - The Playbook panel's numbers are sourced (Ashby, Huntr, Pin); keep every
     claim linked, same rule as `WhyThisExists`.
+- **Postings page (`/tracker/postings`)**: turns Jobright "instant alert"
+  emails (~7 a day, one headline job plus a few "more matches") into one
+  deduped row per posting. Sunny is a Canadian citizen, so **US roles are
+  wanted** (they'd need a J-1): US vs Canada vs elsewhere is a category to sort and filter
+  by, never hidden. What *is* hidden by default is US postings Sunny can't take
+  at all (defense, clearance, ITAR). No sponsorship check yet (it would need
+  the posting text), no AI.
+  - **Flow**: "Scan alerts" (`components/tracker/postings/PostingsScan.tsx`)
+    -> `fetchMessages(alertQuery(since))` (`email/gmail.ts`, the list+read loop
+    `scanGmail` also uses) -> `messageHtml` (`email/parse.ts`) ->
+    `parseJobrightAlert` -> `dedupePostings` -> `savePostings`
+    (`usePostings.ts`; upsert with ignore-duplicates on
+    `(user_id, source, source_id)`, so a posting you saved, applied to or
+    dismissed never comes back as new). The Gmail scan still ignores these
+    alerts on purpose (`RULES.jobAlertSenders`).
+  - **Parsing** (`lib/tracker/postings/parse.ts`): the plain-text part is
+    useless (cards collapse to "APPLY NOW"), so it reads the HTML, where each
+    card is a link wrapping `<table id="job-section">` with fields found by
+    element id (`job-company-name`, `job-title`, `job-tag` x0-3, ...). Tags
+    are classified by what they say (pay / location / referrals), not by
+    position. Bare `$` is not a US signal (a Montreal posting shows "$18/hr");
+    `CA$` is a Canada one. The daily "Today's Matching Jobs" digest
+    (`support@jobright.ai`, different layout) is not handled; its jobs overlap
+    the instant alerts. If Jobright changes the card markup, the parse tests'
+    fixture (`tests/helpers/postings.ts`) is where to start.
+  - **Region, term, length and eligibility are derived every render, never
+    stored** (like role types), so tuning applies to old rows: `region.ts`
+    (US / Canada / elsewhere / unclear: location `", XX"` code first, then
+    country names, then for Remote/blank locations the pay currency and the
+    title), `term.ts` ("Summer 2027" and a length in months, read from the
+    *title only*; both are often absent, so "not stated" is its own chip, and a
+    term or length chip hides everything that doesn't match it, including
+    not-stated ones, unless that chip is on too), `eligibility.ts` (`ELIGIBILITY_RULES` holds the
+    defense-employer list, the title phrases and the "check" industries; only
+    US postings can be flagged), `match.ts` (an existing application with the
+    same company and role: the "In tracker" pill), `view.ts` (all of that per
+    posting, once per render), `filters.ts`, `sorting.ts`. "Applied" adds an
+    application (`source: 'alert'`, role trimmed with the default trims,
+    applied today) or, if one already matches, just links it. Chip counts on
+    the page are "what this chip would show", with every other filter held.
+  - **Clear all**: a red "Clear all…" button next to Scan alerts reuses
+    `ClearAllDialog` (three steps) and `deleteAllPostings`. Linked applications
+    stay; a later scan re-adds everything still in the inbox as new, since the
+    saved/applied/dismissed marks go with the rows.
+  - **Table**: `job_postings` (RLS "own job postings"; `application_id` is
+    **ON DELETE SET NULL**, and the policy checks the linked application is
+    yours, like `moves`). Fixtures in `tests/unit/postings-*.test.ts` use made-up
+    companies and ids; never commit real alert text.
 - **Gmail scan** (`lib/tracker/email/`). Finds what Sunny applied to,
   rejections and OA/interview invites in their inbox, and *suggests* tracker
   updates (never auto-applied; status changes go through the trigger with
@@ -434,15 +484,16 @@ property tests. Config is `vitest.config.mts`; tests live in `tests/`.
 What's covered: every pure module under `lib/tracker/` (formats, roles,
 role trimming, do-first priority, filters, sorting, stats, import/export,
 link lookup against a fake `fetch`, arbitrage, next steps, templates, the
-draft prompt), `lib/ats*` and `lib/rateLimit.ts`;
+draft prompt, the Postings parser / region / eligibility / filters), `lib/ats*` and `lib/rateLimit.ts`;
 the import and export round trip through real XLSX/CSV bytes; and, in the
 database, RLS on every table, the status/completion triggers, `import_rows`
 (fed by the app's real plan builder), the time-log functions, the moves
 trigger and `add_move_minutes`, `apply_email_job` / `undo_email_job`
-(`tests/db/email.test.ts`), and a schema contract (the check constraints
+(`tests/db/email.test.ts`), `job_postings` (`tests/db/postings.test.ts`:
+a re-scan never revives a dismissed posting), and a schema contract (the check constraints
 must equal `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` / `QUESTION_SOURCES` /
 `EXTRACT_SOURCES` / `MOVE_CHANNELS` / `MOVE_STAGES` / `WAITING_ON` /
-`EMAIL_KINDS` / `EMAIL_STATES` / `MUTE_KINDS`, and
+`EMAIL_KINDS` / `EMAIL_STATES` / `MUTE_KINDS` / `POSTING_STATES`, and
 `database.types.ts` must have the same columns and nullability as the
 database).
 

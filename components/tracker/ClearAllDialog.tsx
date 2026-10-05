@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { buttonCls } from "@/lib/tracker/format";
 
 interface Props {
-  applications: number;
-  assessments: number;
-  questions: number;
+  title: string;
+  // What gets deleted, shown on the first step.
+  summary: ReactNode;
+  // Shown on the second step, under "no undo".
+  advice: string;
   // Resolves to an error message, or null once everything is deleted.
   onConfirm: () => Promise<string | null>;
   onClose: () => void;
@@ -16,9 +18,9 @@ const PHRASE = "delete all";
 const dangerCls =
   "rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-800 disabled:opacity-50";
 
-// Deliberately slow: wipes the whole tracker, so it takes three separate
+// Deliberately slow: wipes a whole table, so it takes three separate
 // confirmations (continue, acknowledge, type a phrase).
-export default function ClearAllDialog({ applications, assessments, questions, onConfirm, onClose }: Props) {
+export default function ClearAllDialog({ title, summary, advice, onConfirm, onClose }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [understood, setUnderstood] = useState(false);
   const [typed, setTyped] = useState("");
@@ -37,17 +39,13 @@ export default function ClearAllDialog({ applications, assessments, questions, o
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
       <div className="w-full max-w-md space-y-4 rounded-lg border-2 border-red-700 bg-surface p-5 shadow-xl">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">Clear all applications</h2>
+          <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">{title}</h2>
           <span className="text-xs text-neutral-500">Step {step} of 3</span>
         </div>
 
         {step === 1 && (
           <>
-            <p className="text-sm">
-              This deletes <strong>{applications}</strong> application{applications === 1 ? "" : "s"}, plus their{" "}
-              <strong>{assessments}</strong> assessment{assessments === 1 ? "" : "s"},{" "}
-              <strong>{questions}</strong> question{questions === 1 ? "" : "s"} and status history.
-            </p>
+            <p className="text-sm">{summary}</p>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setStep(2)} className={dangerCls}>
                 Continue
@@ -61,9 +59,7 @@ export default function ClearAllDialog({ applications, assessments, questions, o
 
         {step === 2 && (
           <>
-            <p className="text-sm">
-              There is no undo and no backup. If you might want any of it back, cancel and use Export first.
-            </p>
+            <p className="text-sm">There is no undo and no backup. {advice}</p>
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"

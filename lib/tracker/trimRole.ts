@@ -12,7 +12,7 @@ export const DEFAULT_TRIMS: RoleTrimOptions = { term: true, intern: true, shorte
 
 export const TRIM_LABELS: Record<keyof RoleTrimOptions, string> = {
   term: "Trim term",
-  intern: "Trim intern",
+  intern: "Trim intern/co-op",
   shorten: "Shorten title",
 };
 
@@ -45,12 +45,12 @@ function trimTerm(role: string): string {
   );
 }
 
-// Drops "Intern", "Internship" and "Intern Program" (and a "/" or "&" joining
-// it to a neighbour: "Intern/Co-op" -> "Co-op"). Everything in the tracker is
-// an internship, so the word is noise.
+// Drops "Intern", "Internship", "Intern Program" and "Co-op" (and a "/" or "&"
+// joining it to a neighbour: "Co-op/Intern" goes entirely). Everything in the
+// tracker is an internship or co-op, so the word is noise.
 function trimIntern(role: string): string {
   return role.replace(
-    /(?:[/&]\s*)?\bintern(?:ship)?s?(?:\s+(?:program|opportunity|position|role))?\b(?:\s*[/&])?/gi,
+    /(?:[/&]\s*)?\b(?:intern(?:ship)?s?|co[\s-]?op)(?:\s+(?:program|opportunity|position|role))?\b(?:\s*[/&])?/gi,
     ""
   );
 }

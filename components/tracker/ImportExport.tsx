@@ -532,9 +532,15 @@ export default function ImportExport({
 
       {clearing && (
         <ClearAllDialog
-          applications={applications.length}
-          assessments={assessments.length}
-          questions={questions.length}
+          title="Clear all applications"
+          summary={
+            <>
+              This deletes <strong>{applications.length}</strong> application{applications.length === 1 ? "" : "s"}, plus
+              their <strong>{assessments.length}</strong> assessment{assessments.length === 1 ? "" : "s"},{" "}
+              <strong>{questions.length}</strong> question{questions.length === 1 ? "" : "s"} and status history.
+            </>
+          }
+          advice="If you might want any of it back, cancel and use Export first."
           onConfirm={async () => {
             const error = await onClearAll();
             if (!error) setMessage("Cleared all applications.");

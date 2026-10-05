@@ -168,6 +168,28 @@ export async function addMove(tx: Tx, fields: Record<string, unknown> = {}): Pro
   );
 }
 
+let postingCount = 0;
+
+// A job posting from an alert email (made-up company, unique source id).
+export async function addPosting(tx: Tx, fields: Record<string, unknown> = {}): Promise<string> {
+  const n = ++postingCount;
+  const row = {
+    source: "jobright",
+    source_id: `test-posting-${n}-${Date.now()}`,
+    url: "https://jobright.ai/jobs/info/aaaaaaaaaaaaaaaaaaaaaaaa",
+    company: "Vandelay Industries",
+    role: "Software Engineer Intern",
+    first_seen_at: "2026-10-04T12:00:00Z",
+    gmail_id: `test-gmail-${n}`,
+    ...fields,
+  };
+  const keys = Object.keys(row);
+  return tx.scalar<string>(
+    `insert into public.job_postings (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning id`,
+    Object.values(row)
+  );
+}
+
 let emailCount = 0;
 
 // A classified email waiting for review (made-up sender and subject).
