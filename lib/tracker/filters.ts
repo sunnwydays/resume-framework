@@ -1,4 +1,5 @@
 import {
+  isOpen,
   todayISO,
   type AppStatus,
   type Application,
@@ -35,7 +36,7 @@ export const DEFAULT_APP_FILTERS: AppFilters = {
   noReply: false,
 };
 
-export type OutcomeFilter = "any" | "waiting" | "passed" | "failed" | "unset";
+export type OutcomeFilter = "any" | "waiting" | "passed" | "failed" | "bombed" | "expired" | "unset";
 
 export interface AssessmentFilters {
   status: "pending" | "completed" | "all";
@@ -119,7 +120,7 @@ export function matchesAssessmentFilters(
   if (f.outcome !== "any" && (a.outcome ?? "unset") !== f.outcome) return false;
   if (f.hideRejected && app?.status === "rejected") return false;
   if (f.importantOnly && !a.important) return false;
-  if (f.overdueOnly && !(a.status === "pending" && a.due_at && new Date(a.due_at).getTime() < now)) return false;
+  if (f.overdueOnly && !(isOpen(a) && a.due_at && new Date(a.due_at).getTime() < now)) return false;
   return true;
 }
 

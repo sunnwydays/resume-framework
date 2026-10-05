@@ -2,6 +2,7 @@
 
 import {
   formatDateTime,
+  isOpen,
   kindLabel,
   relativeDue,
   type Application,
@@ -29,10 +30,10 @@ export default function UpcomingStrip({
 }: Props) {
   const upcoming = assessments
     .filter(
-      (a) => a.status === "pending" && a.due_at && new Date(a.due_at).getTime() - now < WINDOW_MS
+      (a) => isOpen(a) && a.due_at && new Date(a.due_at).getTime() - now < WINDOW_MS
     )
     .sort((a, b) => a.due_at!.localeCompare(b.due_at!));
-  const undated = assessments.filter((a) => a.status === "pending" && !a.due_at).length;
+  const undated = assessments.filter((a) => isOpen(a) && !a.due_at).length;
 
   if (upcoming.length === 0 && undated === 0) return null;
 

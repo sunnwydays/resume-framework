@@ -2,6 +2,7 @@ import { ROLE_TYPE_ORDER, roleType } from "@/lib/tracker/roles";
 import type { Priority } from "@/lib/tracker/priority";
 import {
   STATUSES,
+  isOpen,
   kindLabel,
   relativeDue,
   type AppStatus,
@@ -40,7 +41,7 @@ export type ApplicationSortKey = "company" | "role" | "type" | "applied" | "stat
 // Soonest pending assessment: dated ones first, then undated.
 export function nextPending(assessments: Assessment[]): Assessment | undefined {
   return assessments
-    .filter((a) => a.status === "pending")
+    .filter(isOpen)
     .sort((a, b) => (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999"))[0];
 }
 
@@ -87,10 +88,12 @@ export function applicationSortValue(
 
 export type AssessmentSortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result" | "questions";
 
-// Pending, then completed with no result yet, then passed, then failed.
+// Pending, then completed with no result yet, then passed, failed, bombed,
+// and expired last.
 export function resultRank(a: Assessment): number {
+  if (a.outcome === "expired") return 5;
   if (a.status !== "completed") return 0;
-  return a.outcome === "passed" ? 2 : a.outcome === "failed" ? 3 : 1;
+  return a.outcome === "passed" ? 2 : a.outcome === "failed" ? 3 : a.outcome === "bombed" ? 4 : 1;
 }
 
 export function assessmentSortValue(

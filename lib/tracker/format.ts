@@ -70,8 +70,23 @@ export const OUTCOMES = {
   waiting: { label: "Waiting", cls: "text-amber-700 dark:text-amber-400" },
   passed: { label: "Passed", cls: "text-emerald-700 dark:text-emerald-400" },
   failed: { label: "Failed", cls: "text-red-700 dark:text-red-400" },
+  // Didn't do it before the window closed. Not a result: it isn't a pass or a
+  // fail, and it drops out of to-dos and overdue counts.
+  expired: { label: "Expired", cls: "text-neutral-500 dark:text-neutral-500" },
+  // Definitely did badly. Counts as a fail in the stats.
+  bombed: { label: "Bombed", cls: "font-medium text-red-800 dark:text-red-300" },
 } as const;
 export type Outcome = keyof typeof OUTCOMES;
+
+// Still something to do: not completed, and not written off as expired.
+export function isOpen(a: Assessment): boolean {
+  return a.status === "pending" && a.outcome !== "expired";
+}
+
+// Failed or bombed: both count as a fail in stats.
+export function isFailed(a: Assessment): boolean {
+  return a.outcome === "failed" || a.outcome === "bombed";
+}
 
 // Must match the check constraint on assessment_questions.source.
 export const QUESTION_SOURCES = {

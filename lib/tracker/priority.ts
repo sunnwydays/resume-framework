@@ -1,4 +1,4 @@
-import { relativeDue, type Application, type Assessment } from "@/lib/tracker/format";
+import { isOpen, relativeDue, type Application, type Assessment } from "@/lib/tracker/format";
 
 // Which pending assessment to do first. Tiered rather than a magic score:
 //   1. dated: due later, or overdue by at most STALE_AFTER (it may still be
@@ -14,7 +14,7 @@ const IMPORTANT_HEAD_START = 24 * HOUR;
 export type Priority = { rank: number; reason: string };
 
 function rankable(a: Assessment, app: Application | undefined): boolean {
-  return a.status === "pending" && app?.status !== "rejected" && app?.status !== "withdrawn";
+  return isOpen(a) && app?.status !== "rejected" && app?.status !== "withdrawn";
 }
 
 function sortKey(a: Assessment, now: number): number[] {

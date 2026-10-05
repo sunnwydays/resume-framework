@@ -10,6 +10,7 @@ import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   OUTCOMES,
   formatDateTime,
+  isOpen,
   kindLabel,
   relativeDue,
   type Application,
@@ -125,6 +126,7 @@ export default function AssessmentsTable({
               {header("difficulty", "Difficulty")}
               {header("result", "Result")}
               {header("questions", "Qs")}
+              <th className={thCls}>Link</th>
             </tr>
           </thead>
           <tbody>
@@ -133,7 +135,8 @@ export default function AssessmentsTable({
               const questions = questionsByAssessment.get(a.id) ?? [];
               const expanded = expandedId === a.id;
               const done = a.status === "completed";
-              const overdue = !done && a.due_at && new Date(a.due_at).getTime() < now;
+              const open = isOpen(a);
+              const overdue = open && a.due_at && new Date(a.due_at).getTime() < now;
               const outcome = a.outcome ? OUTCOMES[a.outcome as Outcome] : null;
               const rank = priority.get(a.id);
               return (
@@ -166,7 +169,7 @@ export default function AssessmentsTable({
                       )}
                     </td>
                     <td className={tdCls}>
-                      <span className={done ? "text-neutral-500" : ""}>
+                      <span className={!open ? "text-neutral-500" : ""}>
                         {a.important && <span className="text-amber-500">★ </span>}
                         {a.title}
                       </span>
@@ -179,7 +182,7 @@ export default function AssessmentsTable({
                       {a.due_at ? (
                         <>
                           {formatDateTime(a.due_at)}
-                          {!done && (
+                          {open && (
                             <div className={`text-xs ${overdue ? "text-red-600 dark:text-red-400" : "text-neutral-500"}`}>
                               {relativeDue(a.due_at, now)}
                             </div>
@@ -209,10 +212,25 @@ export default function AssessmentsTable({
                       </label>
                     </td>
                     <td className={`${tdCls} tabular-nums text-neutral-500`}>{questions.length || "—"}</td>
+                    <td className={tdCls} onClick={(e) => e.stopPropagation()}>
+                      {a.link ? (
+                        <a
+                          href={a.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={a.link}
+                          className="whitespace-nowrap text-xs font-medium underline"
+                        >
+                          Open ↗
+                        </a>
+                      ) : (
+                        <span className="text-neutral-400">—</span>
+                      )}
+                    </td>
                   </tr>
                   {expanded && (
                     <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                      <td colSpan={7} className="bg-background/50">
+                      <td colSpan={8} className="bg-background/50">
                         <AssessmentDetail
                           key={a.id}
                           assessment={a}

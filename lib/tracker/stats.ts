@@ -1,6 +1,8 @@
 import {
   ASSESSMENT_KINDS,
   formatDate,
+  isFailed,
+  isOpen,
   todayISO,
   type Application,
   type Assessment,
@@ -437,7 +439,7 @@ function tally(map: Map<string, PassCount>, key: string, a: Assessment) {
   const t = map.get(key) ?? { count: 0, passed: 0, failed: 0 };
   t.count++;
   if (a.outcome === "passed") t.passed++;
-  if (a.outcome === "failed") t.failed++;
+  if (isFailed(a)) t.failed++;
   map.set(key, t);
 }
 
@@ -472,13 +474,13 @@ export function assessmentStats(
     if (a.difficulty != null) tally(difficulties, String(a.difficulty), a);
     if (app) tally(types, roleType(app.role), a);
     if (a.outcome === "passed") passed++;
-    if (a.outcome === "failed") failed++;
+    if (isFailed(a)) failed++;
     if (a.kind === "oa") oaApps.add(a.application_id);
 
-    if (a.status === "pending") {
+    if (isOpen(a)) {
       if (due !== null && due < now) overdue++;
       else if (due !== null && due - now < 7 * DAY) dueThisWeek++;
-    } else {
+    } else if (a.status === "completed") {
       completed++;
       if (a.duration_min) minutes += a.duration_min;
       if (a.kind === "oa") {

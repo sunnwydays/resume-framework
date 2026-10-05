@@ -279,6 +279,11 @@ describe("parseOutcome", () => {
     ["TBD", "waiting"],
     ["Awaiting results", "waiting"],
     ["Unknown", "waiting"],
+    ["Bombed", "bombed"],
+    ["Totally bombed it", "bombed"],
+    ["Expired", "expired"],
+    ["Missed the deadline", "expired"],
+    ["Skipped", "expired"],
   ])("%j -> %s", (input, expected) => expect(parseOutcome(input)).toBe(expected));
 
   it("failure wins over pass words ('Unsuccessful', 'did not pass')", () => {

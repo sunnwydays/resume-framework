@@ -169,6 +169,13 @@ describe("matchesAssessmentFilters", () => {
     expect(run(makeAssessment({ outcome: "passed" }), { outcome: "passed" })).toBe(true);
     expect(run(makeAssessment({ outcome: "waiting" }), { outcome: "passed" })).toBe(false);
     expect(run(makeAssessment({ outcome: null }), { outcome: "any" })).toBe(true);
+    expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "bombed" })).toBe(true);
+    expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "failed" })).toBe(false);
+    expect(run(makeAssessment({ outcome: "expired" }), { outcome: "expired" })).toBe(true);
+  });
+  it("an expired assessment is never overdue", () => {
+    const past = makeAssessment({ outcome: "expired", due_at: "2020-01-01T00:00:00.000Z" });
+    expect(run(past, { overdueOnly: true })).toBe(false);
   });
   it("hideRejected only looks at rejected applications", () => {
     const rejected = makeApp({ status: "rejected" });

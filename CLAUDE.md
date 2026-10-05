@@ -227,6 +227,11 @@ The proxy matcher only covers tracker paths; the resume pages never hit it.
   then undated, then ones overdue >72h; ties go to the shorter, then easier.
   Completed ones and ones whose application is rejected/withdrawn are
   unranked. Ranks are computed over the rows on screen.
+- **Outcomes** (`OUTCOMES` in `format.ts`): waiting / passed / failed, plus `expired` (skipped; the
+  assessment stays `pending` but `isOpen()` is false, so it drops out of Do first, overdue, the
+  upcoming strip and stats) and `bombed` (counts as a fail via `isFailed()`). Use those two
+  helpers instead of comparing `status`/`outcome` directly. The Assessments table has an
+  "Open ↗" link column (each assessment keeps its own `link`; several can share one URL).
 - **Role types** (`lib/tracker/roles.ts`): derived from `applications.role`
   every time, never stored (no DB column). One type per role, first match
   wins in `ROLE_TYPES` order, so specific types (robotics, ML, infra…) sit

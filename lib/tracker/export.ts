@@ -518,11 +518,13 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
   const now = wallClock(Date.now());
   const byId = new Map(apps.map((a) => [a.id, a]));
   const count = (test: (s: Assessment) => boolean) => assessments.filter(test).length;
-  const isOpen = (s: Assessment) => s.status !== "completed";
-  const openF = `${S("Company")},"<>",${S("Status")},"<>Completed"`;
+  const isDone = (s: Assessment) => s.status === "completed";
+  // Expired ones were skipped, so they are neither to-do nor overdue.
+  const isOpen = (s: Assessment) => !isDone(s) && s.outcome !== "expired";
+  const openF = `${S("Company")},"<>",${S("Status")},"<>Completed",${S("Outcome")},"<>"&${str(OUTCOMES.expired.label)}`;
 
   const total = { f: `COUNTA(${S("Company")})`, v: assessments.length };
-  const completed = { f: `COUNTIF(${S("Status")},"Completed")`, v: count((s) => !isOpen(s)) };
+  const completed = { f: `COUNTIF(${S("Status")},"Completed")`, v: count(isDone) };
   const dueThisWeek = {
     f: `COUNTIFS(${openF},${S("Due")},">="&NOW(),${S("Due")},"<"&(NOW()+7))`,
     v: count((s) => {
@@ -538,7 +540,11 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
     }),
   };
   const passed = { f: `COUNTIF(${S("Outcome")},${str(OUTCOMES.passed.label)})`, v: count((s) => s.outcome === "passed") };
-  const failed = { f: `COUNTIF(${S("Outcome")},${str(OUTCOMES.failed.label)})`, v: count((s) => s.outcome === "failed") };
+  // Bombed counts as a fail.
+  const failed = {
+    f: `(COUNTIF(${S("Outcome")},${str(OUTCOMES.failed.label)})+COUNTIF(${S("Outcome")},${str(OUTCOMES.bombed.label)}))`,
+    v: count((s) => s.outcome === "failed" || s.outcome === "bombed"),
+  };
   const decided = { f: `(${passed.f}+${failed.f})`, v: passed.v + failed.v };
 
   const tiles: Tile[] = [
@@ -570,7 +576,7 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
   const margins = assessments.flatMap((s) => {
     const due = wallOf(s.due_at);
     const done = wallOf(s.completed_at);
-    return s.kind === "oa" && !isOpen(s) && due !== null && done !== null ? [(due - done) / HOUR] : [];
+    return s.kind === "oa" && isDone(s) && due !== null && done !== null ? [(due - done) / HOUR] : [];
   });
   const m = { f: `_xlfn.AGGREGATE(16,6,${marginF}/(${oaDoneF}),0.5)`, v: median(margins) ?? 0 };
   const lastDay = { f: `SUMPRODUCT(${oaDoneF}*(${marginF}>=0)*(${marginF}<24))`, v: margins.filter((h) => h >= 0 && h < 24).length };
@@ -578,7 +584,7 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
 
   const minutes = {
     f: `SUMIFS(${S("Duration (min)")},${S("Status")},"Completed")`,
-    v: assessments.reduce((n, s) => n + (!isOpen(s) && s.duration_min ? s.duration_min : 0), 0),
+    v: assessments.reduce((n, s) => n + (isDone(s) && s.duration_min ? s.duration_min : 0), 0),
   };
 
   const D = S("Difficulty");

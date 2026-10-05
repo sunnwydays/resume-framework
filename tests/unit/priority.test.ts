@@ -85,6 +85,10 @@ describe("who gets ranked", () => {
     expect(order([a("done", { status: "completed", due_at: at(2) }), a("todo", { due_at: at(3) })])).toEqual(["todo"]);
   });
 
+  it("skips expired assessments even though they are still pending", () => {
+    expect(order([a("gone", { outcome: "expired", due_at: at(1) }), a("todo", { due_at: at(3) })])).toEqual(["todo"]);
+  });
+
   it("skips ones whose application is rejected or withdrawn", () => {
     const rejected = makeApp({ id: "r", status: "rejected" });
     const withdrawn = makeApp({ id: "w", status: "withdrawn" });

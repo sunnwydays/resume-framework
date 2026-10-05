@@ -431,6 +431,8 @@ export function parseDifficulty(value: string): number | null {
 
 export function parseOutcome(value: string): Outcome | null {
   const v = value.toLowerCase();
+  if (/bomb/.test(v)) return "bombed";
+  if (/expir|lapsed|missed|skipped|never did|didn.?t (?:do|take|start)/.test(v)) return "expired";
   if (/fail|reject|unsuccessful|didn.?t pass|not pass/.test(v)) return "failed";
   if (/pass|advanc|next round|moved on|offer|success/.test(v)) return "passed";
   if (/wait|pending|tbd|awaiting|unknown/.test(v)) return "waiting";
@@ -669,11 +671,12 @@ export function buildImportPlan(
         const statusOutcome = parseOutcome(cell(row, cols.status));
         const outcome =
           parseOutcome(cell(row, cols.outcome)) ??
-          (statusOutcome === "passed" || statusOutcome === "failed" ? statusOutcome : null);
+          (statusOutcome !== "waiting" ? statusOutcome : null);
         const status =
           /complet|done|submitted|finished/i.test(cell(row, cols.status)) ||
           outcome === "passed" ||
-          outcome === "failed"
+          outcome === "failed" ||
+          outcome === "bombed"
             ? "completed"
             : "pending";
         const dueAt = parseDateTime(cols.due === undefined ? "" : row[cols.due]);

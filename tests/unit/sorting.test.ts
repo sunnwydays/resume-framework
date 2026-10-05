@@ -95,6 +95,7 @@ describe("nextPending / nextStep", () => {
   it("is undefined with nothing pending", () => {
     expect(nextPending([])).toBeUndefined();
     expect(nextPending([makeAssessment({ status: "completed" })])).toBeUndefined();
+    expect(nextPending([makeAssessment({ outcome: "expired" })])).toBeUndefined();
   });
 
   it("does not reorder the caller's array", () => {
@@ -172,6 +173,8 @@ describe("resultRank and assessmentSortValue", () => {
     expect(resultRank(makeAssessment({ status: "completed", outcome: "waiting" }))).toBe(1);
     expect(resultRank(makeAssessment({ status: "completed", outcome: "passed" }))).toBe(2);
     expect(resultRank(makeAssessment({ status: "completed", outcome: "failed" }))).toBe(3);
+    expect(resultRank(makeAssessment({ status: "completed", outcome: "bombed" }))).toBe(4);
+    expect(resultRank(makeAssessment({ status: "pending", outcome: "expired" }))).toBe(5);
   });
 
   it("reads each column", () => {

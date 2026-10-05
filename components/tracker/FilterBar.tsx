@@ -113,6 +113,8 @@ const OUTCOME_OPTIONS: [OutcomeFilter, string][] = [
   ["waiting", "waiting"],
   ["passed", "passed"],
   ["failed", "failed"],
+  ["bombed", "bombed"],
+  ["expired", "expired"],
   ["unset", "not set"],
 ];
 

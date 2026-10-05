@@ -407,6 +407,12 @@ describe("assessmentStats", () => {
   const stats = run(all);
   const fact = (label: string): Fact | undefined => stats.facts.find((f) => f.label === label);
 
+  it("bombed counts as a fail; expired is neither a result nor overdue", () => {
+    const bombed = makeAssessment({ id: "b", application_id: "app-1", status: "completed", outcome: "bombed" });
+    const expired = makeAssessment({ id: "e", application_id: "app-1", due_at: local(2026, 9, 1, 12), outcome: "expired" });
+    expect(run([...all, bombed, expired])).toMatchObject({ total: 7, completed: 4, passed: 1, failed: 2, overdue: 1 });
+  });
+
   it("counts", () => {
     expect(stats).toMatchObject({ total: 5, completed: 3, passed: 1, failed: 1, dueThisWeek: 1, overdue: 1 });
   });
