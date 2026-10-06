@@ -9,10 +9,13 @@ import { defaultScanFrom, scanNudge, scanStart, summarizeScan } from "@/lib/trac
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls } from "@/lib/tracker/format";
 import type { TablesInsert } from "@/lib/tracker/database.types";
+import { defaultPostingScanFrom } from "@/lib/tracker/postings/scan";
+import type { PostingsStore } from "@/lib/tracker/usePostings";
 import type { Tracker } from "@/lib/tracker/useTracker";
 
 interface Props {
   tracker: Tracker;
+  postings: PostingsStore;
   pending: number; // cards waiting in the review tab
   now: number;
   onScanned: () => void; // e.g. switch to the review tab
@@ -20,8 +23,9 @@ interface Props {
 
 // "Scan Gmail": reads the inbox from the chosen date with a read-only token,
 // keeps what the rules recognize (minus mutes) for review, and records the
-// scan. Nothing is applied to the tracker from here.
-export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
+// scan. Then, unless unticked, runs the Postings page's Jobright alert scan
+// on the same token. Nothing is applied to the tracker from here.
+export default function GmailScan({ tracker, postings, pending, now, onScanned }: Props) {
   const { gmail, applications } = tracker;
   const [open, setOpen] = useState(false);
   const [since, setSince] = useState("");
@@ -29,20 +33,53 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
+  const [withAlerts, setWithAlerts] = useState(true);
+  const [stage, setStage] = useState<"mail" | "alerts">("mail");
+  const [reading, setReading] = useState<{ done: number; total: number } | null>(null);
+  const [alertsLine, setAlertsLine] = useState<{ text: string; failed: boolean } | null>(null);
   const abort = useRef<AbortController | null>(null);
   const nudge = scanNudge(gmail.lastScan?.scanned_at ?? null, pending, now);
+  // Alerts keep their own start (a day before the newest posting): they arrive
+  // ~7 a day, so sharing the mail's earlier date would flood the scan cap.
+  const alertsStart = scanStart(defaultPostingScanFrom(postings.postings, now));
 
   function start() {
     setSince(defaultScanFrom(gmail.lastScan, applications));
     setError(null);
     setSummary(null);
+    setAlertsLine(null);
     setOpen(true);
+  }
+
+  // The second leg of the scan. The mail is already saved by now, so a problem
+  // here is reported on its own line instead of failing the whole scan.
+  async function runAlerts() {
+    setStage("alerts");
+    setProgress(null);
+    try {
+      const result = await postings.scanAlerts(alertsStart, {
+        onProgress: setProgress,
+        onReading: (done, total) => setReading({ done, total }),
+        signal: abort.current?.signal,
+      });
+      setAlertsLine("error" in result ? { text: result.error, failed: true } : { text: result.summary, failed: false });
+    } catch (e) {
+      const text =
+        (e as Error).name === "AbortError"
+          ? "Cancelled before the job alerts were scanned. The mail above was saved."
+          : e instanceof GmailError
+            ? e.message
+            : `Unexpected error: ${(e as Error).message}`;
+      setAlertsLine({ text, failed: true });
+    }
   }
 
   async function run() {
     setRunning(true);
     setError(null);
     setSummary(null);
+    setAlertsLine(null);
+    setStage("mail");
     abort.current = new AbortController();
     try {
       const result = await scanGmail({ since: scanStart(since), mode: "rules", onProgress: setProgress, signal: abort.current.signal });
@@ -64,6 +101,7 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
       const failed = result.failed ? ` · ${result.failed} couldn't be read` : "";
       setSummary(`${summarizeScan({ analyzed, muted, saved: saved.saved, updated: saved.updated })}${failed}${capped}`);
       if (saved.saved > 0 || saved.updated > 0) onScanned();
+      if (withAlerts) await runAlerts();
     } catch (e) {
       if ((e as Error).name === "AbortError") setError("Cancelled. Nothing from this scan was saved.");
       // Closing Google's popup is a change of mind, not a failure.
@@ -72,6 +110,7 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
     } finally {
       setRunning(false);
       setProgress(null);
+      setReading(null);
     }
   }
 
@@ -124,14 +163,28 @@ export default function GmailScan({ tracker, pending, now, onScanned }: Props) {
                 ? "Starts a little before your last scan; emails already accepted or dismissed are skipped, and ones still waiting for review are re-read with the current rules."
                 : "First scan: starts at your earliest tracked application."}
             </p>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" checked={withAlerts} onChange={(e) => setWithAlerts(e.target.checked)} disabled={running} className="mt-0.5" />
+              <span>
+                Also scan Jobright job alerts
+                <span className="block text-xs text-neutral-500">
+                  New postings go to the Postings page. Starts{" "}
+                  {postings.postings.length > 0 ? "a day before the newest posting you have" : "two weeks back"} (
+                  {alertsStart.toLocaleDateString()}), separately from the date above.
+                </span>
+              </span>
+            </label>
             <div aria-live="polite" className="text-sm">
               {running &&
-                (progress
-                  ? progress.phase === "listing"
-                    ? `Finding emails… ${progress.done}`
-                    : `Reading ${progress.done} of ${progress.total} emails…`
-                  : "Waiting for Google…")}
+                (stage === "alerts" && reading
+                  ? `Reading posting pages… ${reading.done} of ${reading.total}`
+                  : progress
+                    ? progress.phase === "listing"
+                      ? `Finding ${stage === "alerts" ? "alerts" : "emails"}… ${progress.done}`
+                      : `Reading ${progress.done} of ${progress.total} ${stage === "alerts" ? "alerts" : "emails"}…`
+                    : "Waiting for Google…")}
               {summary && <p>{summary}</p>}
+              {alertsLine && <p className={alertsLine.failed ? "text-red-700 dark:text-red-400" : undefined}>{alertsLine.text}</p>}
               {error && <p className="text-red-700 dark:text-red-400">{error}</p>}
             </div>
           </div>

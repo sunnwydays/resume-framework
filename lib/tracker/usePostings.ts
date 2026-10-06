@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
 import { todayISO, type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import { alertQuery, fetchMessages, type ScanProgress } from "@/lib/tracker/email/gmail";
+import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
 import type { PostingDetails } from "@/lib/tracker/postings/details";
+import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
+import { dedupePostings, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
 import { supabase } from "@/lib/tracker/useTracker";
 
 // Pages per request to the details route (its limit is 10).
@@ -109,6 +113,44 @@ export function usePostings() {
     []
   );
 
+  // The whole alert scan, shared by the Postings page's "Scan alerts" and the
+  // tracker's "Scan Gmail": fetch the alerts, parse and dedupe, store the new
+  // postings, then read their pages for term and length. Throws what Gmail
+  // throws (sign-in, cancel); a save failure comes back as `error`. A failure
+  // reading posting pages is only noted in the summary.
+  const scanAlerts = useCallback(
+    async (
+      since: Date,
+      { onProgress, onReading, signal }: { onProgress?: (p: ScanProgress) => void; onReading?: (done: number, total: number) => void; signal?: AbortSignal }
+    ): Promise<{ summary: string } | { error: string }> => {
+      const result = await fetchMessages(alertQuery(since), { onProgress, signal });
+      const parsed: ParsedPosting[] = [];
+      let alerts = 0;
+      let unreadable = result.failed;
+      for (const message of result.messages) {
+        try {
+          const facts = parseGmailMessage(message);
+          if (!isJobrightAlert(facts.fromAddress, facts.subject)) continue;
+          alerts++;
+          parsed.push(...parseJobrightAlert(messageHtml(message), facts.receivedAt, facts.gmailId));
+        } catch {
+          unreadable++;
+        }
+      }
+      const unique = dedupePostings(parsed);
+      const saved = await savePostings(unique.map(toPostingRow));
+      if ("error" in saved) return { error: `Couldn't save the postings: ${saved.error}` };
+      // The title seldom names the term or length; the posting page does.
+      // Covers older postings that were never read, too.
+      const details = await readDetails([...postings, ...saved.rows], onReading);
+      const detailsNote = "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term and length` : "";
+      const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
+      const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
+      return { summary: `${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${detailsNote}${capped}` };
+    },
+    [postings, savePostings, readDetails]
+  );
+
   const patch = useCallback(
     async (id: string, changes: TablesUpdate<"job_postings">) => {
       const withStamp = { ...changes, updated_at: new Date().toISOString() };
@@ -162,6 +204,7 @@ export function usePostings() {
     reload,
     savePostings,
     readDetails,
+    scanAlerts,
     setState,
     markApplied,
     deleteAllPostings,

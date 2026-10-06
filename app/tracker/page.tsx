@@ -14,6 +14,7 @@ import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TimeTracker from "@/components/tracker/TimeTracker";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
+import { usePostings } from "@/lib/tracker/usePostings";
 import { useNow, useTracker } from "@/lib/tracker/useTracker";
 import {
   CLOSED,
@@ -46,6 +47,7 @@ type Tab = "applications" | "assessments" | "gmail";
 
 export default function TrackerPage() {
   const tracker = useTracker();
+  const postings = usePostings(); // for the alert half of "Scan Gmail"
   const now = useNow();
   const { applications, assessments, questions, statusChanges, gmail } = tracker;
   const [tab, setTab] = useState<Tab>("applications");
@@ -223,7 +225,7 @@ export default function TrackerPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
         <div className="flex flex-wrap items-start gap-2">
-          <GmailScan tracker={tracker} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
+          <GmailScan tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
           <ImportExport
             applications={applications}
             assessments={assessments}

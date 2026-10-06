@@ -1,13 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { GmailError, alertQuery, fetchMessages, type ScanProgress } from "@/lib/tracker/email/gmail";
-import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
+import { GmailError, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { scanStart } from "@/lib/tracker/email/scan";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls, type JobPosting } from "@/lib/tracker/format";
-import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
-import { dedupePostings, defaultPostingScanFrom, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
+import { defaultPostingScanFrom } from "@/lib/tracker/postings/scan";
 import type { PostingsStore } from "@/lib/tracker/usePostings";
 
 interface Props {
@@ -42,34 +40,13 @@ export default function PostingsScan({ store, postings, now }: Props) {
     setSummary(null);
     abort.current = new AbortController();
     try {
-      const result = await fetchMessages(alertQuery(scanStart(since)), { onProgress: setProgress, signal: abort.current.signal });
-      const parsed: ParsedPosting[] = [];
-      let alerts = 0;
-      let unreadable = result.failed;
-      for (const message of result.messages) {
-        try {
-          const facts = parseGmailMessage(message);
-          if (!isJobrightAlert(facts.fromAddress, facts.subject)) continue;
-          alerts++;
-          parsed.push(...parseJobrightAlert(messageHtml(message), facts.receivedAt, facts.gmailId));
-        } catch {
-          unreadable++;
-        }
-      }
-      const unique = dedupePostings(parsed);
-      const saved = await store.savePostings(unique.map(toPostingRow));
-      if ("error" in saved) {
-        setError(`Couldn't save the postings: ${saved.error}`);
-        return;
-      }
-      // The title seldom names the term or length; the posting page does.
-      // Covers older postings that were never read, too. A failure here
-      // doesn't undo the scan.
-      const details = await store.readDetails([...postings, ...saved.rows], (done, total) => setReading({ done, total }));
-      const detailsNote = "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term and length` : "";
-      const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
-      const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
-      setSummary(`${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${detailsNote}${capped}`);
+      const result = await store.scanAlerts(scanStart(since), {
+        onProgress: setProgress,
+        onReading: (done, total) => setReading({ done, total }),
+        signal: abort.current.signal,
+      });
+      if ("error" in result) setError(result.error);
+      else setSummary(result.summary);
     } catch (e) {
       if ((e as Error).name === "AbortError") setError("Cancelled. Nothing from this scan was saved.");
       // Closing Google's popup is a change of mind, not a failure.

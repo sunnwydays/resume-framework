@@ -389,8 +389,10 @@ tracker paths; the resume pages never hit it.
   by, never hidden. What *is* hidden by default is US postings Sunny can't take
   at all (defense, clearance, ITAR). No sponsorship check yet (it would need
   the posting text), no AI.
-  - **Flow**: "Scan alerts" (`components/tracker/postings/PostingsScan.tsx`)
-    -> `fetchMessages(alertQuery(since))` (`email/gmail.ts`, the list+read loop
+  - **Flow**: "Scan alerts" (`components/tracker/postings/PostingsScan.tsx`;
+    the same scan also runs as the second leg of "Scan Gmail" on `/tracker`,
+    see the Gmail scan below) calls `scanAlerts` (`usePostings.ts`), which
+    runs -> `fetchMessages(alertQuery(since))` (`email/gmail.ts`, the list+read loop
     `scanGmail` also uses) -> `messageHtml` (`email/parse.ts`) ->
     `parseJobrightAlert` -> `dedupePostings` -> `savePostings`
     (`usePostings.ts`; upsert with ignore-duplicates on
@@ -475,6 +477,15 @@ tracker paths; the resume pages never hit it.
     pending. `trail.ts` mirrors those checks for the Undo links (a toast after
     accepting, and the Emails section in `ApplicationDetail`, which lists the
     emails accepted onto that row).
+  - **Job alerts ride along**: "Scan Gmail" has an "Also scan Jobright job
+    alerts" checkbox (on by default). After the mail is saved it runs
+    `postings.scanAlerts` (same token, so one Google prompt). The alerts keep
+    their *own* start date (`defaultPostingScanFrom`, shown in the dialog), not
+    the mail's: they arrive ~7 a day, so sharing the mail's earlier date would
+    fill the 1500-message cap and crowd out application mail. The two are two
+    Gmail searches, not one merged one, for the same reason. An alerts failure
+    (or Stop during it) is its own line and doesn't undo the saved mail. The
+    tracker page therefore calls `usePostings()` too.
   - **Dismissed** (`DismissedEmails.tsx`, `dismissedEmails` in `review.ts`):
     the page loads emails in every state, and a collapsed "Dismissed N" list
     under the review cards offers Restore (one or all), which sets them back
