@@ -1,19 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
 import Chip from "@/components/tracker/Chip";
 import EmailReview from "@/components/tracker/email/EmailReview";
-import GmailScan from "@/components/tracker/email/GmailScan";
+import GmailScan, { type GmailScanHandle } from "@/components/tracker/email/GmailScan";
 import { ApplicationFilterBar, AssessmentFilterBar } from "@/components/tracker/FilterBar";
 import ImportExport from "@/components/tracker/ImportExport";
 import ApplicationStats from "@/components/tracker/stats/ApplicationStats";
 import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TimeTracker from "@/components/tracker/TimeTracker";
+import TodayCard from "@/components/tracker/TodayCard";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
+import { buildToday } from "@/lib/tracker/today";
+import { useMoves } from "@/lib/tracker/useMoves";
 import { usePostings } from "@/lib/tracker/usePostings";
 import { useNow, useTracker } from "@/lib/tracker/useTracker";
 import {
@@ -47,8 +50,10 @@ type Tab = "applications" | "assessments" | "gmail";
 
 export default function TrackerPage() {
   const tracker = useTracker();
-  const postings = usePostings(); // for the alert half of "Scan Gmail"
+  const postings = usePostings(); // for the alert half of "Scan Gmail", and the Today card
+  const { moves, loading: movesLoading } = useMoves(); // the Today card's people to follow up
   const now = useNow();
+  const scanRef = useRef<GmailScanHandle>(null);
   const { applications, assessments, questions, statusChanges, gmail } = tracker;
   const [tab, setTab] = useState<Tab>("applications");
   const [appFilters, setAppFilters] = useState<AppFilters>(DEFAULT_APP_FILTERS);
@@ -79,6 +84,20 @@ export default function TrackerPage() {
   const review = useMemo(
     () => buildReview(gmail.emails, gmail.mutes, applications, assessments, statusChanges),
     [gmail.emails, gmail.mutes, applications, assessments, statusChanges]
+  );
+
+  const today = useMemo(
+    () =>
+      buildToday({
+        applications,
+        assessments,
+        moves,
+        postings: postings.postings,
+        pendingEmails: review.groups.length,
+        lastScanAt: gmail.lastScan?.scanned_at ?? null,
+        now,
+      }),
+    [applications, assessments, moves, postings.postings, review.groups.length, gmail.lastScan, now]
   );
 
   const counts = useMemo(() => {
@@ -225,7 +244,7 @@ export default function TrackerPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
         <div className="flex flex-wrap items-start gap-2">
-          <GmailScan tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
+          <GmailScan ref={scanRef} tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
           <ImportExport
             applications={applications}
             assessments={assessments}
@@ -235,6 +254,16 @@ export default function TrackerPage() {
           />
         </div>
       </header>
+
+      {!tracker.loading && !postings.loading && !movesLoading && (
+        <TodayCard
+          brief={today}
+          now={now}
+          onScan={() => scanRef.current?.start()}
+          onOpenAssessment={openAssessment}
+          onReviewEmails={() => setTab("gmail")}
+        />
+      )}
 
       <TimeTracker />
 

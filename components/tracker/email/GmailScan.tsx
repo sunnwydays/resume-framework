@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import { GmailError, scanGmail, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { analyze } from "@/lib/tracker/email/group";
 import { isMuted } from "@/lib/tracker/email/mute";
@@ -19,13 +19,19 @@ interface Props {
   pending: number; // cards waiting in the review tab
   now: number;
   onScanned: () => void; // e.g. switch to the review tab
+  ref?: Ref<GmailScanHandle>;
+}
+
+// Lets another part of the page (the Today card) open the scan dialog.
+export interface GmailScanHandle {
+  start: () => void;
 }
 
 // "Scan Gmail": reads the inbox from the chosen date with a read-only token,
 // keeps what the rules recognize (minus mutes) for review, and records the
 // scan. Then, unless unticked, runs the Postings page's Jobright alert scan
 // on the same token. Nothing is applied to the tracker from here.
-export default function GmailScan({ tracker, postings, pending, now, onScanned }: Props) {
+export default function GmailScan({ tracker, postings, pending, now, onScanned, ref }: Props) {
   const { gmail, applications } = tracker;
   const [open, setOpen] = useState(false);
   const [since, setSince] = useState("");
@@ -50,6 +56,8 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned }
     setAlertsLine(null);
     setOpen(true);
   }
+
+  useImperativeHandle(ref, () => ({ start }));
 
   // The second leg of the scan. The mail is already saved by now, so a problem
   // here is reported on its own line instead of failing the whole scan.

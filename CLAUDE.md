@@ -445,6 +445,20 @@ tracker paths; the resume pages never hit it.
     **ON DELETE SET NULL**, and the policy checks the linked application is
     yours, like `moves`). Fixtures in `tests/unit/postings-*.test.ts` use made-up
     companies and ids; never commit real alert text.
+- **Today card** (`components/tracker/TodayCard.tsx`, `lib/tracker/today.ts`):
+  the top of `/tracker`, what needs Sunny right now. `buildToday` gathers it
+  from data already loaded: the top 3 open assessments by `prioritize` (the
+  "Do first" order), the people steps from `nextSteps` (`PEOPLE_STEPS`: reply,
+  follow-up, nudge, close, referral; the weekly habit nudges stay on
+  Arbitrage on purpose), pending Gmail review cards, new Postings you can take
+  and haven't tracked, and the scan's age. It opens by itself the first time
+  each day and stays open until "Done for now" (`tracker.today.dismissed` in
+  localStorage holds the day), then is a one-line summary; with nothing to do
+  it's only the line. Its "Scan Gmail" button opens `GmailScan`'s dialog
+  through a ref handle (`GmailScanHandle`); a scan never starts by itself
+  (Google needs a click). `UpcomingStrip` stays below it as the full
+  due-this-week list with the done checkboxes. The page loads `useMoves()`
+  just for this.
 - **Gmail scan** (`lib/tracker/email/`). Finds what Sunny applied to,
   rejections and OA/interview invites in their inbox, and *suggests* tracker
   updates (never auto-applied; status changes go through the trigger with

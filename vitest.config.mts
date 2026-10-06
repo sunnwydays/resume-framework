@@ -21,6 +21,7 @@ const DATE_SENSITIVE = [
   "tests/unit/email-scan.test.ts",
   "tests/unit/arbitrage.test.ts",
   "tests/unit/next-steps.test.ts",
+  "tests/unit/today.test.ts",
   "tests/unit/postings-list.test.ts",
 ];
 
