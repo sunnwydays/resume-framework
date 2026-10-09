@@ -243,7 +243,8 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
   describe("database.types.ts", () => {
     // The generated types are kept by hand after migrations; this catches a
     // column added or changed in the database but not in the file.
-    const source = fs.readFileSync(path.resolve(process.cwd(), "lib/tracker/database.types.ts"), "utf8");
+    // CRLF on a Windows checkout (core.autocrlf), LF in git.
+    const source = fs.readFileSync(path.resolve(process.cwd(), "lib/tracker/database.types.ts"), "utf8").replace(/\r\n/g, "\n");
     const typed = new Map<string, Map<string, boolean>>(); // table -> column -> nullable
     for (const m of source.matchAll(/^ {6}(\w+): \{\n {8}Row: \{\n([\s\S]*?)\n {8}\}\n {8}Insert/gm)) {
       const cols = new Map<string, boolean>();
