@@ -132,6 +132,8 @@ export const RULES = {
     /would\s+like\s+to\s+(?:interview|meet\s+with|speak\s+with|chat\s+with|talk\s+to)\s+you/i,
     /interview\s+(?:invitation|invite|availability|scheduling|request)/i,
     /technical\s+screening\s+round/i,
+    // "You will be scheduled for two 45 minute interviews" (a recruiter's intro)
+    /\b(?:will|'ll)\s+be\s+scheduled\s+for\s+(?:\w+\s+){0,4}interviews?\b/i,
   ],
   // A booking link is an invite; the tool's name in the text isn't ("mail
   // will come from @databricks.com or @goodtime.io (our meeting tool)" is a
@@ -162,10 +164,17 @@ export const RULES = {
   conditional: [/^\s*if\b/i],
   // Dropped before the completed-assessment rules: "Once you've completed all
   // assessments, our team will review your results" is in the invite.
-  future: [/\b(?:once|when|after)\s+you(?:'ve|\s+have)?\s+(?:completed|submitted|finished)\b/i],
+  // "You will know you've completed the entire assessment when you see the
+  // confirmation page" is too.
+  future: [
+    /\b(?:once|when|after)\s+you(?:'ve|\s+have)?\s+(?:completed|submitted|finished)\b/i,
+    /\b(?:will|'ll)\s+know\s+(?:that\s+)?you(?:'ve|\s+have)\b/i,
+  ],
 
   reminder: [
-    /\breminder\b/i,
+    // Not "As a reminder, rescheduling takes up a lot of time…" (boilerplate
+    // in an interview follow-up).
+    /(?<!\bas\s+a\s+)\breminder\b/i,
     /(?:haven't|have not)\s+(?:had\s+a\s+chance|yet)\s+(?:to\s+)?(?:complete|start|begin|finish)/i,
     /\b(?:still\s+pending|is\s+still\s+waiting|still\s+waiting\s+for)\b/i,
     /don't\s+forget/i,

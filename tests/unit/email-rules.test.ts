@@ -635,6 +635,47 @@ describe("fixes from the live test", () => {
   });
 });
 
+describe("fixes from the third inbox review", () => {
+  it("a recruiter's intro that says you'll be scheduled for interviews is an interview invite", () => {
+    const m = mail({
+      fromAddress: "pat@hooli.example",
+      fromName: "Pat Lee",
+      subject: "Hooli Software Engineering Internship - Next Steps",
+      text: [
+        "Hi Sam,",
+        "Thanks for your interest in Hooli's Software Engineering Internship opportunities. You are currently being considered for projects in Canada for Summer 2027.",
+        "Interviews - You will be scheduled for two 45 minute interviews via video call. You are able to provide availability outside of the requested window.",
+        "Please specify which coding language you'd like to be interviewed in.",
+        "Important Internship Reminders:",
+        "If you are not able to be located in the United States or Canada, unfortunately, we will not be able to move forward with you as a candidate.",
+      ].join("\n"),
+    });
+    expect(kindOf(m)).toBe("interview_invite");
+  });
+
+  it("'As a reminder, rescheduling…' doesn't make an interview follow-up a reminder", () => {
+    const m = mail({
+      fromAddress: "pat@hooli.example",
+      subject: "Re: Hooli Software Engineering Internship - Next Steps",
+      text: "Hi Sam, Thanks for providing all of the requested information. Our scheduling team will be in touch soon to collect your interview availability. As a reminder, rescheduling takes up a lot of time and resources on our end so please avoid requesting reschedules for non-essential reasons.",
+    });
+    expect(kindOf(m)).toBe("interview_invite");
+  });
+
+  it("'You will know you've completed the entire assessment when…' is in the invite, not a finished one", () => {
+    const m = mail({
+      fromAddress: "noreply@mail.initech.example",
+      subject: "Welcome to Initech Assessments - ACTION REQUIRED",
+      text: [
+        "Thank you for your continued interest in Initech's Software Development Engineer opportunities! As the next step, we'd like to invite you to complete this online assessment no later than one week from now.",
+        "After completing the coding challenge, you will take the work simulation and two work style surveys.",
+        "You will know you've completed the entire assessment when you see the confirmation page at the end.",
+      ].join("\n"),
+    });
+    expect(kindOf(m)).toBe("oa_invite");
+  });
+});
+
 describe("extractFields: deadlines and completion", () => {
   it("platform 'End Login Date/Time' with a zone", () => {
     const f = extractFields(
