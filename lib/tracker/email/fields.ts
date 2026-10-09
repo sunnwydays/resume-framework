@@ -113,6 +113,12 @@ export function findDateTime(slice: string, ref: Date): string | null {
 const DEADLINE_WORDS =
   /(?:end\s+login\s+date\/time|deadline(?:\s+is)?|complete\w*[^.]{0,80}?\bby|\bby|\bbefore|\buntil|due(?:\s+(?:on|by))?|expires?(?:\s+on)?|no\s+later\s+than)\s*:?\s*/gi;
 
+const NUMBER_WORDS: Record<string, number> = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, ten: 10, fourteen: 14,
+};
+// "14 calendar days", "one week": groups are the count and the unit.
+const SPAN = `\\b(\\d+|${Object.keys(NUMBER_WORDS).join("|")})\\s+(?:calendar\\s+|business\\s+)?(days?|weeks?)\\b`;
+
 // An interview invite carries the time it is scheduled for, not a deadline.
 const SCHEDULE_WORDS = /(?:scheduled\s+(?:for|on)|will\s+(?:be\s+)?(?:held\s+)?on|date(?:\s*(?:and|&)\s*time)?:|\bon)\s*:?\s*/gi;
 
@@ -123,14 +129,20 @@ export function findDeadline(text: string, receivedAt: string, interview = false
     const at = findDateTime(text.slice(start, start + 70), ref);
     if (at) return { at, origin: `deadline: "${word[0].trim().slice(0, 30)}"` };
   }
-  // "within 14 calendar days": counted from the day the email arrived.
+  // "within 14 calendar days", "no later than one week from now": counted from
+  // when the email arrived, keeping its clock time. Not hours: "within 24
+  // hours" is about when the next email comes.
   const within =
-    /(?:after|in)\s+(\d+)\s+(?:calendar\s+|business\s+)?days[^.]{0,60}?expire/i.exec(text) ??
-    /within\s+(\d+)\s+(?:calendar\s+|business\s+)?days/i.exec(text);
+    new RegExp(`(?:after|in)\\s+${SPAN}[^.]{0,60}?expire`, "i").exec(text) ??
+    new RegExp(`within\\s+${SPAN}`, "i").exec(text) ??
+    new RegExp(`${SPAN}\\s+from\\s+(?:now|today|(?:the\\s+date\\s+of\\s+)?(?:this|the)\\s+(?:email|invitation|invite))`, "i").exec(text);
   if (within) {
-    const days = +within[1];
+    const n = /^\d+$/.test(within[1]) ? +within[1] : NUMBER_WORDS[within[1].toLowerCase()];
+    const days = n * (/^week/i.test(within[2]) ? 7 : 1);
     if (days > 0 && days <= 60) {
-      return { at: new Date(ref.getTime() + days * 86_400_000).toISOString(), origin: `"${within[0].trim().slice(0, 40)}"` };
+      const at = new Date(ref);
+      at.setDate(at.getDate() + days);
+      return { at: at.toISOString(), origin: `"${within[0].trim().slice(0, 40)}"` };
     }
   }
   return null;

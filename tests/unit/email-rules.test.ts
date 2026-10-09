@@ -717,12 +717,41 @@ describe("extractFields: deadlines and completion", () => {
     expect(f.dueAt).toBe(new Date(2026, 9, 5, 23, 59).toISOString());
   });
 
-  it("'within 14 calendar days' counts from the day it arrived", () => {
-    const f = extractFields(
-      mail({ fromAddress: "a@initech.com", subject: "Invitation for assessments", text: "Please complete the assessment within 14 calendar days.", receivedAt: "2026-09-25T12:00:00.000Z" }),
-      "oa_invite"
+  // The same local clock time n days later (so across a DST change the UTC
+  // hour moves; Auckland's starts 2026-09-27).
+  const daysAfter = (iso: string, days: number) => {
+    const d = new Date(iso);
+    d.setDate(d.getDate() + days);
+    return d.toISOString();
+  };
+  const invite = (text: string, receivedAt = "2026-09-25T12:00:00.000Z") =>
+    extractFields(mail({ fromAddress: "a@initech.com", subject: "Invitation for assessments", text, receivedAt }), "oa_invite");
+
+  it("'within 14 calendar days' counts from when it arrived", () => {
+    expect(invite("Please complete the assessment within 14 calendar days.").dueAt).toBe(daysAfter("2026-09-25T12:00:00.000Z", 14));
+  });
+
+  it("'no later than one week from now' is a week after it arrived, at the same time", () => {
+    const f = invite(
+      "As the next step, we'd like to invite you to complete this online assessment no later than one week from now.",
+      "2026-10-09T17:03:00.000Z"
     );
-    expect(f.dueAt).toBe("2026-10-09T12:00:00.000Z");
+    expect(f.dueAt).toBe(daysAfter("2026-10-09T17:03:00.000Z", 7));
+    expect(f.origins.dueAt).toBe('"one week from now"');
+  });
+
+  it("keeps the clock time across a DST change", () => {
+    // Arrived 1:03 pm in Toronto; Toronto's clocks go back on 2026-11-01.
+    const due = new Date(invite("Complete it within 2 weeks.", "2026-10-28T17:03:00.000Z").dueAt!);
+    expect([due.getHours(), due.getMinutes()]).toEqual([new Date("2026-10-28T17:03:00.000Z").getHours(), 3]);
+  });
+
+  it.each(["within a week", "3 days from today", "within 5 business days"])("reads '%s'", (phrase) => {
+    expect(invite(`Please complete the assessment ${phrase}.`).dueAt).not.toBeNull();
+  });
+
+  it("'within 24 hours' (when the next email comes) is not a deadline", () => {
+    expect(invite("You will get the assessment link within 24 hours.").dueAt).toBeNull();
   });
 
   it("an invite with no deadline leaves it empty", () => {
