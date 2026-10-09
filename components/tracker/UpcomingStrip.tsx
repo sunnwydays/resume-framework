@@ -8,6 +8,7 @@ import {
   type Application,
   type Assessment,
 } from "@/lib/tracker/format";
+import { sectionsLabel } from "@/lib/tracker/sections";
 
 const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -86,6 +87,7 @@ export default function UpcomingStrip({
                   >
                     {relativeDue(a.due_at!, now)} · {formatDateTime(a.due_at)}
                     {a.duration_min != null && ` · ${a.duration_min} min`}
+                    {sectionsLabel(a.sections) && ` · ${sectionsLabel(a.sections)}`}
                   </div>
                 </button>
                 {a.link && (

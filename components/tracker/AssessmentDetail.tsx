@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import AssessmentForm from "@/components/tracker/AssessmentForm";
+import SectionsEditor from "@/components/tracker/SectionsEditor";
+import type { Json } from "@/lib/tracker/database.types";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   OUTCOMES,
@@ -16,6 +18,16 @@ import {
   type Question,
   type QuestionSource,
 } from "@/lib/tracker/format";
+import {
+  cleanSections,
+  keepNotes,
+  newSection,
+  nextDuration,
+  sectionsOf,
+  setSectionNotes,
+  totalMinutes,
+  type Section,
+} from "@/lib/tracker/sections";
 
 const labelCls = "text-xs font-medium text-neutral-600 dark:text-neutral-400";
 const headingCls = "text-xs font-semibold uppercase tracking-wide text-neutral-500";
@@ -244,6 +256,151 @@ function AddQuestion({ assessment, tracker }: { assessment: Assessment; tracker:
   );
 }
 
+// A section's "how it went", saved on blur; hidden behind a link until used.
+function SectionNotes({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+  const [open, setOpen] = useState(!!value);
+  const [draft, setDraft] = useState(value ?? "");
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="text-xs text-neutral-400 underline">
+        Add notes
+      </button>
+    );
+  }
+  return (
+    <textarea
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const v = draft.trim() || null;
+        if (v !== value) onSave(v);
+        if (!v) setOpen(false);
+      }}
+      autoFocus={!value}
+      rows={2}
+      placeholder="How this part went"
+      className={`${inputCls} mt-1`}
+    />
+  );
+}
+
+function SectionItem({ s, onNotes }: { s: Section; onNotes: (id: string, v: string | null) => void }) {
+  return (
+    <li className="space-y-0.5">
+      <p>
+        <span className="font-medium">{s.title}</span>
+        {s.minutes != null && <span className="text-neutral-500"> · {s.minutes} min</span>}
+      </p>
+      {s.details && <p className="text-xs text-neutral-600 dark:text-neutral-400">{s.details}</p>}
+      {s.parts.length > 0 && (
+        <ul className="mt-1 space-y-1 border-l-2 border-neutral-200 pl-3 dark:border-neutral-800">
+          {s.parts.map((p) => (
+            <SectionItem key={p.id} s={p} onNotes={onNotes} />
+          ))}
+        </ul>
+      )}
+      <SectionNotes value={s.notes} onSave={(v) => onNotes(s.id, v)} />
+    </li>
+  );
+}
+
+export function SectionsOutline({
+  sections,
+  onNotes,
+}: {
+  sections: Section[];
+  onNotes: (id: string, v: string | null) => void;
+}) {
+  return (
+    <ol className="list-decimal space-y-2 pl-5 text-sm marker:text-neutral-400">
+      {sections.map((s) => (
+        <SectionItem key={s.id} s={s} onNotes={onNotes} />
+      ))}
+    </ol>
+  );
+}
+
+type Update = (patch: Parameters<Tracker["updateAssessment"]>[1]) => unknown;
+
+// The OA's parts: the outline (with per-part notes), or the editor in place.
+// Saving moves the minutes along with the sections' total unless typed by hand.
+function SectionsBlock({ assessment: a, update }: { assessment: Assessment; update: Update }) {
+  const sections = sectionsOf(a.sections);
+  const [draft, setDraft] = useState<Section[] | null>(null);
+  const [pasteFirst, setPasteFirst] = useState(false);
+  const total = totalMinutes(sections);
+  const start = (paste: boolean) => {
+    setPasteFirst(paste);
+    setDraft(paste ? [] : [newSection()]);
+  };
+
+  if (draft) {
+    return (
+      <section className="space-y-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+        <SectionsEditor value={draft} onChange={setDraft} startPasting={pasteFirst} />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const next = keepNotes(cleanSections(draft), sectionsOf(a.sections));
+              update({
+                sections: next as unknown as Json,
+                duration_min: nextDuration(a.duration_min, sections, next),
+              });
+              setDraft(null);
+            }}
+            className={primaryButtonCls}
+          >
+            Save sections
+          </button>
+          <button type="button" onClick={() => setDraft(null)} className={buttonCls}>
+            Cancel
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={headingCls}>
+          Sections{" "}
+          {total != null && <span className="font-normal normal-case tracking-normal">({total} min)</span>}
+        </h3>
+        {sections.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setPasteFirst(false);
+              setDraft(sections);
+            }}
+            className="text-xs text-neutral-500 underline"
+          >
+            Edit sections
+          </button>
+        )}
+      </div>
+      {sections.length > 0 ? (
+        <SectionsOutline
+          sections={sections}
+          onNotes={(id, notes) => update({ sections: setSectionNotes(sections, id, notes) as unknown as Json })}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-neutral-300 p-2 text-sm dark:border-neutral-700">
+          <button type="button" onClick={() => start(false)} className={buttonCls}>
+            + Add section
+          </button>
+          <button type="button" onClick={() => start(true)} className={buttonCls}>
+            Paste breakdown
+          </button>
+          <span className="text-xs text-neutral-500">For several parts, e.g. coding + a work simulation</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 interface Props {
   assessment: Assessment;
   questions: Question[];
@@ -271,7 +428,9 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
             initial={a}
             onCancel={() => setEditing(false)}
             onSubmit={async (fields) => {
-              await update(fields);
+              // Notes written in the outline since the form opened win.
+              const kept = keepNotes(sectionsOf(fields.sections), sectionsOf(a.sections));
+              await update({ ...fields, sections: kept as unknown as Json });
               setEditing(false);
             }}
           />
@@ -323,6 +482,8 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
             {a.details && <p className="text-neutral-600 dark:text-neutral-400">{a.details}</p>}
           </section>
         )}
+
+        {!editing && <SectionsBlock assessment={a} update={update} />}
 
         <section className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           <label className="flex items-center gap-1.5">

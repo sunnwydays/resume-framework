@@ -6,6 +6,7 @@ import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { assessmentSortValue, type AssessmentSortKey as SortKey, type SortDir } from "@/lib/tracker/sorting";
 import type { Priority } from "@/lib/tracker/priority";
 import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import { sectionsLabel, sectionsOf } from "@/lib/tracker/sections";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
   OUTCOMES,
@@ -176,6 +177,7 @@ export default function AssessmentsTable({
                       <div className="text-xs text-neutral-500">
                         {kindLabel(a.kind)}
                         {a.duration_min != null && ` · ${a.duration_min} min`}
+                        {sectionsLabel(a.sections) && ` · ${sectionsLabel(a.sections)}`}
                       </div>
                     </td>
                     <td className={`${tdCls} tabular-nums`}>
@@ -279,6 +281,7 @@ function PreviewCard({
   style: React.CSSProperties;
 }) {
   const outcome = a.outcome ? OUTCOMES[a.outcome as Outcome] : null;
+  const sections = sectionsOf(a.sections);
   const snippet = (label: string, text: string | null) =>
     text && (
       <div>
@@ -309,6 +312,17 @@ function PreviewCard({
           {a.score && <span>{a.score}</span>}
           {a.details && <span>{a.details}</span>}
         </div>
+      )}
+      {sections.length > 0 && (
+        <ul className="space-y-0.5 text-xs text-neutral-600 dark:text-neutral-400">
+          {sections.map((s) => (
+            <li key={s.id}>
+              {s.title}
+              {s.minutes != null && ` · ${s.minutes} min`}
+              {s.parts.length > 0 && <span className="text-neutral-400"> ({s.parts.map((p) => p.title).join(", ")})</span>}
+            </li>
+          ))}
+        </ul>
       )}
       {questions.length > 0 && (
         <ul className="space-y-1">

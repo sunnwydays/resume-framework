@@ -48,6 +48,7 @@ export function makeAssessment(overrides: Partial<Assessment> = {}): Assessment 
     kind: "oa",
     title: "Coding round",
     details: null,
+    sections: [],
     duration_min: null,
     due_at: null,
     interviewer: null,

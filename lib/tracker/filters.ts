@@ -7,6 +7,7 @@ import {
   type Question,
 } from "@/lib/tracker/format";
 import { roleType, type RoleType } from "@/lib/tracker/roles";
+import { sectionText, sectionsOf } from "@/lib/tracker/sections";
 import { NO_REPLY_DAYS, daysBetween, isGhosted } from "@/lib/tracker/stats";
 
 // Filtering is split in two so the stats can reuse the first half: search
@@ -85,6 +86,7 @@ export function matchesAssessmentSearch(
     a.notes,
     a.prep_notes,
     a.reflection,
+    ...sectionText(sectionsOf(a.sections)),
     ...questions.flatMap((x) => [x.question, x.answer]),
   ].some((v) => v?.toLowerCase().includes(q));
 }

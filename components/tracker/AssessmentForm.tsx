@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { TablesInsert } from "@/lib/tracker/database.types";
+import SectionsEditor from "@/components/tracker/SectionsEditor";
+import type { Json, TablesInsert } from "@/lib/tracker/database.types";
 import {
   ASSESSMENT_KINDS,
   buttonCls,
@@ -12,6 +13,7 @@ import {
   type Assessment,
   type AssessmentKind,
 } from "@/lib/tracker/format";
+import { cleanSections, sectionsOf, totalMinutes, type Section } from "@/lib/tracker/sections";
 
 type AssessmentFields = Omit<TablesInsert<"assessments">, "application_id">;
 
@@ -29,7 +31,12 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
   );
   const [title, setTitle] = useState(initial?.title ?? "");
   const [details, setDetails] = useState(initial?.details ?? "");
+  const [sections, setSections] = useState<Section[]>(() => sectionsOf(initial?.sections));
   const [duration, setDuration] = useState(initial?.duration_min?.toString() ?? "");
+  // Minutes follow the sections' total until typed by hand.
+  const [durationTyped, setDurationTyped] = useState(
+    initial?.duration_min != null && initial.duration_min !== totalMinutes(sectionsOf(initial.sections))
+  );
   const [dueAt, setDueAt] = useState(toDatetimeLocal(initial?.due_at));
   const [interviewer, setInterviewer] = useState(initial?.interviewer ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
@@ -46,6 +53,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
       kind,
       title: title.trim() || ASSESSMENT_KINDS[kind],
       details: details.trim() || null,
+      sections: cleanSections(sections) as unknown as Json,
       duration_min: Number.isFinite(minutes) ? minutes : null,
       due_at: fromDatetimeLocal(dueAt),
       interviewer: kind === "oa" ? null : interviewer.trim() || null,
@@ -102,7 +110,11 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           <input
             inputMode="numeric"
             value={duration}
-            onChange={(e) => setDuration(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "");
+              setDuration(v);
+              setDurationTyped(v !== "");
+            }}
             className={inputCls}
           />
         </label>
@@ -119,11 +131,11 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           <div className="hidden sm:block sm:col-span-2" />
         )}
         <label className="block space-y-1 sm:col-span-3">
-          <span className={labelCls}>Breakdown / details</span>
+          <span className={labelCls}>Details</span>
           <input
             value={details}
             onChange={(e) => setDetails(e.target.value)}
-            placeholder="Coding (standard) + REST API"
+            placeholder="e.g. HackerRank, camera on"
             className={inputCls}
           />
         </label>
@@ -132,6 +144,13 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           <input value={link} onChange={(e) => setLink(e.target.value)} className={inputCls} />
         </label>
       </div>
+      <SectionsEditor
+        value={sections}
+        onChange={(next) => {
+          setSections(next);
+          if (!durationTyped) setDuration(totalMinutes(next)?.toString() ?? "");
+        }}
+      />
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="flex items-center gap-1.5">
           <input

@@ -25,12 +25,14 @@ const ASSESSMENTS: RawSheet = {
     [
       "Company", "Role", "Type", "Title", "Details", "Duration", "Due", "Interviewer", "Link", "Important", "Status",
       "Completed at", "Difficulty", "Outcome", "Score", "Prep notes", "Reflection", "Expected questions", "Asked questions", "Notes",
+      "Sections",
     ],
     [
       "Acme", "SWE Intern", "OA", "GCA", "Four problems", "1h 30m", "2026-10-10", "Sam", "https://codesignal.com/x", "yes", "Completed",
       "2026-10-08T16:45:00Z", "hard", "Passed", "800/850", "Graphs", "Ran out of time", "Q1 → A1\nQ2", "Q3 → A3", "calm",
+      "Coding (60 min) – Two problems\n  - With an AI assistant\nSurvey (5 min)",
     ],
-    ["Existing Co", "Role", "Interview", "Final round", "", "45", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["Existing Co", "Role", "Interview", "Final round", "", "45", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ],
 };
 
@@ -94,10 +96,14 @@ describe.skipIf(!dbReady)("import_rows", () => {
           });
           expect((gca.due_at as Date).toISOString()).toBe(local(2026, 10, 10, 23, 59));
           expect((gca.completed_at as Date).toISOString()).toBe("2026-10-08T16:45:00.000Z");
+          expect(gca.sections).toEqual([
+            expect.objectContaining({ title: "Coding", minutes: 60, details: "Two problems", parts: [expect.objectContaining({ title: "With an AI assistant" })] }),
+            expect.objectContaining({ title: "Survey", minutes: 5, parts: [] }),
+          ]);
           expect(gca.application_id).toBe(await tx.scalar("select id from public.applications where company = 'Acme'"));
 
           const final = await tx.one<Record<string, unknown>>("select * from public.assessments where title = 'Final round'");
-          expect(final).toMatchObject({ kind: "interview", duration_min: 45, status: "pending", application_id: existingId });
+          expect(final).toMatchObject({ kind: "interview", duration_min: 45, status: "pending", application_id: existingId, sections: [] });
 
           const questions = await tx.rows<{ source: string; question: string; answer: string | null }>(
             "select source, question, answer from public.assessment_questions where assessment_id = $1 order by source, question",

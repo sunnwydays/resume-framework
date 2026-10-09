@@ -23,6 +23,7 @@ import {
   type QuestionSource,
 } from "@/lib/tracker/format";
 import { APP_FIELDS, ASSESSMENT_FIELDS, type FieldSpec } from "@/lib/tracker/io";
+import { formatSections, sectionsOf } from "@/lib/tracker/sections";
 import { addDays, dayOf, daysBetween, median, NO_REPLY_DAYS, pct, plural, weekStart } from "@/lib/tracker/stats";
 
 // ------------------------------------------------------------------ rows
@@ -59,6 +60,7 @@ export function assessmentRows(assessments: Assessment[], apps: Application[], q
     Type: kindLabel(s.kind),
     Title: s.title,
     Details: s.details ?? "",
+    Sections: formatSections(sectionsOf(s.sections)),
     "Duration (min)": s.duration_min ?? "",
     Due: s.due_at ?? "",
     Interviewer: s.interviewer ?? "",
@@ -104,6 +106,7 @@ const ASSESSMENT_LAYOUT: Record<string, Layout> = {
   Type: { width: 16, format: "tag" },
   Title: { width: 26 },
   Details: { width: 36, format: "wrap" },
+  Sections: { width: 40, format: "wrap" },
   "Duration (min)": { width: 14, format: "number" },
   Due: { width: 18, format: "datetime" },
   Interviewer: { width: 20 },

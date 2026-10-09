@@ -279,6 +279,7 @@ describe("assessments sheet", () => {
       kind: "oa",
       title: "CodeSignal GCA",
       details: null,
+      sections: [],
       duration_min: 90,
       due_at: new Date(2026, 9, 10, 23, 59).toISOString(),
       interviewer: null,

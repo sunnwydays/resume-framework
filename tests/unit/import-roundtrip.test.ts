@@ -14,6 +14,10 @@ import {
   type RawSheet,
 } from "@/lib/tracker/io";
 import { makeApp, makeAssessment, makeQuestion, local } from "../helpers/fixtures";
+import { sectionsOf, type Section } from "@/lib/tracker/sections";
+
+const withoutIds = (list: Section[]): unknown =>
+  list.map((s) => ({ ...s, id: undefined, parts: withoutIds(s.parts) }));
 
 // What the user exports is what they should be able to import: through the
 // real XLSX writer and reader, not just the plan builder.
@@ -50,6 +54,20 @@ const assessments = [
     kind: "oa",
     title: "CodeSignal GCA",
     details: "Four problems\nOne hard",
+    sections: [
+      {
+        id: "s1",
+        title: "Coding",
+        minutes: 40,
+        details: "Two problems",
+        notes: "Second one was rough",
+        parts: [
+          { id: "s1a", title: "Code writing", minutes: null, details: null, notes: null, parts: [] },
+          { id: "s1b", title: "AI assistant in a repo", minutes: null, details: null, notes: "Helpful", parts: [] },
+        ],
+      },
+      { id: "s2", title: "Part 2: Work simulation", minutes: 30, details: null, notes: null, parts: [] },
+    ],
     duration_min: 70,
     due_at: local(2026, 10, 10, 23, 59),
     link: "https://codesignal.com/s/abc",
@@ -143,10 +161,14 @@ describe("XLSX export -> import", () => {
     expect(fresh.assessments.every((a) => a.match === "exact" && a.include)).toBe(true);
 
     const [gca, tech, hirevue] = fresh.assessments.map((a) => a.row);
+    // Sections come back with new ids; everything else in them is kept.
+    expect(withoutIds(gca.sections)).toEqual(withoutIds(sectionsOf(assessments[0].sections)));
+    expect(tech.sections).toEqual([]);
     expect(gca).toEqual({
       kind: "oa",
       title: "CodeSignal GCA",
       details: "Four problems\nOne hard",
+      sections: gca.sections,
       duration_min: 70,
       due_at: assessments[0].due_at,
       interviewer: null,
@@ -344,6 +366,16 @@ describe("reading CSV text", () => {
   it("ignores a UTF-8 byte-order mark and Windows line endings", async () => {
     const p = await read("﻿Company,Role\r\nAcme,SWE\r\nBeta,SDE\r\n");
     expect(p.apps.map((a) => a.row.company)).toEqual(["Acme", "Beta"]);
+  });
+
+  it("reads a Sections cell, and takes the duration from it when none is given", async () => {
+    const p = await read('Company,Title,Type,Sections\nAcme,Online assessment,OA,"Coding (60 min)\n  - Problem 1\nSurvey (5 min)"\n');
+    const [a] = p.assessments.map((x) => x.row);
+    expect(a.sections.map((s) => [s.title, s.minutes, s.parts.map((x) => x.title)])).toEqual([
+      ["Coding", 60, ["Problem 1"]],
+      ["Survey", 5, []],
+    ]);
+    expect(a.duration_min).toBe(65);
   });
 
   it("keeps text that looks like a number exactly as written", async () => {

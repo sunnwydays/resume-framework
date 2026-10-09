@@ -18,6 +18,7 @@ import {
   type QuestionSource,
 } from "@/lib/tracker/format";
 import { companyCloseness, editDistance, key } from "@/lib/tracker/email/match";
+import { parseSections, totalMinutes, type Section } from "@/lib/tracker/sections";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -156,6 +157,11 @@ export const ASSESSMENT_FIELDS = {
     aliases: ["sub assessment", "title", "assessment", "name", "assessment name", "task"],
   },
   details: { label: "Details", hint: "", aliases: ["breakdown details", "details", "breakdown", "description"] },
+  sections: {
+    label: "Sections",
+    hint: "One part per line, \"Coding (100 min) – what it is\"; sub-parts on lines starting \"  - \"",
+    aliases: ["sections", "parts", "sub parts", "subsections", "stages"],
+  },
   duration: { label: "Duration (min)", hint: "Minutes, or \"1.5h\"", aliases: ["duration", "length", "time limit", "minutes"] },
   due: {
     label: "Due",
@@ -477,6 +483,7 @@ export interface AssessmentPayload {
   kind: AssessmentKind;
   title: string;
   details: string | null;
+  sections: Section[];
   duration_min: number | null;
   due_at: string | null;
   interviewer: string | null;
@@ -666,6 +673,7 @@ export function buildImportPlan(
         const title = cell(row, cols.title);
         if (!company || !title) continue;
         const details = cell(row, cols.details);
+        const sections = parseSections(cell(row, cols.sections));
         // An OA sheet often has "Passed" / "Rejected" in Status rather than
         // a separate Outcome column; either way a pass/fail means it's done.
         const statusOutcome = parseOutcome(cell(row, cols.status));
@@ -690,7 +698,8 @@ export function buildImportPlan(
             kind: parseKind(cell(row, cols.kind), title, details),
             title,
             details: details || null,
-            duration_min: parseMinutes(cell(row, cols.duration)),
+            sections,
+            duration_min: parseMinutes(cell(row, cols.duration)) ?? totalMinutes(sections),
             due_at: dueAt,
             interviewer: cell(row, cols.interviewer) || null,
             link: /^https?:\/\//i.test(cell(row, cols.link)) ? cell(row, cols.link) : null,

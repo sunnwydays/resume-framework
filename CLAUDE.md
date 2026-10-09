@@ -260,6 +260,20 @@ tracker paths; the resume pages never hit it.
   upcoming strip and stats) and `bombed` (counts as a fail via `isFailed()`). Use those two
   helpers instead of comparing `status`/`outcome` directly. The Assessments table has an
   "Open ↗" link column (each assessment keeps its own `link`; several can share one URL).
+- **Sections** (`lib/tracker/sections.ts`, `assessments.sections` jsonb, check: an array):
+  the parts of one multi-part OA ("Coding Challenge, 100 min" → sub-parts "Code
+  writing", "AI assistant in a repo"; then "Work Simulation, 45 min"), two levels
+  max. Deadline, link, status and outcome stay on the assessment, so it still counts
+  as one OA in Do first and stats. Each section has title, minutes, details and
+  notes. `SectionsEditor.tsx` edits everything but notes, in the add/edit form and
+  in the detail panel's own Sections block ("+ Add sections" opens the paste box).
+  Notes belong to the panel's outline (`keepNotes` merges by id on save, same rule as
+  the assessment's own notes). Minutes follow the sections' total until typed by
+  hand (`nextDuration`).
+  `parseSections` reads both a pasted invite breakdown ("Title – this section takes
+  N minutes, …", bullets, "one will be…, and the other…" → two sub-parts) and the
+  export's Sections column (`formatSections`); `import_rows` stores them.
+  Always read the column through `sectionsOf()` (it's `Json`, possibly malformed).
 - **Role types** (`lib/tracker/roles.ts`): derived from `applications.role`
   every time, never stored (no DB column). One type per role, first match
   wins in `ROLE_TYPES` order, so specific types (robotics, ML, infra…) sit

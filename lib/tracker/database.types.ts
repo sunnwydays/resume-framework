@@ -125,6 +125,7 @@ export type Database = {
           prep_notes: string | null
           reflection: string | null
           score: string | null
+          sections: Json
           status: string
           title: string
           user_id: string
@@ -147,6 +148,7 @@ export type Database = {
           prep_notes?: string | null
           reflection?: string | null
           score?: string | null
+          sections?: Json
           status?: string
           title: string
           user_id?: string
@@ -169,6 +171,7 @@ export type Database = {
           prep_notes?: string | null
           reflection?: string | null
           score?: string | null
+          sections?: Json
           status?: string
           title?: string
           user_id?: string

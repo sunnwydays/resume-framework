@@ -1,5 +1,6 @@
 import { DifficultyDots } from "@/components/tracker/AssessmentDetail";
 import { OUTCOMES, formatDateTime, kindLabel, type Assessment, type Outcome } from "@/lib/tracker/format";
+import { sectionsLabel } from "@/lib/tracker/sections";
 
 // One-line view of an OA / interview, for collapsed rows.
 export default function AssessmentSummary({
@@ -29,6 +30,7 @@ export default function AssessmentSummary({
           </span>
         )}
         {a.duration_min != null && <span>{a.duration_min} min</span>}
+        {sectionsLabel(a.sections) && <span>{sectionsLabel(a.sections)}</span>}
         {a.difficulty != null && <DifficultyDots value={a.difficulty} />}
         {outcome && (
           <span className={outcome.cls}>

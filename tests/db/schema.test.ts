@@ -129,6 +129,18 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
         });
       });
     });
+    it("an assessment's sections default to an empty list and must be a list", async () => {
+      await inTx(async (tx) => {
+        const user = await createUser(tx);
+        await asUser(tx, user, async () => {
+          const app = await addApplication(tx);
+          const asmt = await addAssessment(tx, app);
+          expect(await tx.scalar("select sections from public.assessments where id = $1", [asmt])).toEqual([]);
+          const e = await failure(tx, `insert into public.assessments (application_id, title, sections) values ($1, 'x', '{"title": "A"}')`, [app]);
+          expect(e.constraint).toBe("assessments_sections_check");
+        });
+      });
+    });
     it("a question can't be blank", async () => {
       await inTx(async (tx) => {
         const user = await createUser(tx);
