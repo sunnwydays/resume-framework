@@ -9,6 +9,7 @@ import {
   type Assessment,
 } from "@/lib/tracker/format";
 import { sectionsLabel } from "@/lib/tracker/sections";
+import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 
 const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -35,20 +36,33 @@ export default function UpcomingStrip({
     )
     .sort((a, b) => a.due_at!.localeCompare(b.due_at!));
   const undated = assessments.filter((a) => isOpen(a) && !a.due_at).length;
+  const [openSetting, setOpen] = useLocalSetting("tracker.upcoming.open", "1");
+  const open = openSetting !== "0";
 
   if (upcoming.length === 0 && undated === 0) return null;
 
   return (
     <section className="space-y-2">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-        Due this week
-        {undated > 0 && (
-          <span className="ml-2 font-normal normal-case tracking-normal">
-            (+{undated} pending without a due date)
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={() => setOpen(open ? "0" : "1")}
+          aria-expanded={open}
+          className="flex items-center gap-1 uppercase tracking-wide hover:text-neutral-800 dark:hover:text-neutral-200"
+        >
+          <span className="inline-block w-3 text-neutral-400">{open ? "▾" : "▸"}</span>
+          Due this week
+          {!open && upcoming.length > 0 && (
+            <span className="ml-1 font-normal normal-case tracking-normal tabular-nums">· {upcoming.length}</span>
+          )}
+          {undated > 0 && (
+            <span className="ml-2 font-normal normal-case tracking-normal">
+              (+{undated} pending without a due date)
+            </span>
+          )}
+        </button>
       </h2>
-      {upcoming.length > 0 && (
+      {open && upcoming.length > 0 && (
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {upcoming.map((a) => {
             const app = applicationsById.get(a.application_id);

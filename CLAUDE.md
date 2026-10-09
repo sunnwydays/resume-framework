@@ -477,7 +477,8 @@ tracker paths; the resume pages never hit it.
   put a margin on the bar and left it short of the bottom). Its "Scan Gmail" button opens `GmailScan`'s dialog
   through a ref handle (`GmailScanHandle`); a scan never starts by itself
   (Google needs a click). `UpcomingStrip` stays below it as the full
-  due-this-week list with the done checkboxes. The page loads `useMoves()`
+  due-this-week list with the done checkboxes (collapsible, open state in
+  localStorage as `tracker.upcoming.open`), above the paste-a-link add form. The page loads `useMoves()`
   just for this.
 - **Gmail scan** (`lib/tracker/email/`). Finds what Sunny applied to,
   rejections and OA/interview invites in their inbox, and *suggests* tracker

@@ -276,8 +276,6 @@ export default function TrackerPage() {
         </div>
       )}
 
-      <AddApplication applications={applications} onAdd={tracker.addApplication} />
-
       <UpcomingStrip
         assessments={assessments}
         applicationsById={applicationsById}
@@ -285,6 +283,8 @@ export default function TrackerPage() {
         onComplete={(id) => tracker.updateAssessment(id, { status: "completed" })}
         now={now}
       />
+
+      <AddApplication applications={applications} onAdd={tracker.addApplication} />
 
       <section className="space-y-3">
         <div role="tablist" className="flex gap-5 border-b border-neutral-200 dark:border-neutral-800">
