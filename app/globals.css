@@ -12,9 +12,29 @@
   --viz-heat-2: #9ec5f4;
   --viz-heat-3: #5598e7;
   --viz-heat-4: #184f95;
+  /* The tracker's Today card: a muted purple that stands apart from the
+     neutral panels without clashing with the status colors. */
+  --today-bg: #f4f2f8;
+  --today-border: #ddd8e8;
+  --today-accent: #6f6390;
+  --today-accent-hover: #5f5481;
+  --today-on-accent: #ffffff;
+  --today-ink: #2f2a42;
+  --today-ink-soft: #6b6385;
+  --today-ring: #e2deec;
+  --today-ring-hover: #b9b0d0;
 }
 
 @theme inline {
+  --color-today-bg: var(--today-bg);
+  --color-today-border: var(--today-border);
+  --color-today-accent: var(--today-accent);
+  --color-today-accent-hover: var(--today-accent-hover);
+  --color-today-on-accent: var(--today-on-accent);
+  --color-today-ink: var(--today-ink);
+  --color-today-ink-soft: var(--today-ink-soft);
+  --color-today-ring: var(--today-ring);
+  --color-today-ring-hover: var(--today-ring-hover);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -34,6 +54,15 @@
     --viz-heat-2: #1c5cab;
     --viz-heat-3: #3987e5;
     --viz-heat-4: #86b6ef;
+    --today-bg: #1a1822;
+    --today-border: #38334a;
+    --today-accent: #9a8fbd;
+    --today-accent-hover: #aea5cc;
+    --today-on-accent: #16131f;
+    --today-ink: #e6e2f2;
+    --today-ink-soft: #a49cbd;
+    --today-ring: #34304a;
+    --today-ring-hover: #5a5280;
   }
 }
 

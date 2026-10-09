@@ -454,7 +454,13 @@ tracker paths; the resume pages never hit it.
   and haven't tracked, and the scan's age. It opens by itself the first time
   each day and stays open until "Done for now" (`tracker.today.dismissed` in
   localStorage holds the day), then is a one-line summary; with nothing to do
-  it's only the line. Its "Scan Gmail" button opens `GmailScan`'s dialog
+  it's only the line. Styled as a notification on purpose, to stand out from
+  the neutral panels: a muted purple (the `--today-*` tokens in
+  `globals.css`; no status uses purple), a pill when collapsed, a rounded card
+  with an accent bar and a bell when open, going neutral when there's nothing
+  to do. No count badge (Sunny didn't like it). The bar is absolutely
+  positioned, so the card is a flex column with `gap`, not `space-y` (which
+  put a margin on the bar and left it short of the bottom). Its "Scan Gmail" button opens `GmailScan`'s dialog
   through a ref handle (`GmailScanHandle`); a scan never starts by itself
   (Google needs a click). `UpcomingStrip` stays below it as the full
   due-this-week list with the done checkboxes. The page loads `useMoves()`
