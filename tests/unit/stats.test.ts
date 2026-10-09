@@ -172,8 +172,7 @@ describe("applicationStats", () => {
     makeChange({ application_id: "a5", status: "interview", changed_at: local(2026, 9, 10) }),
   ];
   const assessments: Assessment[] = [makeAssessment({ application_id: "a5", kind: "oa" })];
-  const time = { "2026-10-01": 7200, "2026-10-02": 1800 };
-  const stats = applicationStats(apps, groupBy(assessments, (a) => a.application_id), groupBy(changes, (c) => c.application_id), time, now);
+  const stats = applicationStats(apps, groupBy(assessments, (a) => a.application_id), groupBy(changes, (c) => c.application_id), now);
   const fact = (label: string | RegExp) => stats.facts.find((f) => (typeof label === "string" ? f.label === label : label.test(f.label)));
 
   it("counts", () => {
@@ -236,21 +235,22 @@ describe("applicationStats", () => {
       detail: "longest wait: Gamma, 44 days",
     });
     expect(fact("Typical wait for a reply")).toEqual({ label: "Typical wait for a reply", value: "1 day", detail: undefined });
-    expect(fact("Speedrun rejection")).toEqual({ label: "Speedrun rejection", value: "2 days", detail: "acme · SWE Robo" });
+    expect(fact("Speedrun rejection")).toBeUndefined();
     expect(fact("Typical time to rejection")).toEqual({ label: "Typical time to rejection", value: "2 days", detail: undefined });
-    expect(fact("Rejections usually land on")).toBeUndefined(); // needs 3 dated rejections
+    expect(fact("Rejections usually land on")).toBeUndefined();
     expect(fact("Companies")).toEqual({ label: "Companies", value: "4", detail: "most applied to: Acme (2)" }); // Acme / acme are one
-    expect(fact("Your typing habit")).toBeUndefined(); // nothing typed 3 times
-    expect(fact("Time invested")).toEqual({
-      label: "Time invested",
-      value: "2.5 h",
-      detail: "≈ 30 min per application (since timing began)",
-    });
+    expect(fact("Your typing habit")).toBeUndefined();
+    expect(fact("Est. time spent")).toBeUndefined(); // a stat tile now
+  });
+
+  it("estimates time spent from flat per-app and per-assessment minutes", () => {
+    // 5 applications at 3 min, plus the one OA at 120 min with prep.
+    expect(stats.timeSpent).toEqual({ value: "2.3 h", detail: "3 min/app + 1 assmt" });
   });
 
   describe("streaks", () => {
     const onDays = (...days: string[]) =>
-      applicationStats(days.map((d, i) => makeApp({ id: `s${i}`, applied_on: d })), new Map(), new Map(), {}, now);
+      applicationStats(days.map((d, i) => makeApp({ id: `s${i}`, applied_on: d })), new Map(), new Map(), now);
     it("counts consecutive days ending today", () => {
       const s = onDays("2026-10-03", "2026-10-02", "2026-10-01", "2026-09-28");
       expect(s.currentStreak).toBe(3);
@@ -275,7 +275,6 @@ describe("applicationStats", () => {
       [makeApp({ applied_on: "2026-10-02" }), makeApp({ applied_on: "2026-10-02" }), makeApp({ applied_on: "2026-09-01" })],
       new Map(),
       new Map(),
-      {},
       now
     );
     expect(s.facts.find((f) => f.label === "Busiest day")).toEqual({
@@ -286,32 +285,10 @@ describe("applicationStats", () => {
   });
 
   it("caps the weekly chart at 26 weeks", () => {
-    const s = applicationStats([makeApp({ applied_on: "2025-01-01" })], new Map(), new Map(), {}, now);
+    const s = applicationStats([makeApp({ applied_on: "2025-01-01" })], new Map(), new Map(), now);
     expect(s.weekly).toHaveLength(26);
     expect(s.weekly[0].start).toBe(addDays("2026-09-28", -7 * 25));
     expect(s.weekly[25].start).toBe("2026-09-28");
-  });
-
-  it("notices the role you type most, using its commonest spelling", () => {
-    const rows = ["SWE", "swe", "SWE", "Data"].map((role, i) => makeApp({ id: `r${i}`, role, applied_on: `2026-09-0${i + 1}` }));
-    const s = applicationStats(rows, new Map(), new Map(), {}, now);
-    expect(s.facts.find((f) => f.label === "Your typing habit")).toEqual({
-      label: "Your typing habit",
-      value: "“SWE”",
-      detail: "typed as the role 3 times (75%)",
-    });
-  });
-
-  it("finds the usual rejection weekday from three dated rejections", () => {
-    const rows = [24, 17, 10].map((day, i) =>
-      makeApp({ id: `x${i}`, status: "rejected", applied_on: "2026-08-01", status_changed_at: local(2026, 9, day) })
-    ); // all Thursdays
-    const s = applicationStats(rows, new Map(), new Map(), {}, now);
-    expect(s.facts.find((f) => f.label === "Rejections usually land on")).toEqual({
-      label: "Rejections usually land on",
-      value: "Thursday",
-      detail: "100% of dated rejections",
-    });
   });
 
   it("says how many rows had dates when only some did", () => {
@@ -319,12 +296,12 @@ describe("applicationStats", () => {
       makeApp({ id: "d1", status: "rejected", applied_on: "2026-09-20", status_changed_at: local(2026, 9, 22) }),
       makeApp({ id: "d2", status: "rejected", applied_on: "2026-09-20" }),
     ];
-    const s = applicationStats(rows, new Map(), new Map(), {}, now);
+    const s = applicationStats(rows, new Map(), new Map(), now);
     expect(s.facts.find((f) => f.label === "Typical time to rejection")?.detail).toBe("from 1 of 2 with dates");
   });
 
   it("an undated rejection adds no rejection facts", () => {
-    const s = applicationStats([makeApp({ status: "rejected", status_changed_at: null })], new Map(), new Map(), {}, now);
+    const s = applicationStats([makeApp({ status: "rejected", status_changed_at: null })], new Map(), new Map(), now);
     expect(s.facts.find((f) => /rejection/i.test(f.label))).toBeUndefined();
   });
 
@@ -333,26 +310,25 @@ describe("applicationStats", () => {
       [makeApp({ status: "rejected", applied_on: "2026-09-30", status_changed_at: local(2026, 9, 20) })],
       new Map(),
       new Map(),
-      {},
       now
     );
-    expect(s.facts.find((f) => f.label === "Speedrun rejection")?.value).toBe("same day");
+    expect(s.facts.find((f) => f.label === "Typical time to rejection")?.value).toBe("same day");
   });
 
-  it("time under a minute is not worth a fact; under an hour is shown in minutes", () => {
-    const one = (seconds: number) =>
-      applicationStats([makeApp()], new Map(), new Map(), { "2026-10-01": seconds }, now).facts.find((f) => f.label === "Time invested");
-    expect(one(59)).toBeUndefined();
-    expect(one(1800)).toMatchObject({ value: "30 min" });
-    expect(one(3600)).toMatchObject({ value: "1 h" });
+  it("estimated time spent is a flat estimate, in minutes under 90 and hours above", () => {
+    const one = (apps: Application[], asmts: Assessment[] = []) =>
+      applicationStats(apps, groupBy(asmts, (a) => a.application_id), new Map(), now).timeSpent;
+    expect(one([makeApp()])).toMatchObject({ value: "3 min", detail: "3 min/app + 0 assmt" });
+    expect(one([makeApp({ id: "x" })], [makeAssessment({ application_id: "x", kind: "interview" })])).toMatchObject({ value: "2.6 h", detail: "3 min/app + 1 assmt" });
   });
 
   it("an empty tracker gives zeros, not errors", () => {
-    const s = applicationStats([], new Map(), new Map(), {}, now);
+    const s = applicationStats([], new Map(), new Map(), now);
     expect(s).toMatchObject({ total: 0, thisWeek: 0, lastWeek: 0, heardBack: 0, progressed: 0, interviewed: 0, offers: 0, currentStreak: 0 });
     expect(s.weekly).toEqual([]);
     expect(s.byType).toEqual([]);
     expect(s.facts).toEqual([]);
+    expect(s.timeSpent).toEqual({ value: "0 min", detail: "3 min/app + 0 assmt" });
     expect(s.funnel.map((f) => f.count)).toEqual([0, 0, 0, 0, 0]);
     expect(s.weekday).toEqual([0, 0, 0, 0, 0, 0, 0]);
   });
@@ -362,7 +338,7 @@ describe("applicationStats", () => {
     fc.assert(
       fc.property(fc.array(fc.record({ status, day: fc.integer({ min: 0, max: 120 }) }), { maxLength: 30 }), (rows) => {
         const list = rows.map((r, i) => makeApp({ id: `p${i}`, status: r.status, applied_on: addDays("2026-06-01", r.day) }));
-        const s = applicationStats(list, new Map(), new Map(), {}, now);
+        const s = applicationStats(list, new Map(), new Map(), now);
         const counts = s.funnel.map((f) => f.count);
         expect(counts[0]).toBe(list.length);
         for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);

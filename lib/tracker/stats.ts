@@ -11,6 +11,7 @@ import {
   type StatusChange,
 } from "@/lib/tracker/format";
 import { ROLE_TYPES, roleType, type RoleType } from "@/lib/tracker/roles";
+import { DEFAULT_MINUTES_PER_APP, ROUND_MINUTES } from "@/lib/tracker/timeEstimates";
 
 // Pure numbers for the stats panels. Imported rows often have no status
 // dates, so every timing stat uses only the dated rows and says how many
@@ -152,6 +153,8 @@ export interface ApplicationStats {
   interviewed: number;
   offers: number;
   currentStreak: number;
+  // Estimated, not tracked: see timeEstimates.ts.
+  timeSpent: { value: string; detail: string };
   daily: Map<string, number>;
   weekly: { start: string; count: number }[];
   funnel: { stage: Stage; label: string; count: number }[];
@@ -166,7 +169,6 @@ export function applicationStats(
   apps: Application[],
   assessmentsByApp: Map<string, Assessment[]>,
   changesByApp: Map<string, StatusChange[]>,
-  timeDays: Record<string, number>,
   now: number
 ): ApplicationStats {
   const today = todayISO(now);
@@ -183,13 +185,11 @@ export function applicationStats(
   let offers = 0;
   const firstReply: number[] = [];
   let heardDated = 0;
-  const rejectDays: { app: Application; days: number }[] = [];
+  const rejectDays: { days: number }[] = [];
   let rejected = 0;
-  const rejectWeekday = [0, 0, 0, 0, 0, 0, 0];
   const ghosts: Application[] = [];
   let ghostEligible = 0;
   const companies = new Map<string, { name: string; count: number }>();
-  const roles = new Map<string, Map<string, number>>();
 
   for (const app of apps) {
     const asmts = assessmentsByApp.get(app.id) ?? [];
@@ -225,8 +225,7 @@ export function applicationStats(
       rejected++;
       if (app.status_changed_at) {
         const rejectDay = dayOf(app.status_changed_at);
-        rejectDays.push({ app, days: Math.max(0, daysBetween(day, rejectDay)) });
-        rejectWeekday[weekdayIndex(rejectDay)]++;
+        rejectDays.push({ days: Math.max(0, daysBetween(day, rejectDay)) });
       }
     }
 
@@ -240,11 +239,6 @@ export function applicationStats(
     c.count++;
     companies.set(companyKey, c);
 
-    // Group roles case-insensitively but remember the most-used spelling.
-    const roleKey = app.role.trim().toLowerCase();
-    const spellings = roles.get(roleKey) ?? new Map<string, number>();
-    spellings.set(app.role.trim(), (spellings.get(app.role.trim()) ?? 0) + 1);
-    roles.set(roleKey, spellings);
   }
 
   // Weekly volume: from the first application's week (at most MAX_WEEKS
@@ -277,6 +271,19 @@ export function applicationStats(
 
   const facts: Fact[] = [];
   const total = apps.length;
+
+  let rounds = 0;
+  let estimated = total * DEFAULT_MINUTES_PER_APP;
+  for (const app of apps) {
+    for (const a of assessmentsByApp.get(app.id) ?? []) {
+      estimated += ROUND_MINUTES[a.kind as AssessmentKind] ?? 0;
+      rounds++;
+    }
+  }
+  const timeSpent = {
+    value: estimated >= 90 ? `${Math.round(estimated / 6) / 10} h` : `${estimated} min`,
+    detail: `${DEFAULT_MINUTES_PER_APP} min/app + ${rounds} assmt`,
+  };
 
   if (longestStreak > 1) {
     facts.push({
@@ -336,25 +343,10 @@ export function applicationStats(
   }
 
   if (rejectDays.length) {
-    const fastest = rejectDays.reduce((a, b) => (b.days < a.days ? b : a));
-    facts.push({
-      label: "Speedrun rejection",
-      value: formatDays(fastest.days),
-      detail: `${fastest.app.company} · ${fastest.app.role}`,
-    });
     facts.push({
       label: "Typical time to rejection",
       value: formatDays(median(rejectDays.map((r) => r.days))!),
       detail: datedNote(rejectDays.length, rejected),
-    });
-  }
-
-  if (rejectDays.length >= 3) {
-    const d = argmax(rejectWeekday);
-    facts.push({
-      label: "Rejections usually land on",
-      value: WEEKDAYS[d],
-      detail: `${pct(rejectWeekday[d], rejectDays.length)} of dated rejections`,
     });
   }
 
@@ -367,29 +359,6 @@ export function applicationStats(
     });
   }
 
-  if (roles.size) {
-    const [, spellings] = [...roles].reduce((a, b) => (sum(b[1]) > sum(a[1]) ? b : a));
-    const count = sum(spellings);
-    const spelling = [...spellings].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-    if (count >= 3) {
-      facts.push({
-        label: "Your typing habit",
-        value: `“${spelling}”`,
-        detail: `typed as the role ${plural(count, "time")} (${pct(count, total)})`,
-      });
-    }
-  }
-
-  const seconds = Object.values(timeDays).reduce((a, b) => a + b, 0);
-  if (seconds >= 60) {
-    const hours = seconds / 3600;
-    facts.push({
-      label: "Time invested",
-      value: hours >= 1 ? `${Math.round(hours * 10) / 10} h` : `${Math.round(seconds / 60)} min`,
-      detail: total ? `≈ ${Math.round(seconds / 60 / total)} min per application (since timing began)` : undefined,
-    });
-  }
-
   return {
     total,
     thisWeek,
@@ -399,6 +368,7 @@ export function applicationStats(
     interviewed: funnelCounts[STAGES.indexOf("interview")],
     offers,
     currentStreak,
+    timeSpent,
     daily,
     weekly,
     funnel: STAGES.map((stage, i) => ({ stage, label: STAGE_LABELS[stage], count: funnelCounts[i] })),
@@ -410,12 +380,6 @@ export function applicationStats(
     weekday,
     facts,
   };
-}
-
-function sum(m: Map<string, number>): number {
-  let n = 0;
-  for (const v of m.values()) n += v;
-  return n;
 }
 
 // ---------- assessments ----------

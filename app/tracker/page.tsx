@@ -11,7 +11,6 @@ import { ApplicationFilterBar, AssessmentFilterBar } from "@/components/tracker/
 import ImportExport from "@/components/tracker/ImportExport";
 import ApplicationStats from "@/components/tracker/stats/ApplicationStats";
 import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
-import TimeTracker from "@/components/tracker/TimeTracker";
 import TodayCard from "@/components/tracker/TodayCard";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
@@ -264,8 +263,6 @@ export default function TrackerPage() {
           onReviewEmails={() => setTab("gmail")}
         />
       )}
-
-      <TimeTracker />
 
       {tracker.error && (
         <div className="flex items-start justify-between gap-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">

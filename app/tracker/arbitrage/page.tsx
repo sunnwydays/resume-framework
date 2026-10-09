@@ -8,18 +8,12 @@ import MovesList from "@/components/tracker/arbitrage/MovesList";
 import NextSteps from "@/components/tracker/arbitrage/NextSteps";
 import Playbook from "@/components/tracker/arbitrage/Playbook";
 import Workshop, { type WorkshopSeed } from "@/components/tracker/arbitrage/Workshop";
-import {
-  DEFAULT_MINUTES_PER_APP,
-  exchangeRates,
-  funnel,
-  templateStats,
-  thisWeek,
-  type AppContext,
-} from "@/lib/tracker/arbitrage";
+import { exchangeRates, funnel, templateStats, thisWeek, type AppContext } from "@/lib/tracker/arbitrage";
 import type { Assessment, Move, MoveChannel, StatusChange } from "@/lib/tracker/format";
 import { DEFAULT_WEEKLY_TARGET, nextSteps } from "@/lib/tracker/nextSteps";
 import { groupBy } from "@/lib/tracker/stats";
 import { BUILT_IN_TEMPLATES, splitTarget } from "@/lib/tracker/templates";
+import { DEFAULT_MINUTES_PER_APP } from "@/lib/tracker/timeEstimates";
 import { useLocalNumber } from "@/lib/tracker/useLocalSetting";
 import { useMoves } from "@/lib/tracker/useMoves";
 import { useNow, useTracker } from "@/lib/tracker/useTracker";

@@ -12,13 +12,13 @@ import {
   type StatusChange,
 } from "@/lib/tracker/format";
 import { STAGES, dayOf, furthestStage, heardBack, pct, weekStart } from "@/lib/tracker/stats";
+import { DEFAULT_MINUTES_PER_APP } from "@/lib/tracker/timeEstimates";
 
 // Pure numbers for the Arbitrage page: the outreach funnel, reward per hour
 // by channel against a cold-applying baseline, and per-template reply rates.
 
 // Minimum moves before the page claims "N× your cold-apply rate".
 export const MIN_MOVES_FOR_MULTIPLIER = 3;
-export const DEFAULT_MINUTES_PER_APP = 20;
 
 // What the time presets default to when a move is logged, per channel.
 export const DEFAULT_MOVE_MINUTES: Record<MoveChannel, number> = {

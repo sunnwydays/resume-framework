@@ -205,7 +205,7 @@ tracker paths; the resume pages never hit it.
   `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`
-  (time spent per day), for the Arbitrage page `moves` and
+  (unused, see "Time is estimated"), for the Arbitrage page `moves` and
   `message_templates` (below), for the Postings page `job_postings` (below),
   and for the Gmail scan `email_messages`, `email_accepts`, `gmail_scans`,
   `email_mutes` (below).
@@ -233,13 +233,14 @@ tracker paths; the resume pages never hit it.
   status's date from the application row instead. `status_changes` is
   read-only to users except one policy: deleting your own `origin = 'email'`
   rows, which Gmail undo needs.
-- **Time spent** (`components/tracker/TimeTracker.tsx`,
-  `lib/tracker/useTimeLog.ts`): a stopwatch plus +1m/+5m/+15m buttons and
-  a manual "Set…" for today's total. Stored in `time_log` (one row per user
-  per local day), written only through the `add_time` / `set_time` RPCs
-  (atomic upsert, floored at 0). The running stopwatch's start time lives
-  in localStorage, not the database, so it survives reloads; a stretch is
-  only written when stopped, all to the day it's stopped on.
+- **Time is estimated, not tracked** (`lib/tracker/timeEstimates.ts`): the
+  stopwatch / time-log UI was removed (Sunny never used it). Anywhere a time
+  is needed uses flat constants: `DEFAULT_MINUTES_PER_APP` per application
+  and `ROUND_MINUTES` per OA / video interview / interview (prep included).
+  The Stats "Est. time spent" tile (it replaced "vs last week") is built from them; Arbitrage's
+  cold-apply baseline uses the per-application one (overridable there). The
+  `time_log` table and its `add_time` / `set_time` RPCs are still in the
+  database, unused by the app.
 - **Assessments tab** (`components/tracker/AssessmentsTable.tsx`): every
   OA / interview across applications, sortable, with a mouse-only hover
   preview card (fixed-position, rendered outside the table) and click to

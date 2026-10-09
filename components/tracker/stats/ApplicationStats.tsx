@@ -12,7 +12,6 @@ import {
 import StatsPanel from "@/components/tracker/stats/StatsPanel";
 import type { Application, Assessment, StatusChange } from "@/lib/tracker/format";
 import { applicationStats, pct, plural } from "@/lib/tracker/stats";
-import { useTimeLog } from "@/lib/tracker/useTimeLog";
 
 interface Props {
   applications: Application[];
@@ -24,13 +23,11 @@ interface Props {
 }
 
 export default function ApplicationStats({ applications, assessmentsByApp, changesByApp, now, scope }: Props) {
-  const { days } = useTimeLog();
   const s = useMemo(
-    () => applicationStats(applications, assessmentsByApp, changesByApp, days, now),
-    [applications, assessmentsByApp, changesByApp, days, now]
+    () => applicationStats(applications, assessmentsByApp, changesByApp, now),
+    [applications, assessmentsByApp, changesByApp, now]
   );
 
-  const delta = s.thisWeek - s.lastWeek;
   return (
     <StatsPanel
       id="applications"
@@ -38,12 +35,8 @@ export default function ApplicationStats({ applications, assessmentsByApp, chang
       summary={`${plural(s.total, "application")}, ${pct(s.heardBack, s.total)} heard back`}
     >
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile label="Applied" value={s.total} sub={`${s.thisWeek} this week`} />
-        <StatTile
-          label="vs last week"
-          value={delta > 0 ? `+${delta}` : delta}
-          sub={`${s.lastWeek} last week`}
-        />
+        <StatTile label="Applied" value={s.total} sub={`${s.thisWeek} this week · ${s.lastWeek} last week`} />
+        <StatTile label="Est. time spent" value={s.timeSpent.value} sub={s.timeSpent.detail} />
         <StatTile label="Heard back" value={pct(s.heardBack, s.total)} sub={`${s.heardBack} of ${s.total}`} />
         <StatTile label="Got an OA or beyond" value={pct(s.progressed, s.total)} sub={`${s.progressed} of ${s.total}`} />
         <StatTile label="Interviews" value={s.interviewed} sub={pct(s.interviewed, s.total)} />

@@ -1,6 +1,7 @@
 import { templateStats, thisWeek } from "@/lib/tracker/arbitrage";
 import { formatHours, isOutreach, stageIndex, todayISO, type Application, type Move } from "@/lib/tracker/format";
 import { dayOf, daysBetween, plural } from "@/lib/tracker/stats";
+import { DEFAULT_MINUTES_PER_APP } from "@/lib/tracker/timeEstimates";
 
 // What to do next on the Arbitrage page: plain rules over the moves, no AI.
 // Ordered by how much each one is worth: a person waiting on you first,
@@ -46,7 +47,7 @@ export function nextSteps(
   moves: Move[],
   applications: Application[],
   now: number,
-  { weeklyTarget = DEFAULT_WEEKLY_TARGET, minutesPerApp = 20, templateNames = new Map() }: NextStepOptions = {}
+  { weeklyTarget = DEFAULT_WEEKLY_TARGET, minutesPerApp = DEFAULT_MINUTES_PER_APP, templateNames = new Map() }: NextStepOptions = {}
 ): NextStep[] {
   const today = todayISO(now);
   const idle = (m: Move) => daysBetween(dayOf(m.last_touch_at), today);
