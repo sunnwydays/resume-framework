@@ -242,7 +242,7 @@ export default function TrackerPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
+        <div className="flex flex-wrap items-start justify-end gap-2">
           <GmailScan ref={scanRef} tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
           <ImportExport
             applications={applications}

@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
+import OverflowMenu, { dangerMenuItemCls } from "@/components/tracker/OverflowMenu";
 import PostingsFilterBar, { type PostingCounts } from "@/components/tracker/postings/PostingsFilterBar";
 import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
-import { POSTING_STATES, buttonCls } from "@/lib/tracker/format";
+import { POSTING_STATES } from "@/lib/tracker/format";
 import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
@@ -91,14 +92,22 @@ export default function PostingsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <PostingsScan store={store} postings={store.postings} now={now} />
-          <button
-            type="button"
-            onClick={() => setClearing(true)}
-            className={`${buttonCls} border-red-300 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950`}
-            disabled={store.postings.length === 0}
-          >
-            Clear all…
-          </button>
+          <OverflowMenu>
+            {(close) => (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  close();
+                  setClearing(true);
+                }}
+                className={dangerMenuItemCls}
+                disabled={store.postings.length === 0}
+              >
+                Clear all…
+              </button>
+            )}
+          </OverflowMenu>
         </div>
       </div>
 

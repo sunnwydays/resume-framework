@@ -22,6 +22,7 @@ import { downloadTemplate, exportData } from "@/lib/tracker/export";
 import ApplicationPicker from "@/components/tracker/ApplicationPicker";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
+import OverflowMenu, { dangerMenuItemCls, menuItemCls } from "@/components/tracker/OverflowMenu";
 import { supabase } from "@/lib/tracker/useTracker";
 import {
   buttonCls,
@@ -126,32 +127,35 @@ function ExportButton({
   disabled,
   onExport,
   onMessage,
+  onFinished,
 }: {
   label: string;
   disabled: boolean;
   onExport: () => Promise<string[]>;
   onMessage: (message: string) => void;
+  // Called once the export has finished or failed (the menu closes then, so
+  // the result message isn't covered by it).
+  onFinished: () => void;
 }) {
   const { phase, run } = useDownload();
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={() =>
-        run(onExport).then(
-          (names) => names && onMessage(`Downloaded ${names.join(" and ")}.`),
-          (e) => onMessage(`Export failed: ${e instanceof Error ? e.message : String(e)}`),
-        )
+        run(onExport)
+          .then(
+            (names) => names && onMessage(`Downloaded ${names.join(" and ")}.`),
+            (e) => onMessage(`Export failed: ${e instanceof Error ? e.message : String(e)}`),
+          )
+          .then(onFinished)
       }
-      className={
-        phase === "done"
-          ? `${buttonCls} border-emerald-400 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400`
-          : buttonCls
-      }
+      className={menuItemCls}
       disabled={disabled || phase === "busy"}
       aria-disabled={phase !== "idle"}
       aria-live="polite"
     >
-      {phase === "busy" ? "Exporting…" : phase === "done" ? "Downloaded ✓" : label}
+      {phase === "busy" ? "Exporting…" : label}
     </button>
   );
 }
@@ -495,38 +499,52 @@ export default function ImportExport({
           className="hidden"
           onChange={(e) => pickFile(e.target.files?.[0])}
         />
-        <button
-          type="button"
-          onClick={() => {
-            setMessage(null);
-            setOpen(true);
-          }}
-          className={buttonCls}
-        >
-          Import
-        </button>
-        {(["xlsx", "csv"] as const).map((format) => (
-          <ExportButton
-            key={format}
-            label={`Export ${format.toUpperCase()}`}
-            disabled={applications.length === 0}
-            onExport={() =>
-              exportData(format, applications, assessments, questions)
-            }
-            onMessage={setMessage}
-          />
-        ))}
-        <button
-          type="button"
-          onClick={() => setClearing(true)}
-          className={`${buttonCls} border-red-300 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950`}
-          disabled={applications.length === 0}
-        >
-          Clear all…
-        </button>
+        <OverflowMenu>
+          {(close) => (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  close();
+                  setMessage(null);
+                  setOpen(true);
+                }}
+                className={menuItemCls}
+              >
+                Import…
+              </button>
+              {(["xlsx", "csv"] as const).map((format) => (
+                <ExportButton
+                  key={format}
+                  label={`Export ${format.toUpperCase()}`}
+                  disabled={applications.length === 0}
+                  onExport={() =>
+                    exportData(format, applications, assessments, questions)
+                  }
+                  onMessage={setMessage}
+                  onFinished={close}
+                />
+              ))}
+              <hr className="my-1 border-neutral-200 dark:border-neutral-800" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  close();
+                  setClearing(true);
+                }}
+                className={dangerMenuItemCls}
+                disabled={applications.length === 0}
+              >
+                Clear all…
+              </button>
+            </>
+          )}
+        </OverflowMenu>
       </div>
       {message && !open && (
-        <p className="basis-full text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="basis-full max-w-md text-right text-sm text-neutral-600 dark:text-neutral-400">
           {message}
         </p>
       )}
