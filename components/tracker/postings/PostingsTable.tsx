@@ -79,10 +79,10 @@ export default function PostingsTable({ views, store, addApplication, trims, now
             {header("posted", "Posted")}
             {header("company", "Company")}
             {header("role", "Role")}
-            <th className={thCls}>Location</th>
-            {header("region", "Region")}
-            <th className={thCls}>Pay</th>
             {header("level", "Level")}
+            {header("region", "Region")}
+            <th className={thCls}>Location</th>
+            <th className={thCls}>Pay</th>
             <th className={thCls}>
               <span className="sr-only">Actions</span>
             </th>
@@ -137,18 +137,6 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                       </div>
                     )}
                   </td>
-                  <td className={tdCls}>{posting.location ?? <span className="text-neutral-400">—</span>}</td>
-                  <td className={tdCls}>
-                    <span
-                      title={region.why}
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${REGION_CLS[region.region]}`}
-                    >
-                      {REGION_LABEL[region.region]}
-                    </span>
-                  </td>
-                  <td className={`${tdCls} whitespace-nowrap`}>
-                    {posting.pay ?? <span className="text-neutral-400">—</span>}
-                  </td>
                   <td className={`${tdCls} whitespace-nowrap`}>
                     {level.level === "unstated" ? (
                       <span title={level.why} className="text-neutral-400">
@@ -162,6 +150,18 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                         {levelLabel(level.level)}
                       </span>
                     )}
+                  </td>
+                  <td className={tdCls}>
+                    <span
+                      title={region.why}
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${REGION_CLS[region.region]}`}
+                    >
+                      {REGION_LABEL[region.region]}
+                    </span>
+                  </td>
+                  <td className={tdCls}>{posting.location ?? <span className="text-neutral-400">—</span>}</td>
+                  <td className={`${tdCls} whitespace-nowrap`}>
+                    {posting.pay ?? <span className="text-neutral-400">—</span>}
                   </td>
                   <td className={`${tdCls} w-48 min-w-48`}>
                     <div className="grid grid-cols-2 gap-2">
