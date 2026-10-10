@@ -43,7 +43,6 @@ export interface AssessmentFilters {
   status: "pending" | "completed" | "all";
   kind: string | null;
   outcome: OutcomeFilter;
-  hideRejected: boolean;
   importantOnly: boolean;
   overdueOnly: boolean;
 }
@@ -52,7 +51,6 @@ export const DEFAULT_ASSESSMENT_FILTERS: AssessmentFilters = {
   status: "pending",
   kind: null,
   outcome: "any",
-  hideRejected: false,
   importantOnly: false,
   overdueOnly: false,
 };
@@ -111,18 +109,12 @@ export function matchesApplicationFilters(
 
 export const NO_REPLY_LABEL = `No reply ${NO_REPLY_DAYS}d+`;
 
-export function matchesAssessmentFilters(
-  a: Assessment,
-  app: Application | undefined,
-  f: AssessmentFilters,
-  now: number
-): boolean {
+export function matchesAssessmentFilters(a: Assessment, f: AssessmentFilters, now: number): boolean {
   if (f.status !== "all" && a.status !== f.status) return false;
   // Expired stays status "pending" but isn't open; picking the Expired outcome still shows them.
   if (f.status === "pending" && f.outcome !== "expired" && !isOpen(a)) return false;
   if (f.kind && a.kind !== f.kind) return false;
   if (f.outcome !== "any" && (a.outcome ?? "unset") !== f.outcome) return false;
-  if (f.hideRejected && app?.status === "rejected") return false;
   if (f.importantOnly && !a.important) return false;
   if (f.overdueOnly && !(isOpen(a) && a.due_at && new Date(a.due_at).getTime() < now)) return false;
   return true;

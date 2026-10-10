@@ -167,10 +167,8 @@ function TrackerPageInner() {
   );
   const visibleAssessments = useMemo(
     () =>
-      statsAssessments.filter((a) =>
-        matchesAssessmentFilters(a, applicationsById.get(a.application_id), asmtFilters, now)
-      ),
-    [statsAssessments, applicationsById, asmtFilters, now]
+      statsAssessments.filter((a) => matchesAssessmentFilters(a, asmtFilters, now)),
+    [statsAssessments, asmtFilters, now]
   );
   // Ranked among what's on screen, so #1 is the best next pick in this view.
   const priority = useMemo(

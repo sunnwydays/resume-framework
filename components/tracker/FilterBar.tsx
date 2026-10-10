@@ -128,7 +128,6 @@ export function AssessmentFilterBar({
   // Status and kind have their own chips; only the extras count as "dirty".
   const dirty =
     filters.outcome !== "any" ||
-    filters.hideRejected ||
     filters.importantOnly ||
     filters.overdueOnly ||
     roleTypes.size > 0;
@@ -142,11 +141,6 @@ export function AssessmentFilterBar({
           active={filters.outcome === "expired"}
           onClick={() => set("outcome", filters.outcome === "expired" ? "any" : "expired")}
           label="Expired"
-        />
-        <Chip
-          active={filters.hideRejected}
-          onClick={() => set("hideRejected", !filters.hideRejected)}
-          label="Hide rejected apps"
         />
         <label className="flex items-center gap-1.5 text-xs text-neutral-500">
           Result

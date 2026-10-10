@@ -150,8 +150,8 @@ describe("matchesAssessmentFilters", () => {
   const f = (o: Partial<AssessmentFilters> = {}): AssessmentFilters => ({ ...DEFAULT_ASSESSMENT_FILTERS, ...o });
   const past = new Date(NOW - 86_400_000).toISOString();
   const future = new Date(NOW + 86_400_000).toISOString();
-  const run = (a = makeAssessment(), o: Partial<AssessmentFilters> = {}, app = makeApp()) =>
-    matchesAssessmentFilters(a, app, f(o), NOW);
+  const run = (a = makeAssessment(), o: Partial<AssessmentFilters> = {}) =>
+    matchesAssessmentFilters(a, f(o), NOW);
 
   it("defaults to pending only", () => {
     expect(run(makeAssessment({ status: "pending" }))).toBe(true);
@@ -181,13 +181,6 @@ describe("matchesAssessmentFilters", () => {
   it("an expired assessment is never overdue", () => {
     const past = makeAssessment({ outcome: "expired", due_at: "2020-01-01T00:00:00.000Z" });
     expect(run(past, { overdueOnly: true })).toBe(false);
-  });
-  it("hideRejected only looks at rejected applications", () => {
-    const rejected = makeApp({ status: "rejected" });
-    expect(run(makeAssessment(), { hideRejected: true }, rejected)).toBe(false);
-    expect(run(makeAssessment(), { hideRejected: false }, rejected)).toBe(true);
-    expect(run(makeAssessment(), { hideRejected: true }, makeApp({ status: "withdrawn" }))).toBe(true);
-    expect(matchesAssessmentFilters(makeAssessment(), undefined, f({ hideRejected: true }), NOW)).toBe(true);
   });
   it("importantOnly", () => {
     expect(run(makeAssessment({ important: false }), { importantOnly: true })).toBe(false);
