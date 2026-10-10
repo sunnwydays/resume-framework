@@ -139,6 +139,11 @@ export function AssessmentFilterBar({
         <Chip active={filters.importantOnly} onClick={() => set("importantOnly", !filters.importantOnly)} label="★ Important only" />
         <Chip active={filters.overdueOnly} onClick={() => set("overdueOnly", !filters.overdueOnly)} label="Overdue only" />
         <Chip
+          active={filters.outcome === "expired"}
+          onClick={() => set("outcome", filters.outcome === "expired" ? "any" : "expired")}
+          label="Expired"
+        />
+        <Chip
           active={filters.hideRejected}
           onClick={() => set("hideRejected", !filters.hideRejected)}
           label="Hide rejected apps"
