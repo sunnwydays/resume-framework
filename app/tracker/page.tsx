@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
@@ -47,14 +48,32 @@ import { ROLE_TYPES, roleType, roleTypeLabel, type RoleType } from "@/lib/tracke
 
 type Tab = "applications" | "assessments" | "gmail";
 
+// The tab lives in the URL (?tab=assessments) so a refresh keeps it.
+function parseTab(value: string | null): Tab {
+  return value === "assessments" || value === "gmail" ? value : "applications";
+}
+
+// useSearchParams needs a Suspense boundary to prerender.
 export default function TrackerPage() {
+  return (
+    <Suspense>
+      <TrackerPageInner />
+    </Suspense>
+  );
+}
+
+function TrackerPageInner() {
   const tracker = useTracker();
   const postings = usePostings(); // for the alert half of "Scan Gmail", and the Today card
   const { moves, loading: movesLoading } = useMoves(); // the Today card's people to follow up
   const now = useNow();
   const scanRef = useRef<GmailScanHandle>(null);
   const { applications, assessments, questions, statusChanges, gmail } = tracker;
-  const [tab, setTab] = useState<Tab>("applications");
+  const router = useRouter();
+  const pathname = usePathname();
+  const tab = parseTab(useSearchParams().get("tab"));
+  const setTab = (next: Tab) =>
+    router.replace(next === "applications" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
   const [appFilters, setAppFilters] = useState<AppFilters>(DEFAULT_APP_FILTERS);
   const [asmtFilters, setAsmtFilters] = useState<AssessmentFilters>(DEFAULT_ASSESSMENT_FILTERS);
   const [roleTypes, setRoleTypes] = useState<Set<RoleType>>(new Set());
