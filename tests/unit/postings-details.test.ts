@@ -23,16 +23,31 @@ describe("parseJobrightPage", () => {
       startText: "Start in 2027 Winter",
       lengthText: "This is a full-time, 8, or 12-month position, starting January 2027",
       levelText: null,
+      citizenOnly: false,
+      clearanceRequired: false,
     });
   });
 
   it("finds the length in a sentence of a longer text", () => {
     const html = page({ benefitsSummaries: ["Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym."] });
-    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null });
+    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null, citizenOnly: false, clearanceRequired: false });
   });
 
   it("is a read page with nothing stated when the job says neither", () => {
-    expect(parseJobrightPage(page({ jobTitle: "Intern", internHireDate: "Start immediately" }))).toEqual({ startText: null, lengthText: null, levelText: null });
+    expect(parseJobrightPage(page({ jobTitle: "Intern", internHireDate: "Start immediately" }))).toEqual({
+      startText: null,
+      lengthText: null,
+      levelText: null,
+      citizenOnly: false,
+      clearanceRequired: false,
+    });
+  });
+
+  it("reads Jobright's citizen-only and clearance flags", () => {
+    expect(parseJobrightPage(page({ isCitizenOnly: true, isClearanceRequired: false }))).toMatchObject({ citizenOnly: true, clearanceRequired: false });
+    expect(parseJobrightPage(page({ isCitizenOnly: false, isClearanceRequired: true }))).toMatchObject({ citizenOnly: false, clearanceRequired: true });
+    // Absent or not a real boolean: not flagged, but the page still counts as read.
+    expect(parseJobrightPage(page({ isCitizenOnly: "true" }))).toMatchObject({ citizenOnly: false, clearanceRequired: false });
   });
 
   it("keeps the seniority and employment type as the level", () => {
@@ -63,7 +78,13 @@ describe("fetchPostingDetails", () => {
 
   it("fetches and parses", async () => {
     const fetchImpl = vi.fn(async () => new Response(page({ internHireDate: "Start in 2027 Summer" }), { status: 200 }));
-    expect(await fetchPostingDetails(url, fetchImpl as unknown as typeof fetch)).toEqual({ startText: "Start in 2027 Summer", lengthText: null, levelText: null });
+    expect(await fetchPostingDetails(url, fetchImpl as unknown as typeof fetch)).toEqual({
+      startText: "Start in 2027 Summer",
+      lengthText: null,
+      levelText: null,
+      citizenOnly: false,
+      clearanceRequired: false,
+    });
   });
 
   it("is null on an error status, a thrown fetch, or a URL it won't fetch", async () => {

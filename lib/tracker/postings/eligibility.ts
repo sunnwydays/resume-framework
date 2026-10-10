@@ -1,8 +1,8 @@
 // Can Sunny take this job at all? Only US postings can fail: defense work and
 // clearance-gated roles need US citizenship, which a Canadian on a J-1 isn't.
-// No sponsorship check yet (that would need the posting text). Derived on
-// every render, and every list and phrase lives in ELIGIBILITY_RULES so
-// tuning is one place.
+// The posting page's own flags ("U.S. Citizen Only", clearance required) count
+// too. No sponsorship check (a J-1 needs none). Derived on every render, and
+// every list and phrase lives in ELIGIBILITY_RULES so tuning is one place.
 
 import { companyCloseness } from "@/lib/tracker/email/match";
 import type { Region } from "@/lib/tracker/postings/region";
@@ -37,6 +37,8 @@ interface Eligible {
   company: string;
   role: string;
   categories: string | null;
+  citizen_only?: boolean | null;
+  clearance_required?: boolean | null;
 }
 
 export function postingEligibility(p: Eligible, region: Region): Eligibility {
@@ -48,6 +50,9 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
 
   const title = rules.ineligibleTitle.exec(p.role);
   if (title) return { level: "no", why: `The title mentions "${title[0]}"` };
+
+  if (p.citizen_only) return { level: "no", why: "The posting page says U.S. citizens only" };
+  if (p.clearance_required) return { level: "no", why: "The posting page says a security clearance is required" };
 
   const category = p.categories ? rules.checkCategories.exec(p.categories) : null;
   if (category) return { level: "check", why: `The company's industry is listed as "${p.categories}": check it doesn't need a clearance` };

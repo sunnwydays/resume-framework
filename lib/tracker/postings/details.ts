@@ -1,7 +1,8 @@
 // What a Jobright posting page says that the alert email doesn't: the start
 // line ("Start in 2027 Winter"), the sentence naming the length ("16-week
 // internship program") and the seniority ("New Grad", with the employment
-// type). The alert's title often has none of them. The page is fetched
+// type), and Jobright's own flags for "U.S. Citizen Only" and clearance. The
+// alert's title often has none of them. The page is fetched
 // server-side (no CORS); only what term.ts and level.ts can read is kept, as
 // text, so tuning their rules applies to postings already read.
 
@@ -11,6 +12,10 @@ export interface PostingDetails {
   startText: string | null;
   lengthText: string | null;
   levelText: string | null; // "New Grad, Mid Level · Full-time"
+  // Jobright's own flags (the "U.S. Citizen Only" tag). A page that doesn't
+  // carry the flag reads as false, so it counts as read.
+  citizenOnly: boolean;
+  clearanceRequired: boolean;
 }
 
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
@@ -53,7 +58,8 @@ export function parseJobrightPage(html: string): PostingDetails | null {
 
   const { jobSeniority, employmentType } = job as { jobSeniority?: unknown; employmentType?: unknown };
   const levelText = [text(jobSeniority), text(employmentType)].filter(Boolean).join(" · ").slice(0, 100) || null;
-  return { startText, lengthText, levelText };
+  const { isCitizenOnly, isClearanceRequired } = job as { isCitizenOnly?: unknown; isClearanceRequired?: unknown };
+  return { startText, lengthText, levelText, citizenOnly: isCitizenOnly === true, clearanceRequired: isClearanceRequired === true };
 }
 
 const JOBRIGHT_JOB = /^https:\/\/jobright\.ai\/jobs\/info\/[0-9a-f]{24}\/?$/i;

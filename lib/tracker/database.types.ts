@@ -381,6 +381,8 @@ export type Database = {
         Row: {
           application_id: string | null
           categories: string | null
+          citizen_only: boolean | null
+          clearance_required: boolean | null
           company: string
           created_at: string
           details_read_at: string | null
@@ -406,6 +408,8 @@ export type Database = {
         Insert: {
           application_id?: string | null
           categories?: string | null
+          citizen_only?: boolean | null
+          clearance_required?: boolean | null
           company: string
           created_at?: string
           details_read_at?: string | null
@@ -431,6 +435,8 @@ export type Database = {
         Update: {
           application_id?: string | null
           categories?: string | null
+          citizen_only?: boolean | null
+          clearance_required?: boolean | null
           company?: string
           created_at?: string
           details_read_at?: string | null

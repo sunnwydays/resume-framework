@@ -68,14 +68,15 @@ export function usePostings() {
     return { saved: data?.length ?? 0, rows: data ?? [] };
   }, []);
 
-  // Reads the start line, length and seniority off each posting's page
-  // (server-side) and stores them, so the Term, Length and Level chips know
-  // more than the title says.
-  // Only postings not yet read are fetched; one whose page couldn't be read is
-  // left for next time. Returns how many were read.
+  // Reads the start line, length, seniority and the citizen-only / clearance
+  // flags off each posting's page (server-side) and stores them, so the Term,
+  // Length and Level chips and the eligibility check know more than the title
+  // says. Only postings not yet read are fetched (and ones read before the flags
+  // were stored); one whose page couldn't be read is left for next time.
+  // Returns how many were read.
   const readDetails = useCallback(
     async (candidates: JobPosting[], onProgress?: (done: number, total: number) => void): Promise<{ read: number } | { error: string }> => {
-      const todo = candidates.filter((p) => p.state === "new" && !p.details_read_at);
+      const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null));
       let read = 0;
       for (let i = 0; i < todo.length; i += DETAILS_BATCH) {
         onProgress?.(i, todo.length);
@@ -97,7 +98,7 @@ export function usePostings() {
         const updates = batch.flatMap((p, j) => {
           const d = results[j];
           return d
-            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, details_read_at: stamp } }]
+            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, citizen_only: d.citizenOnly, clearance_required: d.clearanceRequired, details_read_at: stamp } }]
             : [];
         });
         const writes = await Promise.all(updates.map((u) => supabase().from("job_postings").update(u.changes).eq("id", u.id)));

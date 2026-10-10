@@ -428,7 +428,13 @@ tracker paths; the resume pages never hit it.
     Winter") and the first sentence `lengthFromText` can read out of
     `__NEXT_DATA__`'s `dataSource.jobResult`, stored as `start_text` /
     `length_text`, plus `jobSeniority` and `employmentType` joined as
-    `level_text` ("New Grad · Full-time"); `details_read_at` marks a page as read (left null when the
+    `level_text` ("New Grad · Full-time"). It also stores Jobright's own boolean
+    flags `isCitizenOnly` / `isClearanceRequired` (the "U.S. Citizen Only" tag) as
+    `citizen_only` / `clearance_required`; a page without them reads as false, and
+    null means "read before these were stored", so the next scan re-reads those rows
+    (a backfill). The page also has `workModel`, `countryCode`, `minYearsOfExperience`,
+    `salaryDesc`, `isH1bSponsor` and `isWorkAuthRequired`, not used yet.
+    `details_read_at` marks a page as read (left null when the
     fetch failed or wasn't a posting page, so the next scan retries; set even
     when the page states nothing). Only text is stored, so term.ts tuning
     still applies to old rows. Re-scanning also backfills older postings.
@@ -457,8 +463,9 @@ tracker paths; the resume pages never hit it.
     the bucket. Both are often absent, so "not stated" is its own chip, and a
     term or length chip hides everything that doesn't match it, including
     not-stated ones, unless that chip is on too), `eligibility.ts` (`ELIGIBILITY_RULES` holds the
-    defense-employer list, the title phrases and the "check" industries; only
-    US postings can be flagged), `match.ts` (an existing application with the
+    defense-employer list, the title phrases and the "check" industries; the
+    page's citizen-only / clearance flags are a "no" too, ahead of the industry
+    "check"; only US postings can be flagged), `match.ts` (an existing application with the
     same company and role: the "In tracker" pill), `view.ts` (all of that per
     posting, once per render), `filters.ts`, `sorting.ts`. "Applied" adds an
     application (`source: 'alert'`, role trimmed with the default trims,

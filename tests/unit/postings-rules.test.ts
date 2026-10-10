@@ -103,5 +103,18 @@ describe("postingEligibility", () => {
   it("only US postings can be flagged", () => {
     expect(e("RTX", "Intern", "Defense", "canada")).toEqual({ level: "ok" });
     expect(e("RTX", "Intern (clearance)", null, "unknown")).toEqual({ level: "ok" });
+    expect(postingEligibility({ company: "Vandelay Industries", role: "Intern", categories: null, citizen_only: true }, "canada")).toEqual({ level: "ok" });
+  });
+
+  it("the posting page's citizen-only or clearance flag is out, even when the title and industry say nothing", () => {
+    const flagged = (flags: { citizen_only?: boolean | null; clearance_required?: boolean | null }, categories: string | null = null) =>
+      postingEligibility({ company: "Vandelay Industries", role: "Web Interface Software Engineer", categories, ...flags }, "us");
+    expect(flagged({ citizen_only: true })).toMatchObject({ level: "no", why: expect.stringContaining("citizens only") });
+    expect(flagged({ clearance_required: true })).toMatchObject({ level: "no", why: expect.stringContaining("clearance") });
+    // It beats the softer industry "check".
+    expect(flagged({ citizen_only: true }, "Government · Public Company").level).toBe("no");
+    // Unread (null) or false is not a flag.
+    expect(flagged({ citizen_only: null, clearance_required: null }).level).toBe("ok");
+    expect(flagged({ citizen_only: false, clearance_required: false }).level).toBe("ok");
   });
 });

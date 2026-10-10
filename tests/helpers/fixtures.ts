@@ -136,6 +136,8 @@ export function makePosting(overrides: Partial<JobPosting> = {}): JobPosting {
     start_text: null,
     length_text: null,
     level_text: null,
+    citizen_only: null,
+    clearance_required: null,
     details_read_at: null,
     state: "new",
     application_id: null,
