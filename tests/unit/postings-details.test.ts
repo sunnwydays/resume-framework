@@ -22,16 +22,23 @@ describe("parseJobrightPage", () => {
     expect(parseJobrightPage(html)).toEqual({
       startText: "Start in 2027 Winter",
       lengthText: "This is a full-time, 8, or 12-month position, starting January 2027",
+      levelText: null,
     });
   });
 
   it("finds the length in a sentence of a longer text", () => {
     const html = page({ benefitsSummaries: ["Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym."] });
-    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027." });
+    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null });
   });
 
   it("is a read page with nothing stated when the job says neither", () => {
-    expect(parseJobrightPage(page({ jobTitle: "Intern", internHireDate: "Start immediately" }))).toEqual({ startText: null, lengthText: null });
+    expect(parseJobrightPage(page({ jobTitle: "Intern", internHireDate: "Start immediately" }))).toEqual({ startText: null, lengthText: null, levelText: null });
+  });
+
+  it("keeps the seniority and employment type as the level", () => {
+    expect(parseJobrightPage(page({ jobSeniority: "New Grad, Mid Level", employmentType: "Full-time" }))?.levelText).toBe("New Grad, Mid Level · Full-time");
+    expect(parseJobrightPage(page({ employmentType: "Internship" }))?.levelText).toBe("Internship");
+    expect(parseJobrightPage(page({ jobSeniority: " ", employmentType: 3 }))?.levelText).toBeNull();
   });
 
   it("is null when it isn't a posting page, so the read is retried later", () => {
@@ -56,7 +63,7 @@ describe("fetchPostingDetails", () => {
 
   it("fetches and parses", async () => {
     const fetchImpl = vi.fn(async () => new Response(page({ internHireDate: "Start in 2027 Summer" }), { status: 200 }));
-    expect(await fetchPostingDetails(url, fetchImpl as unknown as typeof fetch)).toEqual({ startText: "Start in 2027 Summer", lengthText: null });
+    expect(await fetchPostingDetails(url, fetchImpl as unknown as typeof fetch)).toEqual({ startText: "Start in 2027 Summer", lengthText: null, levelText: null });
   });
 
   it("is null on an error status, a thrown fetch, or a URL it won't fetch", async () => {

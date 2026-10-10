@@ -135,6 +135,7 @@ export function makePosting(overrides: Partial<JobPosting> = {}): JobPosting {
     gmail_id: "gmail-1",
     start_text: null,
     length_text: null,
+    level_text: null,
     details_read_at: null,
     state: "new",
     application_id: null,

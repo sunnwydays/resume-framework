@@ -1,9 +1,10 @@
-// A posting plus everything derived from it: region, eligibility, and the
-// application it already matches. Computed once per render and shared by the
+// A posting plus everything derived from it: region, eligibility, term,
+// length, level, and the application it already matches. Computed once per render and shared by the
 // filters, the sort and the table.
 
 import type { Application, JobPosting } from "@/lib/tracker/format";
 import { postingEligibility, type Eligibility } from "@/lib/tracker/postings/eligibility";
+import { postingLevel, type LevelResult } from "@/lib/tracker/postings/level";
 import { matchPosting } from "@/lib/tracker/postings/match";
 import { postingRegion, type RegionResult } from "@/lib/tracker/postings/region";
 import { postingLength, postingTerm, type Length, type Term } from "@/lib/tracker/postings/term";
@@ -14,6 +15,7 @@ export interface PostingView {
   eligibility: Eligibility;
   term: Term | null; // "Summer 2027", when the title or the posting page says
   length: Length | null; // in months, when the title or the posting page says
+  level: LevelResult; // intern, new grad, experienced, or not stated, and why
   // The application it was marked applied as, else the closest match.
   tracked: Application | null;
 }
@@ -28,6 +30,7 @@ export function buildPostingViews(postings: JobPosting[], applications: Applicat
       eligibility: postingEligibility(posting, region.region),
       term: postingTerm(posting.role, { startText: posting.start_text, seenAt: posting.first_seen_at }),
       length: postingLength(posting.role, posting.length_text),
+      level: postingLevel(posting.role, posting.level_text),
       tracked: (posting.application_id ? byId.get(posting.application_id) : undefined) ?? matchPosting(posting, applications),
     };
   });

@@ -1,15 +1,19 @@
 // What a Jobright posting page says that the alert email doesn't: the start
-// line ("Start in 2027 Winter") and the sentence naming the length ("16-week
-// internship program"). The alert's title usually has neither. The page is
-// fetched server-side (no CORS); only what term.ts can read is kept, as text,
-// so tuning the rules in term.ts applies to postings already read.
+// line ("Start in 2027 Winter"), the sentence naming the length ("16-week
+// internship program") and the seniority ("New Grad", with the employment
+// type). The alert's title often has none of them. The page is fetched
+// server-side (no CORS); only what term.ts and level.ts can read is kept, as
+// text, so tuning their rules applies to postings already read.
 
 import { lengthFromText, postingTerm } from "@/lib/tracker/postings/term";
 
 export interface PostingDetails {
   startText: string | null;
   lengthText: string | null;
+  levelText: string | null; // "New Grad, Mid Level · Full-time"
 }
+
+const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
 
 const NEXT_DATA = /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/;
 
@@ -46,7 +50,10 @@ export function parseJobrightPage(html: string): PostingDetails | null {
     }
     if (lengthText) break;
   }
-  return { startText, lengthText };
+
+  const { jobSeniority, employmentType } = job as { jobSeniority?: unknown; employmentType?: unknown };
+  const levelText = [text(jobSeniority), text(employmentType)].filter(Boolean).join(" · ").slice(0, 100) || null;
+  return { startText, lengthText, levelText };
 }
 
 const JOBRIGHT_JOB = /^https:\/\/jobright\.ai\/jobs\/info\/[0-9a-f]{24}\/?$/i;

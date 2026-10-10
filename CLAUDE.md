@@ -427,7 +427,8 @@ tracker paths; the resume pages never hit it.
     10 per request). `details.ts` pulls `internHireDate` ("Start in 2027
     Winter") and the first sentence `lengthFromText` can read out of
     `__NEXT_DATA__`'s `dataSource.jobResult`, stored as `start_text` /
-    `length_text`; `details_read_at` marks a page as read (left null when the
+    `length_text`, plus `jobSeniority` and `employmentType` joined as
+    `level_text` ("New Grad · Full-time"); `details_read_at` marks a page as read (left null when the
     fetch failed or wasn't a posting page, so the next scan retries; set even
     when the page states nothing). Only text is stored, so term.ts tuning
     still applies to old rows. Re-scanning also backfills older postings.
@@ -441,8 +442,12 @@ tracker paths; the resume pages never hit it.
     (`support@jobright.ai`, different layout) is not handled; its jobs overlap
     the instant alerts. If Jobright changes the card markup, the parse tests'
     fixture (`tests/helpers/postings.ts`) is where to start.
-  - **Region, term, length and eligibility are derived every render, never
-    stored** (like role types), so tuning applies to old rows: `region.ts`
+  - **Region, term, length, level and eligibility are derived every render, never
+    stored** (like role types), so tuning applies to old rows: `level.ts`
+    (intern / new grad / experienced / not stated: the title first, the lowest
+    level named winning, so "Junior Developer Co-op" is a co-op; else
+    `level_text`. Default chips are intern + not stated: Sunny wants internships
+    now, and new grad rows stay for later), `region.ts`
     (US / Canada / elsewhere / unclear: location `", XX"` code first, then
     country names, then for Remote/blank locations the pay currency and the
     title), `term.ts` ("Summer 2027" and a length in months. Term: season+year
@@ -459,6 +464,14 @@ tracker paths; the resume pages never hit it.
     application (`source: 'alert'`, role trimmed with the default trims,
     applied today) or, if one already matches, just links it. Chip counts on
     the page are "what this chip would show", with every other filter held.
+    The table has a sortable Level column (a colored pill; `postingLevel`
+    returns `{ level, why }` and the hover text is `why`, the title word or the
+    page text it came from; "—" when not stated).
+  - **Parsed and stored, not shown**: `match_pct` and `referrals`. Match
+    didn't tell postings apart (88 of 99 were 80–100%, and the average was the
+    same for dismissed, new and applied), and "N+ referrals" is Jobright's list
+    of outreach contacts at the company, not Sunny's network. Don't re-add the
+    Match column, its filter or the referrals line.
   - **Clear all**: a red "Clear all…" button next to Scan alerts reuses
     `ClearAllDialog` (three steps) and `deleteAllPostings`. Linked applications
     stay; a later scan re-adds everything still in the inbox as new, since the

@@ -4,6 +4,7 @@ import Chip from "@/components/tracker/Chip";
 import { RoleTypeChips } from "@/components/tracker/FilterBar";
 import { POSTING_STATES, type PostingState } from "@/lib/tracker/format";
 import { isDefaultPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
+import { LEVELS, type Level } from "@/lib/tracker/postings/level";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
 import { LENGTH_BUCKETS, type LengthBucket } from "@/lib/tracker/postings/term";
 import type { RoleType } from "@/lib/tracker/roles";
@@ -13,6 +14,7 @@ export interface PostingCounts {
   region: Record<Region, number>;
   terms: { key: string; label: string; count: number }[]; // chronological, "not stated" last
   lengths: Map<LengthBucket, number>;
+  levels: Map<Level, number>;
   ineligible: number; // hidden unless "Show not eligible" is on
   roleTypes: Map<RoleType, number>;
 }
@@ -46,6 +48,7 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
   };
   // A selected chip stays visible even when nothing matches it any more.
   const lengthChips = LENGTH_BUCKETS.filter((b) => counts.lengths.has(b.key) || filters.lengths.has(b.key));
+  const levelChips = LEVELS.filter((l) => counts.levels.has(l.key) || filters.levels.has(l.key));
 
   return (
     <div className="space-y-2">
@@ -70,6 +73,22 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
       </div>
 
       <RoleTypeChips counts={counts.roleTypes} selected={filters.roleTypes} onChange={(next) => set("roleTypes", next)} />
+
+      {levelChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-neutral-500">Level</span>
+          {levelChips.map((l) => (
+            <Chip
+              key={l.key}
+              active={filters.levels.has(l.key)}
+              onClick={() => set("levels", toggleIn(filters.levels, l.key))}
+              label={l.label}
+              count={counts.levels.get(l.key) ?? 0}
+              title={l.hint}
+            />
+          ))}
+        </div>
+      )}
 
       {counts.terms.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
@@ -122,19 +141,6 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
           label="Hide already tracked"
           title="Hide postings that match an application you already have"
         />
-        <label className="flex items-center gap-1.5 text-xs text-neutral-500">
-          Min match
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={filters.minMatch || ""}
-            placeholder="0"
-            onChange={(e) => set("minMatch", Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-            className="w-16 rounded-md border border-neutral-300 bg-surface px-2 py-1 text-xs focus:border-neutral-500 focus:outline-none dark:border-neutral-700"
-          />
-          %
-        </label>
         {!isDefaultPostingFilters(filters) && (
           <button type="button" onClick={onClear} className="text-xs text-neutral-500 underline">
             Clear filters

@@ -5,7 +5,7 @@ import { fetchPostingDetails, isJobrightJobUrl, type PostingDetails } from "@/li
 const MAX_URLS = 10;
 const AT_ONCE = 3;
 
-// Reads the start line and length off Jobright posting pages, server-side (no
+// Reads the start line, length and seniority off Jobright posting pages, server-side (no
 // CORS). Returns one entry per URL, in order: the details, or null when the
 // page couldn't be read (the caller leaves that posting to try again).
 export async function POST(req: NextRequest) {

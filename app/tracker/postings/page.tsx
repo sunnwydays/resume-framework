@@ -8,6 +8,7 @@ import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
 import { POSTING_STATES } from "@/lib/tracker/format";
 import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
+import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
 import { buildPostingViews } from "@/lib/tracker/postings/view";
@@ -64,11 +65,15 @@ export default function PostingsPage() {
       lengthCounts.set(bucket, (lengthCounts.get(bucket) ?? 0) + 1);
     }
 
+    const levelCounts = new Map<Level, number>();
+    for (const v of without({ levels: new Set() })) levelCounts.set(v.level.level, (levelCounts.get(v.level.level) ?? 0) + 1);
+
     return {
       state: Object.fromEntries(["all", ...POSTING_STATES].map((s) => [s, count({ state: s as PostingFilters["state"] })])) as PostingCounts["state"],
       region: Object.fromEntries((["us", "canada", "other", "unknown"] as Region[]).map((r) => [r, count({ regions: new Set([r]) })])) as PostingCounts["region"],
       terms: [...termCounts.entries()].map(([key, t]) => ({ key, ...t })).sort((a, b) => a.order - b.order),
       lengths: lengthCounts,
+      levels: levelCounts,
       ineligible: views.filter(
         (v) => v.eligibility.level === "no" && matchesPostingFilters(v, { ...filters, showIneligible: true })
       ).length,
@@ -87,7 +92,8 @@ export default function PostingsPage() {
           <h1 className="text-xl font-semibold">Postings</h1>
           <p className="max-w-prose text-sm text-neutral-600 dark:text-neutral-400">
             Jobs from your Jobright alerts, one row each. US roles you can&apos;t take (defense, clearance) are hidden by
-            default; region comes from the posting&apos;s location, term and length from its title, and nothing here checks sponsorship yet.
+            default, and so are new grad roles; region comes from the posting&apos;s location, term, length and level from its title
+            or posting page, and nothing here checks sponsorship yet.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

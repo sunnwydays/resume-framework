@@ -1,21 +1,22 @@
 import type { PostingState } from "@/lib/tracker/format";
 import type { PostingView } from "@/lib/tracker/postings/view";
+import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
 import { roleType, type RoleType } from "@/lib/tracker/roles";
 
-// Empty `regions` / `terms` / `lengths` / `roleTypes` mean "all", like the
-// role-type chips on the other tabs. `terms` holds term keys ("2027-summer")
-// and NO_TERM for postings whose title names no term.
+// Empty `regions` / `terms` / `lengths` / `levels` / `roleTypes` mean "all",
+// like the role-type chips on the other tabs. `terms` holds term keys
+// ("2027-summer") and NO_TERM for postings whose title names no term.
 export interface PostingFilters {
   state: PostingState | "all";
   regions: Set<Region>;
   terms: Set<string>;
   lengths: Set<LengthBucket>;
+  levels: Set<Level>;
   showIneligible: boolean;
   roleTypes: Set<RoleType>;
   hideTracked: boolean;
-  minMatch: number;
   query: string;
 }
 
@@ -27,23 +28,24 @@ export const DEFAULT_POSTING_FILTERS: PostingFilters = {
   // otherwise all disappear; only postings that state something else are hidden.
   terms: new Set(["2027-summer", NO_TERM]),
   lengths: new Set<LengthBucket>(["short", "unstated"]),
+  // Internships only for now; new grad roles stay in the table for later.
+  levels: new Set<Level>(["intern", "unstated"]),
   showIneligible: false,
   roleTypes: new Set(),
   hideTracked: true,
-  minMatch: 0,
   query: "",
 };
 
-export function matchesPostingFilters({ posting, region, eligibility, tracked, term, length }: PostingView, f: PostingFilters): boolean {
+export function matchesPostingFilters({ posting, region, eligibility, tracked, term, length, level }: PostingView, f: PostingFilters): boolean {
   if (f.state !== "all" && posting.state !== f.state) return false;
   if (f.regions.size > 0 && !f.regions.has(region.region)) return false;
   if (f.terms.size > 0 && !f.terms.has(term?.key ?? NO_TERM)) return false;
   if (f.lengths.size > 0 && !f.lengths.has(lengthBucket(length))) return false;
+  if (f.levels.size > 0 && !f.levels.has(level.level)) return false;
   if (!f.showIneligible && eligibility.level === "no") return false;
   if (f.roleTypes.size > 0 && !f.roleTypes.has(roleType(posting.role))) return false;
   // Applied postings are tracked by definition; hiding them would empty that chip.
   if (f.hideTracked && tracked && posting.state !== "applied") return false;
-  if ((posting.match_pct ?? 0) < f.minMatch) return false;
   const q = f.query.trim().toLowerCase();
   if (q && ![posting.company, posting.role, posting.location, posting.categories, posting.pay].some((v) => v?.toLowerCase().includes(q))) {
     return false;
@@ -60,10 +62,10 @@ export function isDefaultPostingFilters(f: PostingFilters): boolean {
     f.regions.size === 0 &&
     sameSet(f.terms, d.terms) &&
     sameSet(f.lengths, d.lengths) &&
+    sameSet(f.levels, d.levels) &&
     f.showIneligible === d.showIneligible &&
     f.roleTypes.size === 0 &&
     f.hideTracked === d.hideTracked &&
-    f.minMatch === d.minMatch &&
     f.query === d.query
   );
 }

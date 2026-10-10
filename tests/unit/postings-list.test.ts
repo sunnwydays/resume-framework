@@ -254,6 +254,26 @@ describe("matchesPostingFilters", () => {
     expect(shown).toEqual(["page-summer-short", "unread"]);
   });
 
+  it("by default: internships and postings that don't say, not new grad or experienced roles", () => {
+    expect(DEFAULT_POSTING_FILTERS.levels).toEqual(new Set(["intern", "unstated"]));
+    const levelViews = buildPostingViews(
+      [
+        makePosting({ id: "v-intern", role: "Software Engineer Intern" }),
+        makePosting({ id: "v-grad", role: "Site Reliability Engineer Graduate - 2027 Start" }),
+        // The title says nothing; the posting page says new grad.
+        makePosting({ id: "v-page-grad", role: "Web Interface Software Engineer", level_text: "New Grad · Full-time" }),
+        makePosting({ id: "v-senior", role: "Senior Software Engineer" }),
+        makePosting({ id: "v-none", role: "Full Stack Engineer" }),
+      ],
+      []
+    );
+    const pick = (f: Partial<PostingFilters>) =>
+      levelViews.filter((v) => matchesPostingFilters(v, { ...ANY_TERM_AND_LENGTH, ...f })).map((v) => v.posting.id);
+    expect(pick({})).toEqual(["v-intern", "v-none"]);
+    expect(pick({ levels: new Set(["grad"]) })).toEqual(["v-grad", "v-page-grad"]);
+    expect(pick({ levels: new Set() })).toHaveLength(5);
+  });
+
   it("by length bucket", () => {
     const lengthViews = buildPostingViews(
       [
@@ -271,11 +291,6 @@ describe("matchesPostingFilters", () => {
     expect(pick(["short", "unstated"])).toEqual(["l-short", "l-none"]);
   });
 
-  it("by minimum match; no score counts as zero", () => {
-    expect(ids({ minMatch: 80 })).toEqual(["p-new-ca"]);
-    expect(ids({ minMatch: 0 })).toContain("p-aero");
-  });
-
   it("by search over company, role, location and industry", () => {
     expect(ids({ query: " globex " })).toEqual(["p-new-us"]);
     expect(ids({ query: "machine learning" })).toEqual(["p-new-us"]);
@@ -286,11 +301,11 @@ describe("matchesPostingFilters", () => {
 
   it("knows when filters are at their defaults", () => {
     expect(isDefaultPostingFilters(DEFAULT_POSTING_FILTERS)).toBe(true);
-    expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, minMatch: 50 })).toBe(false);
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, regions: new Set(["us"]) })).toBe(false);
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, terms: new Set() })).toBe(false);
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, terms: new Set(["2027-summer"]) })).toBe(false);
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, lengths: new Set(["long"]) })).toBe(false);
+    expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, levels: new Set(["intern", "unstated", "grad"]) })).toBe(false);
   });
 });
 
@@ -328,9 +343,18 @@ describe("postingSortValue", () => {
     expect(order("posted", "asc")).toEqual(["old", "unposted", "new"]);
   });
 
-  it("match: no score goes last either way", () => {
-    expect(order("match", "desc")).toEqual(["unposted", "old", "new"]);
-    expect(order("match", "asc")).toEqual(["old", "unposted", "new"]);
+  it("level: intern, new grad, experienced, then not stated", () => {
+    const leveled = buildPostingViews(
+      [
+        makePosting({ id: "none", role: "Full Stack Engineer" }),
+        makePosting({ id: "senior", role: "Senior Engineer" }),
+        makePosting({ id: "grad", role: "Entry Level Software Engineer" }),
+        makePosting({ id: "intern", role: "SWE Intern" }),
+      ],
+      []
+    );
+    const byLevel = sortRows(leveled, postingSortValue, { key: "level", dir: "asc" }).map((v) => v.posting.id);
+    expect(byLevel).toEqual(["intern", "grad", "senior", "none"]);
   });
 
   it("company ignores case", () => {

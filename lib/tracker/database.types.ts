@@ -388,6 +388,7 @@ export type Database = {
           gmail_id: string
           id: string
           length_text: string | null
+          level_text: string | null
           location: string | null
           match_pct: number | null
           pay: string | null
@@ -412,6 +413,7 @@ export type Database = {
           gmail_id: string
           id?: string
           length_text?: string | null
+          level_text?: string | null
           location?: string | null
           match_pct?: number | null
           pay?: string | null
@@ -436,6 +438,7 @@ export type Database = {
           gmail_id?: string
           id?: string
           length_text?: string | null
+          level_text?: string | null
           location?: string | null
           match_pct?: number | null
           pay?: string | null

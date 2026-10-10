@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
+import { levelLabel, type Level } from "@/lib/tracker/postings/level";
 import { formatLength } from "@/lib/tracker/postings/term";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
 import { postingSortValue, type PostingSortKey as SortKey } from "@/lib/tracker/postings/sorting";
@@ -28,7 +29,7 @@ const smallButtonCls = `${buttonCls} px-3 py-1.5 text-center text-xs whitespace-
 
 const FIRST_DIR: Record<SortKey, SortDir> = {
   posted: "desc",
-  match: "desc",
+  level: "asc",
   company: "asc",
   role: "asc",
   type: "asc",
@@ -40,6 +41,12 @@ const REGION_CLS: Record<Region, string> = {
   canada: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
   other: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
   unknown: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+};
+
+const LEVEL_CLS: Record<Exclude<Level, "unstated">, string> = {
+  intern: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300",
+  grad: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
+  experienced: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
 };
 
 function TrackedPill({ app }: { app: Application }) {
@@ -74,7 +81,7 @@ export default function PostingsTable({ views, store, addApplication, trims, now
             <th className={thCls}>Location</th>
             {header("region", "Region")}
             <th className={thCls}>Pay</th>
-            {header("match", "Match")}
+            {header("level", "Level")}
             <th className={thCls}>
               <span className="sr-only">Actions</span>
             </th>
@@ -82,7 +89,7 @@ export default function PostingsTable({ views, store, addApplication, trims, now
         </thead>
         <tbody>
           {[...open, ...inTracker].map((view, i) => {
-            const { posting, region, eligibility, tracked, term, length } = view;
+            const { posting, region, eligibility, tracked, term, length, level } = view;
             const blocked = eligibility.level === "no";
             // Grey the tracked rows only when they sit under a separator; the
             // Applied chip is all tracked rows and shouldn't look disabled.
@@ -115,7 +122,9 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                   <td className={tdCls}>
                     <div title={posting.role}>{trimRole(posting.role, trims)}</div>
                     <div className="text-xs text-neutral-500">
-                      {[roleTypeLabel(roleType(posting.role)), term?.label, length && formatLength(length)].filter(Boolean).join(" · ")}
+                      {[roleTypeLabel(roleType(posting.role)), term?.label, length && formatLength(length)]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </div>
                     {blocked && <div className="mt-1 text-xs text-red-700 dark:text-red-400">Not eligible: {eligibility.why}</div>}
                     {eligibility.level === "check" && (
@@ -138,9 +147,21 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                   </td>
                   <td className={`${tdCls} whitespace-nowrap`}>
                     {posting.pay ?? <span className="text-neutral-400">—</span>}
-                    {posting.referrals && <div className="text-xs text-neutral-500">{posting.referrals}</div>}
                   </td>
-                  <td className={`${tdCls} tabular-nums`}>{posting.match_pct === null ? "—" : `${posting.match_pct}%`}</td>
+                  <td className={`${tdCls} whitespace-nowrap`}>
+                    {level.level === "unstated" ? (
+                      <span title={level.why} className="text-neutral-400">
+                        —
+                      </span>
+                    ) : (
+                      <span
+                        title={level.why}
+                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_CLS[level.level]}`}
+                      >
+                        {levelLabel(level.level)}
+                      </span>
+                    )}
+                  </td>
                   <td className={`${tdCls} w-48 min-w-48`}>
                     <div className="grid grid-cols-2 gap-2">
                       <a href={posting.url} target="_blank" rel="noopener noreferrer" className={smallButtonCls}>

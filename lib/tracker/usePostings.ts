@@ -68,8 +68,9 @@ export function usePostings() {
     return { saved: data?.length ?? 0, rows: data ?? [] };
   }, []);
 
-  // Reads the start line and length off each posting's page (server-side) and
-  // stores them, so the Term and Length chips know more than the title says.
+  // Reads the start line, length and seniority off each posting's page
+  // (server-side) and stores them, so the Term, Length and Level chips know
+  // more than the title says.
   // Only postings not yet read are fetched; one whose page couldn't be read is
   // left for next time. Returns how many were read.
   const readDetails = useCallback(
@@ -95,7 +96,9 @@ export function usePostings() {
         const stamp = new Date().toISOString();
         const updates = batch.flatMap((p, j) => {
           const d = results[j];
-          return d ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, details_read_at: stamp } }] : [];
+          return d
+            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, details_read_at: stamp } }]
+            : [];
         });
         const writes = await Promise.all(updates.map((u) => supabase().from("job_postings").update(u.changes).eq("id", u.id)));
         const failed = writes.find((w) => w.error);
@@ -149,10 +152,11 @@ export function usePostings() {
       const saved = await savePostings(unique.map(toPostingRow));
       if ("error" in saved) return { error: `Couldn't save the postings: ${saved.error}` };
       const readNote = markRead ? await markReadNote(unread, "alert", signal) : "";
-      // The title seldom names the term or length; the posting page does.
-      // Covers older postings that were never read, too.
+      // The title seldom names the term or length (or the level); the posting
+      // page does. Covers older postings that were never read, too.
       const details = await readDetails([...postings, ...saved.rows], onReading);
-      const detailsNote = "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term and length` : "";
+      const detailsNote =
+        "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term, length and level` : "";
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
       return { summary: `${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${readNote}${detailsNote}${capped}` };
