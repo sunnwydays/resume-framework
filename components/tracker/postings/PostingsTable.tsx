@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
+import { industryLabel } from "@/lib/tracker/postings/industry";
 import { levelLabel, type Level } from "@/lib/tracker/postings/level";
 import { formatLength } from "@/lib/tracker/postings/term";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
@@ -117,7 +118,7 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                   </td>
                   <td className={tdCls}>
                     <div className="font-medium">{posting.company}</div>
-                    {posting.categories && <div className="text-xs text-neutral-500">{posting.categories}</div>}
+                    {posting.categories && <div className="text-xs text-neutral-500">{industryLabel(posting.categories)}</div>}
                   </td>
                   <td className={tdCls}>
                     <div title={posting.role}>{trimRole(posting.role, trims)}</div>
