@@ -69,6 +69,13 @@ export function matchApplications(
     const sameDay = appliedAround(result.matches, context.receivedAt);
     if (sameDay.length === 1) return { matches: sameDay, how: "company + applied that day" };
   }
+  // One tracked job at the company, matched on the name alone, and the
+  // confirmation names a role that shares nothing with it: a second application
+  // there. Matching it anyway reads "already tracked" and the card disappears
+  // (accepting one Meta confirmation made the other one vanish).
+  if (context?.kind === "confirmation" && f.role && result.how === "company" && roleCloseness(f.role, result.matches[0].role) === 0) {
+    return { matches: [], how: "company tracked, but not this role" };
+  }
   return result;
 }
 

@@ -199,6 +199,19 @@ describe("matchApplications", () => {
     expect(matchApplications(f, tracked, { kind: "rejection", receivedAt: late }).matches).toHaveLength(3);
   });
 
+  it("a confirmation for a different role than the lone tracked one is a new application", () => {
+    const tracked = [makeApp({ company: "Initech", role: "Production Systems Engineering" })];
+    const f = { company: "Initech", role: "SWE", jobId: null, assessmentTitle: null };
+    const ctx = { kind: "confirmation" as const, receivedAt: new Date(2026, 8, 27, 12).toISOString() };
+    const r = matchApplications(f, tracked, ctx);
+    expect(r.matches).toEqual([]);
+    expect(r.how).toMatch(/not this role/);
+    // Same role, or only generic words on both sides, still matches; so do other kinds of mail.
+    expect(matchApplications({ ...f, role: "Production Systems Engineering Intern" }, tracked, ctx).matches).toHaveLength(1);
+    expect(matchApplications(f, [makeApp({ company: "Initech", role: "swe" })], ctx).matches).toHaveLength(1);
+    expect(matchApplications(f, tracked, { ...ctx, kind: "rejection" }).matches).toHaveLength(1);
+  });
+
   it("a requisition number inside a posting URL matches", () => {
     const tracked = [makeApp({ company: "stark", role: "swe", url: "https://careers.stark.com/job/STARKGLOBAL09999999EXTERNAL/Software-Engineer" }), makeApp({ company: "stark", role: "swe" })];
     expect(matchApplications({ company: "Stark", role: "Software Engineering Intern", jobId: "09999999", assessmentTitle: null }, tracked).how).toBe("job id");
