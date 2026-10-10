@@ -10,7 +10,7 @@ import {
   type SortState,
 } from "@/lib/tracker/sorting";
 import { ROLE_TYPE_ORDER } from "@/lib/tracker/roles";
-import { makeApp, makeAssessment, makeQuestion } from "../helpers/fixtures";
+import { makeApp, makeAssessment } from "../helpers/fixtures";
 
 type Row = { id: string; v: string | number | null };
 const rows = (...vs: (string | number | null)[]): Row[] => vs.map((v, i) => ({ id: `r${i}`, v }));
@@ -178,23 +178,20 @@ describe("resultRank and assessmentSortValue", () => {
     const app = makeApp({ company: "Acme", role: "SWE" });
     const a = makeAssessment({ id: "x", title: "Round 1", due_at: "2026-10-05T00:00:00.000Z", difficulty: 4 });
     const priority = new Map([["x", { rank: 2, reason: "" }]]);
-    const qs = [makeQuestion(), makeQuestion()];
-    const get = (key: Parameters<typeof assessmentSortValue>[1]) => assessmentSortValue(a, key, app, priority, qs);
+    const get = (key: Parameters<typeof assessmentSortValue>[1]) => assessmentSortValue(a, key, app, priority);
     expect(get("priority")).toBe(2);
     expect(get("company")).toBe("Acme SWE");
     expect(get("title")).toBe("Round 1");
     expect(get("due")).toBe("2026-10-05T00:00:00.000Z");
     expect(get("difficulty")).toBe(4);
     expect(get("result")).toBe(0);
-    expect(get("questions")).toBe(2);
   });
 
   it("gives null (sorts last) when there is nothing to show", () => {
     const a = makeAssessment({ id: "x" });
-    expect(assessmentSortValue(a, "priority", undefined, new Map(), undefined)).toBeNull();
-    expect(assessmentSortValue(a, "company", undefined, new Map(), undefined)).toBeNull();
-    expect(assessmentSortValue(a, "due", undefined, new Map(), undefined)).toBeNull();
-    expect(assessmentSortValue(a, "difficulty", undefined, new Map(), undefined)).toBeNull();
-    expect(assessmentSortValue(a, "questions", undefined, new Map(), [])).toBeNull();
+    expect(assessmentSortValue(a, "priority", undefined, new Map())).toBeNull();
+    expect(assessmentSortValue(a, "company", undefined, new Map())).toBeNull();
+    expect(assessmentSortValue(a, "due", undefined, new Map())).toBeNull();
+    expect(assessmentSortValue(a, "difficulty", undefined, new Map())).toBeNull();
   });
 });

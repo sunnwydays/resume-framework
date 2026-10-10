@@ -44,7 +44,6 @@ const FIRST_DIR: Record<SortKey, SortDir> = {
   due: "asc",
   difficulty: "desc",
   result: "asc",
-  questions: "desc",
 };
 
 const HOVER_DELAY_MS = 350;
@@ -65,8 +64,8 @@ export default function AssessmentsTable({
 }: Props) {
   const value = useCallback(
     (a: Assessment, key: SortKey) =>
-      assessmentSortValue(a, key, applicationsById.get(a.application_id), priority, questionsByAssessment.get(a.id)),
-    [applicationsById, questionsByAssessment, priority]
+      assessmentSortValue(a, key, applicationsById.get(a.application_id), priority),
+    [applicationsById, priority]
   );
   // Default: what to do first. Unranked (done, or the application is closed)
   // go last.
@@ -127,7 +126,6 @@ export default function AssessmentsTable({
               {header("due", "Due / when")}
               {header("difficulty", "Difficulty")}
               {header("result", "Result")}
-              {header("questions", "Qs")}
               <th className={thCls}>Link</th>
             </tr>
           </thead>
@@ -210,11 +208,9 @@ export default function AssessmentsTable({
                         />
                         <span className={outcome?.cls ?? "text-neutral-500"}>
                           {outcome ? outcome.label : done ? "Done" : "Pending"}
-                          {a.score && ` · ${a.score}`}
                         </span>
                       </label>
                     </td>
-                    <td className={`${tdCls} tabular-nums text-neutral-500`}>{questions.length || "—"}</td>
                     <td className={tdCls} onClick={(e) => e.stopPropagation()}>
                       {a.link ? (
                         <a
@@ -233,7 +229,7 @@ export default function AssessmentsTable({
                   </tr>
                   {expanded && (
                     <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                      <td colSpan={8} className="bg-background/50">
+                      <td colSpan={7}className="bg-background/50">
                         <AssessmentDetail
                           key={a.id}
                           assessment={a}
@@ -312,12 +308,10 @@ function PreviewCard({
           </div>
         )}
       </div>
-      {(a.difficulty != null || outcome || a.score || a.details) && (
+      {(a.difficulty != null || outcome) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-600 dark:text-neutral-400">
           {a.difficulty != null && <DifficultyDots value={a.difficulty} />}
           {outcome && <span className={outcome.cls}>{outcome.label}</span>}
-          {a.score && <span>{a.score}</span>}
-          {a.details && <span>{a.details}</span>}
         </div>
       )}
       {sections.length > 0 && (
@@ -344,9 +338,8 @@ function PreviewCard({
           )}
         </ul>
       )}
-      {snippet("Prep", a.prep_notes)}
-      {snippet("Reflection", a.reflection)}
       {snippet("Notes", a.notes)}
+      {snippet("Reflection", a.reflection)}
       <div className="text-xs text-neutral-400">Click for everything</div>
     </div>
   );

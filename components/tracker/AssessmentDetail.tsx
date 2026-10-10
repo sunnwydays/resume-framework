@@ -410,10 +410,9 @@ interface Props {
 }
 
 // Everything about one OA / interview: facts, quick result controls,
-// questions, and free-form prep / reflection / notes.
+// questions, and free-form notes and reflection.
 export default function AssessmentDetail({ assessment: a, questions, tracker, onOpenApplication }: Props) {
   const [editing, setEditing] = useState(false);
-  const [score, setScore] = useState(a.score ?? "");
   const update = (patch: Parameters<Tracker["updateAssessment"]>[1]) => tracker.updateAssessment(a.id, patch);
   const asked = questions.filter((q) => q.source === "asked").length;
 
@@ -479,7 +478,6 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
                 </a>
               )}
             </p>
-            {a.details && <p className="text-neutral-600 dark:text-neutral-400">{a.details}</p>}
           </section>
         )}
 
@@ -523,19 +521,6 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-1.5">
-            <span className={labelCls}>Score</span>
-            <input
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              onBlur={() => {
-                const v = score.trim() || null;
-                if (v !== a.score) update({ score: v });
-              }}
-              placeholder="e.g. 800/850"
-              className="w-28 rounded border border-neutral-300 bg-surface px-1.5 py-0.5 text-sm dark:border-neutral-700"
-            />
-          </label>
         </section>
 
         <section className="space-y-2">
@@ -560,24 +545,16 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
 
       <div className="min-w-0 space-y-4">
         <NoteField
-          label="Prep notes & topics"
-          placeholder="What to study: graphs, SQL joins, STAR stories…"
-          value={a.prep_notes}
-          rows={5}
-          onSave={(prep_notes) => update({ prep_notes })}
+          label="Notes"
+          placeholder="Prep, topics to study, anything else"
+          value={a.notes}
+          onSave={(notes) => update({ notes })}
         />
         <NoteField
           label="Reflection"
           placeholder="How it went, what to do differently next time"
           value={a.reflection}
           onSave={(reflection) => update({ reflection })}
-        />
-        <NoteField
-          label="Notes"
-          placeholder="Anything else"
-          value={a.notes}
-          rows={3}
-          onSave={(notes) => update({ notes })}
         />
       </div>
     </div>

@@ -30,7 +30,6 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
     (initial?.kind as AssessmentKind) ?? "oa"
   );
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [details, setDetails] = useState(initial?.details ?? "");
   const [sections, setSections] = useState<Section[]>(() => sectionsOf(initial?.sections));
   const [duration, setDuration] = useState(initial?.duration_min?.toString() ?? "");
   // Minutes follow the sections' total until typed by hand.
@@ -52,7 +51,6 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
     await onSubmit({
       kind,
       title: title.trim() || ASSESSMENT_KINDS[kind],
-      details: details.trim() || null,
       sections: cleanSections(sections) as unknown as Json,
       duration_min: Number.isFinite(minutes) ? minutes : null,
       due_at: fromDatetimeLocal(dueAt),
@@ -130,16 +128,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
         ) : (
           <div className="hidden sm:block sm:col-span-2" />
         )}
-        <label className="block space-y-1 sm:col-span-3">
-          <span className={labelCls}>Details</span>
-          <input
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            placeholder="e.g. HackerRank, camera on"
-            className={inputCls}
-          />
-        </label>
-        <label className="block space-y-1 sm:col-span-3">
+        <label className="block space-y-1 sm:col-span-6">
           <span className={labelCls}>Link</span>
           <input value={link} onChange={(e) => setLink(e.target.value)} className={inputCls} />
         </label>

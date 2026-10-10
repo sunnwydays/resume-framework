@@ -8,7 +8,6 @@ import {
   type AppStatus,
   type Application,
   type Assessment,
-  type Question,
 } from "@/lib/tracker/format";
 
 export type SortDir = "asc" | "desc";
@@ -86,7 +85,7 @@ export function applicationSortValue(
 
 // ----------------------------------------------------------- assessments
 
-export type AssessmentSortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result" | "questions";
+export type AssessmentSortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result";
 
 // Pending, then done normally, then bombed, and expired last.
 export function resultRank(a: Assessment): number {
@@ -99,8 +98,7 @@ export function assessmentSortValue(
   a: Assessment,
   key: AssessmentSortKey,
   app: Application | undefined,
-  priority: Map<string, Priority>,
-  questions: Question[] | undefined
+  priority: Map<string, Priority>
 ): string | number | null {
   switch (key) {
     case "priority":
@@ -115,7 +113,5 @@ export function assessmentSortValue(
       return a.difficulty;
     case "result":
       return resultRank(a);
-    case "questions":
-      return questions?.length || null;
   }
 }
