@@ -27,9 +27,15 @@ function Row({
   onMove: (delta: number) => void;
   onRemove: () => void;
 }) {
+  // The details box stays out of the way behind the ⓘ button, but is always
+  // shown once it has text. `opened` starts true for existing text, so
+  // clearing it while typing doesn't collapse the box under the cursor.
+  const [opened, setOpened] = useState(!!item.details);
+  const showDetails = opened || !!item.details;
   // Widths live on wrappers: inputCls is w-full, and a width class added
   // next to it doesn't reliably win.
   return (
+    <div className="space-y-1.5">
     <div className="flex items-center gap-1.5">
       <label className="relative w-20 shrink-0">
         <input
@@ -57,6 +63,16 @@ function Row({
           className={inputCls}
         />
       </div>
+      <button
+        type="button"
+        title={item.details ? "Details" : "Add details"}
+        aria-pressed={showDetails}
+        // With text in it the box can't be hidden, so the button is just a marker.
+        onClick={() => !item.details && setOpened(!opened)}
+        className={`${iconCls} ${showDetails ? "bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200" : ""}`}
+      >
+        ⓘ
+      </button>
       <button type="button" title="Move up" disabled={index === 0} onClick={() => onMove(-1)} className={iconCls}>
         ↑
       </button>
@@ -66,6 +82,19 @@ function Row({
       <button type="button" title="Remove" onClick={onRemove} className={`${iconCls} hover:text-red-600`}>
         ×
       </button>
+    </div>
+    {showDetails && (
+      <textarea
+        value={item.details ?? ""}
+        onChange={(e) => onChange({ details: e.target.value || null })}
+        // Only a box the user just opened grabs focus, not one showing saved text.
+        autoFocus={!item.details}
+        placeholder="What it is (optional)"
+        aria-label={sub ? "Sub-part details" : "Section details"}
+        rows={item.details && item.details.length > 80 ? 3 : 1}
+        className={inputCls}
+      />
+    )}
     </div>
   );
 }
@@ -117,14 +146,6 @@ export default function SectionsEditor({
                 onChange={(patch) => set(i, patch)}
                 onMove={(d) => onChange(moveItem(value, i, d))}
                 onRemove={() => onChange(value.filter((_, j) => j !== i))}
-              />
-              <textarea
-                value={s.details ?? ""}
-                onChange={(e) => set(i, { details: e.target.value || null })}
-                placeholder="What it is (optional)"
-                aria-label="Section details"
-                rows={s.details && s.details.length > 80 ? 3 : 1}
-                className={inputCls}
               />
               {s.parts.length > 0 && (
                 <ol className="space-y-1.5 border-l-2 border-neutral-200 pl-3 dark:border-neutral-800">
