@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyze } from "@/lib/tracker/email/group";
-import { defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeMarkRead, summarizeScan } from "@/lib/tracker/email/scan";
+import { defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeMarkRead, summarizeScan, summarizeTrash } from "@/lib/tracker/email/scan";
 import { local } from "../helpers/fixtures";
 import { mail } from "../helpers/email";
 
@@ -109,5 +109,13 @@ describe("summarizeMarkRead", () => {
     expect(summarizeMarkRead(3)).toBe(" · marked 3 emails read in Gmail");
     expect(summarizeMarkRead(1, "alert")).toBe(" · marked 1 alert read in Gmail");
     expect(summarizeMarkRead(0)).toBe("");
+  });
+});
+
+describe("summarizeTrash", () => {
+  it("names how many alerts were moved to the trash, and says nothing for none", () => {
+    expect(summarizeTrash(3)).toBe(" · moved 3 alerts to Gmail's trash");
+    expect(summarizeTrash(1)).toBe(" · moved 1 alert to Gmail's trash");
+    expect(summarizeTrash(0)).toBe("");
   });
 });

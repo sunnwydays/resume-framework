@@ -82,6 +82,9 @@ export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: n
 // localStorage key for the scan dialogs' "Mark them read in Gmail" box ("1"/"0").
 export const MARK_READ_KEY = "tracker.gmail.markRead";
 
+// localStorage key for the scan dialogs' "Move the Jobright alerts to Gmail's trash" box ("1"/"0").
+export const TRASH_ALERTS_KEY = "tracker.gmail.trashAlerts";
+
 // The Gmail messages a scan should mark as read: job mail the tracker now
 // holds (classified, not muted) that is still unread. A digest's parts share
 // one message, so its "#n" suffixes collapse to the message id.
@@ -96,4 +99,9 @@ export function idsToMarkRead(analyzed: Analyzed[], mutes: Pick<EmailMute, "kind
 // The summary's " · marked 3 emails read in Gmail" piece; nothing when none were unread.
 export function summarizeMarkRead(count: number, noun = "email"): string {
   return count === 0 ? "" : ` · marked ${plural(count, noun)} read in Gmail`;
+}
+
+// The alert scan's " · moved 3 alerts to Gmail's trash" piece; nothing when none.
+export function summarizeTrash(count: number, noun = "alert"): string {
+  return count === 0 ? "" : ` · moved ${plural(count, noun)} to Gmail's trash`;
 }

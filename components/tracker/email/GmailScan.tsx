@@ -5,7 +5,7 @@ import { GmailError, markReadNote, scanGmail, type ScanProgress } from "@/lib/tr
 import { analyze } from "@/lib/tracker/email/group";
 import { isMuted } from "@/lib/tracker/email/mute";
 import { toRow } from "@/lib/tracker/email/rows";
-import { MARK_READ_KEY, defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
+import { MARK_READ_KEY, TRASH_ALERTS_KEY, defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls } from "@/lib/tracker/format";
 import type { TablesInsert } from "@/lib/tracker/database.types";
@@ -31,8 +31,9 @@ export interface GmailScanHandle {
 // "Scan Gmail": reads the inbox from the chosen date, keeps what the rules
 // recognize (minus mutes) for review, records the scan, and marks the kept
 // mail read in Gmail. Then, unless unticked, runs the Postings page's Jobright
-// alert scan on the same token. Nothing is applied to the tracker from here.
-// The mark-read box is shared with the Postings page's scan.
+// alert scan on the same token, which moves the alerts (not the job mail) to
+// Gmail's trash. Nothing is applied to the tracker from here. The trash box is
+// shared with the Postings page's scan.
 export default function GmailScan({ tracker, postings, pending, now, onScanned, ref }: Props) {
   const { gmail, applications } = tracker;
   const [open, setOpen] = useState(false);
@@ -44,6 +45,8 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
   const [withAlerts, setWithAlerts] = useState(true);
   const [markReadSetting, setMarkReadSetting] = useLocalSetting(MARK_READ_KEY, "1");
   const markRead = markReadSetting === "1";
+  const [trashSetting, setTrashSetting] = useLocalSetting(TRASH_ALERTS_KEY, "1");
+  const trashAlerts = trashSetting === "1";
   const [stage, setStage] = useState<"mail" | "alerts">("mail");
   const [reading, setReading] = useState<{ done: number; total: number } | null>(null);
   const [alertsLine, setAlertsLine] = useState<{ text: string; failed: boolean } | null>(null);
@@ -73,7 +76,7 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
         onProgress: setProgress,
         onReading: (done, total) => setReading({ done, total }),
         signal: abort.current?.signal,
-        markRead,
+        trash: trashAlerts,
       });
       setAlertsLine("error" in result ? { text: result.error, failed: true } : { text: result.summary, failed: false });
     } catch (e) {
@@ -98,7 +101,7 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
       const result = await scanGmail({
         since: scanStart(since),
         mode: "rules",
-        access: markRead ? "modify" : "read",
+        access: markRead || (withAlerts && trashAlerts) ? "modify" : "read",
         onProgress: setProgress,
         signal: abort.current.signal,
       });
@@ -205,8 +208,23 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
               <span>
                 Mark them read in Gmail
                 <span className="block text-xs text-neutral-500">
-                  The job emails and alerts this scan keeps, since you&apos;ll handle them here. Muted and other mail is left
-                  alone. Unticked, the scan only asks Google for read-only access.
+                  The job emails this scan keeps. Muted and other mail is left alone.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={trashAlerts}
+                onChange={(e) => setTrashSetting(e.target.checked ? "1" : "0")}
+                disabled={running || !withAlerts}
+                className="mt-0.5"
+              />
+              <span>
+                Move the Jobright alerts to Gmail&apos;s trash
+                <span className="block text-xs text-neutral-500">
+                  Once their postings are saved; application and status emails are never trashed. 
+                  With both boxes unticked, the scan only asks Google for read-only access.
                 </span>
               </span>
             </label>

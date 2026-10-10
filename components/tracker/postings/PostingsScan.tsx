@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { GmailError, type ScanProgress } from "@/lib/tracker/email/gmail";
-import { MARK_READ_KEY, scanStart } from "@/lib/tracker/email/scan";
+import { TRASH_ALERTS_KEY, scanStart } from "@/lib/tracker/email/scan";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls, type JobPosting } from "@/lib/tracker/format";
 import { defaultPostingScanFrom } from "@/lib/tracker/postings/scan";
@@ -16,8 +16,8 @@ interface Props {
 }
 
 // "Scan alerts": reads Jobright's instant-alert emails from the chosen date,
-// turns each card into a posting, stores the new ones, and marks the alerts
-// read in Gmail (the box is shared with "Scan Gmail"). Nothing is applied to
+// turns each card into a posting, stores the new ones, and moves the alerts to
+// Gmail's trash (the box is shared with "Scan Gmail"). Nothing is applied to
 // the tracker from here.
 export default function PostingsScan({ store, postings, now }: Props) {
   const [open, setOpen] = useState(false);
@@ -28,8 +28,8 @@ export default function PostingsScan({ store, postings, now }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
-  const [markReadSetting, setMarkReadSetting] = useLocalSetting(MARK_READ_KEY, "1");
-  const markRead = markReadSetting === "1";
+  const [trashSetting, setTrashSetting] = useLocalSetting(TRASH_ALERTS_KEY, "1");
+  const trash = trashSetting === "1";
 
   function start() {
     setSince(defaultPostingScanFrom(postings, now));
@@ -48,7 +48,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
         onProgress: setProgress,
         onReading: (done, total) => setReading({ done, total }),
         signal: abort.current.signal,
-        markRead,
+        trash,
       });
       if ("error" in result) setError(result.error);
       else setSummary(result.summary);
@@ -109,14 +109,17 @@ export default function PostingsScan({ store, postings, now }: Props) {
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={markRead}
-                onChange={(e) => setMarkReadSetting(e.target.checked ? "1" : "0")}
+                checked={trash}
+                onChange={(e) => setTrashSetting(e.target.checked ? "1" : "0")}
                 disabled={running}
                 className="mt-0.5"
               />
               <span>
-                Mark the alerts read in Gmail
-                <span className="block text-xs text-neutral-500">Unticked, the scan only asks Google for read-only access.</span>
+                Move the alerts to Gmail&apos;s trash
+                <span className="block text-xs text-neutral-500">
+                  Once their postings are saved. Gmail keeps trash for 30 days. Unticked, the scan only asks Google for
+                  read-only access.
+                </span>
               </span>
             </label>
             <div aria-live="polite" className="text-sm">

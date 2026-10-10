@@ -42,7 +42,8 @@ deploy that ships the tracker, or redeploy afterwards.
   `https://resume-framework.vercel.app`. No redirect URI is needed.
 - Keep the consent screen in **Testing** with your Gmail as a test user.
   A scan asks for `gmail.readonly`, or `gmail.modify` when "Mark them read
-  in Gmail" is ticked (the default). Add both under **Data Access** if
+  in Gmail" or "Move the Jobright alerts to Gmail's trash" is ticked (both
+  the default). Add both under **Data Access** if
   Google refuses one. Both are restricted scopes; publishing would need
   Google's verification.
 

@@ -568,12 +568,17 @@ tracker paths; the resume pages never hit it.
   - **Mark read**: after saving, a scan removes Gmail's `UNREAD` label
     (`markRead`, one `batchModify` call) from the job mail it kept
     (`idsToMarkRead` in `scan.ts`: classified, not muted, still unread;
-    digest parts collapse to one message) and from the Jobright alerts it
-    read (in `scanAlerts`). Done at scan time, not on accept, because the
-    token is gone after a reload. One "Mark them read in Gmail" box in both
-    scan dialogs (`MARK_READ_KEY` in localStorage, on by default). Unticked,
-    the scan asks Google for `gmail.readonly` only, for anyone who doesn't
-    want to grant edit access; ticked, it asks for `gmail.modify` *when the
+    digest parts collapse to one message). Done at scan time, not on accept,
+    because the token is gone after a reload. The "Mark them read in Gmail"
+    box (`MARK_READ_KEY` in localStorage, on by default) is in the Gmail
+    scan dialog only. The Jobright alerts are not marked read but **moved to
+    Gmail's trash** (`trashMessages`, `batchModify` adding `TRASH`; `gmail.modify`
+    can't delete for good, and trash keeps them 30 days), only after their
+    postings are saved, and only the alerts: application / status mail is
+    never trashed. Own box, "Move the Jobright alerts to Gmail's trash"
+    (`TRASH_ALERTS_KEY`, on by default), in both dialogs. With both boxes
+    unticked the scan asks Google for `gmail.readonly` only, for anyone who
+    doesn't want to grant edit access; otherwise it asks for `gmail.modify` *when the
     scan starts* (the popup must open from the click, not after the fetch).
     `reusable()` in `gmail.ts` decides when the held token will do; a modify
     grant the user unticked in Google's consent isn't re-asked, markRead

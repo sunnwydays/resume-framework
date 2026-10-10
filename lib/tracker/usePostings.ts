@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
 import { todayISO, type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
-import { alertQuery, fetchMessages, markReadNote, type ScanProgress } from "@/lib/tracker/email/gmail";
+import { alertQuery, fetchMessages, trashNote, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
 import type { PostingDetails } from "@/lib/tracker/postings/details";
 import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
@@ -119,10 +119,11 @@ export function usePostings() {
 
   // The whole alert scan, shared by the Postings page's "Scan alerts" and the
   // tracker's "Scan Gmail": fetch the alerts, parse and dedupe, store the new
-  // postings, mark the alerts read in Gmail (unless `markRead` is false), then
-  // read their pages for term and length. Throws what Gmail throws (sign-in,
-  // cancel); a save failure comes back as `error`. A failure marking alerts
-  // read or reading posting pages is only noted in the summary.
+  // postings, move the alerts to Gmail's trash (unless `trash` is false; only
+  // after the postings are saved), then read their pages for term and length.
+  // Throws what Gmail throws (sign-in, cancel); a save failure comes back as
+  // `error`. A failure trashing alerts or reading posting pages is only noted
+  // in the summary.
   const scanAlerts = useCallback(
     async (
       since: Date,
@@ -130,12 +131,12 @@ export function usePostings() {
         onProgress,
         onReading,
         signal,
-        markRead = true,
-      }: { onProgress?: (p: ScanProgress) => void; onReading?: (done: number, total: number) => void; signal?: AbortSignal; markRead?: boolean }
+        trash = true,
+      }: { onProgress?: (p: ScanProgress) => void; onReading?: (done: number, total: number) => void; signal?: AbortSignal; trash?: boolean }
     ): Promise<{ summary: string } | { error: string }> => {
-      const result = await fetchMessages(alertQuery(since), { onProgress, signal, access: markRead ? "modify" : "read" });
+      const result = await fetchMessages(alertQuery(since), { onProgress, signal, access: trash ? "modify" : "read" });
       const parsed: ParsedPosting[] = [];
-      const unread: string[] = [];
+      const alertIds: string[] = [];
       let alerts = 0;
       let unreadable = result.failed;
       for (const message of result.messages) {
@@ -143,7 +144,7 @@ export function usePostings() {
           const facts = parseGmailMessage(message);
           if (!isJobrightAlert(facts.fromAddress, facts.subject)) continue;
           alerts++;
-          if (facts.unread) unread.push(facts.gmailId);
+          alertIds.push(facts.gmailId);
           parsed.push(...parseJobrightAlert(messageHtml(message), facts.receivedAt, facts.gmailId));
         } catch {
           unreadable++;
@@ -152,7 +153,7 @@ export function usePostings() {
       const unique = dedupePostings(parsed);
       const saved = await savePostings(unique.map(toPostingRow));
       if ("error" in saved) return { error: `Couldn't save the postings: ${saved.error}` };
-      const readNote = markRead ? await markReadNote(unread, "alert", signal) : "";
+      const trashed = trash ? await trashNote(alertIds, "alert", signal) : "";
       // The title seldom names the term or length (or the level); the posting
       // page does. Covers older postings that were never read, too.
       const details = await readDetails([...postings, ...saved.rows], onReading);
@@ -160,7 +161,7 @@ export function usePostings() {
         "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term, length and level` : "";
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
-      return { summary: `${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${readNote}${detailsNote}${capped}` };
+      return { summary: `${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${trashed}${detailsNote}${capped}` };
     },
     [postings, savePostings, readDetails]
   );

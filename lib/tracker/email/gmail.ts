@@ -2,14 +2,14 @@
 // short-lived access token after a consent popup; it lives in memory only
 // (nothing stored, nothing server-side), and a reload asks again. A scan asks
 // for read-only access, or for gmail.modify when it will mark the mail it
-// keeps as read (markRead); nothing here sends, deletes or relabels anything
-// else. Everything else (parsing, rules) is pure and lives next to this file.
+// keeps as read (markRead) or move Jobright alerts to the trash (trashMessages);
+// nothing here sends, permanently deletes or relabels anything else. Everything else (parsing, rules) is pure and lives next to this file.
 
 import { RULES } from "@/lib/tracker/email/classify";
-import { summarizeMarkRead } from "@/lib/tracker/email/scan";
+import { summarizeMarkRead, summarizeTrash } from "@/lib/tracker/email/scan";
 import { expandDigest, parseGmailMessage, type EmailFacts, type GmailMessage } from "@/lib/tracker/email/parse";
 
-// "modify" is only asked for when a scan will mark mail read.
+// "modify" is only asked for when a scan will mark mail read or trash alerts.
 export type GmailAccess = "read" | "modify";
 const SCOPES: Record<GmailAccess, string> = {
   read: "https://www.googleapis.com/auth/gmail.readonly",
@@ -261,14 +261,29 @@ export async function fetchMessages(query: string, { cap = 1500, onProgress, sig
 // suffix). Returns how many were sent. The scan must have asked for "modify"
 // access up front, so Google's popup opened from the click.
 export async function markRead(ids: string[], signal?: AbortSignal): Promise<number> {
+  return modifyLabels(ids, { removeLabelIds: ["UNREAD"] }, "Mark them read in Gmail", signal);
+}
+
+// Moves these messages to Gmail's trash (recoverable there for 30 days; gmail.modify
+// can't delete for good). Same access rules as markRead.
+export async function trashMessages(ids: string[], signal?: AbortSignal): Promise<number> {
+  return modifyLabels(ids, { addLabelIds: ["TRASH"], removeLabelIds: ["INBOX", "UNREAD"] }, "Move the alerts to Gmail's trash", signal);
+}
+
+async function modifyLabels(
+  ids: string[],
+  labels: { addLabelIds?: string[]; removeLabelIds?: string[] },
+  boxLabel: string,
+  signal?: AbortSignal
+): Promise<number> {
   if (ids.length === 0) return 0;
   await getToken("modify");
   if (!token?.modify) {
-    throw new GmailError("denied", "Google didn't allow changing mail. Allow it when Google asks, or untick \"Mark them read in Gmail\".");
+    throw new GmailError("denied", `Google didn't allow changing mail. Allow it when Google asks, or untick "${boxLabel}".`);
   }
   for (let i = 0; i < ids.length; i += MODIFY_BATCH) {
     const batch = ids.slice(i, i + MODIFY_BATCH);
-    await api<void>("/messages/batchModify", { signal, access: "modify", body: { ids: batch, removeLabelIds: ["UNREAD"] } });
+    await api<void>("/messages/batchModify", { signal, access: "modify", body: { ids: batch, ...labels } });
   }
   return ids.length;
 }
@@ -281,6 +296,16 @@ export async function markReadNote(ids: string[], noun: string, signal?: AbortSi
   } catch (e) {
     if ((e as Error).name === "AbortError") return ` · stopped before marking them read in Gmail`;
     return ` · couldn't mark them read in Gmail: ${(e as Error).message}`;
+  }
+}
+
+// trashMessages for the end of an alert scan, as a summary piece (never throws).
+export async function trashNote(ids: string[], noun: string, signal?: AbortSignal): Promise<string> {
+  try {
+    return summarizeTrash(await trashMessages(ids, signal), noun);
+  } catch (e) {
+    if ((e as Error).name === "AbortError") return ` · stopped before moving them to Gmail's trash`;
+    return ` · couldn't move them to Gmail's trash: ${(e as Error).message}`;
   }
 }
 
