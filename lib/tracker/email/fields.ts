@@ -259,8 +259,14 @@ function candidates(f: EmailFacts): Candidate[] {
   };
   const sender = f.fromAddress;
 
-  // ---- Subject templates (the most reliable: the sender wrote them for this) --
   let m: RegExpExecArray | null;
+  const agency = Object.entries(RULES.agencyDomains).find(([d]) => {
+    const host = sender.toLowerCase().split("@")[1] ?? "";
+    return host === d || host.endsWith(`.${d}`);
+  });
+  if (agency) add("company", agency[1], "hiring agency");
+
+  // ---- Subject templates (the most reliable: the sender wrote them for this) --
   if ((m = /^Your application (?:for|to) (.+?) at (.+?)$/i.exec(subject))) {
     add("role", m[1], "subject");
     add("company", m[2], "subject");
@@ -352,6 +358,10 @@ function candidates(f: EmailFacts): Candidate[] {
   }
   // HackerRank invite: the test name is the only role hint, "Your HackerRank [Spring 2027] AI/ML SWE Intern Coding Test Invitation"
   if (/hackerrank/.test(sender) && (m = /^Your HackerRank (.+?)\s+(?:Test\s+)?Invitation$/i.exec(subject))) {
+    add("role", m[1], "HackerRank test name");
+  }
+  // Completion: "Thanks for taking the [Spring 2027] AI/ML SWE Intern Coding Test"
+  if (/hackerrank/.test(sender) && (m = /^Thanks for (?:taking|completing) (?:the )?(.+?)\s*$/i.exec(subject))) {
     add("role", m[1], "HackerRank test name");
   }
   // Reminder: "Your invite to [Spring 2027] AI/ML SWE Intern Coding Test expires in 5 days";

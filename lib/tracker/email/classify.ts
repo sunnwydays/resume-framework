@@ -31,6 +31,10 @@ export const RULES = {
   // recruiter's own name ("Pat Lee <pat@ripplematch.com>"): their display name
   // is never the company.
   relayDomains: ["ripplematch.com", "joinhandshake.com", "wellfound.com", "linkedin.com", "indeed.com"],
+  // Hiring agencies whose own mail names the client ("Thanks for applying for
+  // Robotics Intern at Trenon") while the same job's Ashby/Greenhouse mail says
+  // the agency. The agency is the company, so both mails land on one card.
+  agencyDomains: { "clera-talents.com": "Clera", "getclera.com": "Clera" } as Record<string, string>,
   personalDomains: [
     "gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com", "live.com", "protonmail.com", "me.com",
   ],
@@ -102,6 +106,11 @@ export const RULES = {
     // Only about a test: "Thank you for completing the first part of your
     // application" is the start of an invite, not a finished assessment.
     /thank you for completing\s+(?:the|your|our)\s+[^.]{0,50}?(?:assessment|test|challenge|exercise)/i,
+    // HackerRank: "Thanks for taking the [Spring 2027] AI/ML SWE Intern Coding
+    // Test" / "Thanks for completing [Spring 2027] … Coding Test . We've sent
+    // your submission to Snowflake." ("taking the time to apply" is not it.)
+    /thank(?:s| you) for (?:taking|completing)\s+(?!the time\b)(?:the\s+|your\s+|our\s+)?[^.]{0,80}?\b(?:assessment|test|challenge|exercise)\b/i,
+    /\bsent your submission to\b/i,
     // "Thank you for completing the pre-recorded video interview. Your video
     // responses will now be reviewed": done, though the words "video
     // interview" are also the invite rule's.
@@ -156,6 +165,12 @@ export const RULES = {
     /\b(?:may|might)\s+(?:also\s+)?receive\b/i,
     /\bif\s+you(?:\s+are|'re)\s+applying\b/i,
     /\bseparate\s+email\s+within\b/i,
+    // A confirmation's "what happens next": "If your application seems like a
+    // good fit, we will reach out to set up an interview", "We will reach out
+    // to arrange an initial call should your background align".
+    /\bif\s+your\s+(?:application|background|profile|experience|skills|qualifications|resume)\b/i,
+    /\bshould\s+your\s+(?:application|background|profile|experience|skills|qualifications|resume)\b/i,
+    /\bif\s+there(?:'s|\s+is)\s+a\s+(?:match|fit)\b/i,
   ],
   // Also dropped before the rejection rules: "If you see the job moved to an
   // inactive state, that means ... you were not selected" explains the portal.

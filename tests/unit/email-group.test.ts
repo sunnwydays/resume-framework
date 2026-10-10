@@ -410,3 +410,64 @@ describe("groupIntoJobs: ignored mail", () => {
     expect(groupIntoJobs([ignored], [], [], [])).toEqual([]);
   });
 });
+
+describe("groupIntoJobs: HackerRank 'thanks for taking the test' mail", () => {
+  const done = () =>
+    analyze(
+      mail({
+        gmailId: "done1",
+        threadId: "tdone",
+        fromAddress: "support@hackerrankforwork.com",
+        fromName: "Cyberdyne Hiring Team",
+        subject: "Thanks for taking the [Spring 2027] AI/ML SWE Intern Coding Test",
+        text: "Hello, Thanks for completing [Spring 2027] AI/ML SWE Intern Coding Test . We've sent your submission to Cyberdyne. In the meantime, you can solve more code challenges on HackerRank.",
+        receivedAt: at(9),
+      })
+    );
+
+  it("is a finished assessment, not a new invite", () => {
+    expect(done().kind).toBe("assessment_done");
+  });
+
+  it("picks the application whose role the test name names", () => {
+    const apps = [
+      makeApp({ company: "Cyberdyne", role: "swe - db" }),
+      makeApp({ company: "Cyberdyne", role: "swe - ai/ml" }),
+      makeApp({ company: "Cyberdyne", role: "swe - (Core, Infrastructure & Security)" }),
+    ];
+    const [g] = groupIntoJobs([done()], apps, [], []);
+    expect(g.target).toMatchObject({ type: "existing", application: { role: "swe - ai/ml" } });
+    expect(g.assessments[0]).toMatchObject({ kind: "oa", apply: true });
+    expect(g.assessments[0].completedAt).not.toBeNull();
+  });
+});
+
+describe("groupIntoJobs: a hiring agency's relay mail", () => {
+  it("the agency's own confirmation and the ATS one are one job, company = the agency", () => {
+    const relay = analyze(
+      mail({
+        gmailId: "relay1",
+        threadId: "trelay",
+        fromAddress: "pat@clera-talents.com",
+        fromName: "Clera",
+        subject: "Your application through Clera",
+        text: "Your application\n\nComputer Vision & Robotics Intern\nat Initech\nHey Sam,\n\nThanks for applying for Computer Vision & Robotics Intern at Initech. Our hiring team is reviewing your profile, and we'll email you with an update soon.\n\nA little about us: we're Clera, and we help startups hire.",
+        receivedAt: at(9, 10),
+      })
+    );
+    const ats = analyze(
+      mail({
+        gmailId: "ats1",
+        threadId: "tats",
+        fromAddress: "no-reply@ashbyhq.com",
+        fromName: "Clera Hiring Team",
+        subject: "Thanks for applying to Clera",
+        text: "Hi Sam,\n\nThank you for applying for the Computer Vision & Robotics Intern role at Clera! We will review your application and get back to you if there are next steps.\n\nAll the best,\n\nAgency Hiring Team",
+        receivedAt: at(9, 11),
+      })
+    );
+    const groups = groupIntoJobs([relay, ats], [], [], []);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].target).toMatchObject({ type: "new", company: "Clera", role: "Computer Vision & Robotics Intern" });
+  });
+});

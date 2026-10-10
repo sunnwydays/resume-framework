@@ -77,6 +77,23 @@ describe("classify: other kinds", () => {
     expect(kindOf(m)).toBe("confirmation");
   });
 
+  it("a confirmation that says what happens next is not an interview invite", () => {
+    const outreach = mail({
+      fromAddress: "recruiting@northwood.example",
+      fromName: "Northwood",
+      subject: "Thank you for applying to Northwood",
+      text: "Sam,\n\nThank you for applying to the Embedded Software Engineering Intern (2027 Summer Internship) role at Northwood. Our team will carefully review your application. We will reach out to arrange an initial call with our recruiting team should your background align.\n\n- Northwood Team",
+    });
+    expect(kindOf(outreach)).toBe("confirmation");
+    const ifFit = mail({
+      fromAddress: "careers@hooli.example",
+      fromName: "Hooli",
+      subject: "Thank you for applying to Hooli!",
+      text: "Hi Sam,\n\nThanks for applying to Hooli! Your application for the Software Engineering Intern (Winter 2027) role has been received.\n\nIf your application seems like a good fit for the position, we will reach out to set up an interview.\n\nWe'll reach out if there's a match.",
+    });
+    expect(kindOf(ifFit)).toBe("confirmation");
+  });
+
   it("OA invite with a platform deadline", () => {
     const m = mail({
       fromAddress: "support@hackerrankforwork.com",
