@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AssessmentDetail, { DifficultyDots, SourceTag } from "@/components/tracker/AssessmentDetail";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { assessmentSortValue, type AssessmentSortKey as SortKey, type SortDir } from "@/lib/tracker/sorting";
@@ -250,19 +251,25 @@ export default function AssessmentsTable({
         </table>
       </div>
 
-      {preview && previewed && (
-        <PreviewCard
-          assessment={previewed}
-          app={applicationsById.get(previewed.application_id)}
-          questions={questionsByAssessment.get(previewed.id) ?? []}
-          style={{
-            left: preview.left,
-            top: preview.top,
-            width: PREVIEW_WIDTH,
-            transform: preview.above ? "translateY(-100%)" : undefined,
-          }}
-        />
-      )}
+      {/* In a portal so it isn't a child of the page's space-y section: mounting
+          it made the table's wrapper stop being :last-child and gain a bottom
+          margin, shifting the page ~12px each time the card showed or hid. */}
+      {preview &&
+        previewed &&
+        createPortal(
+          <PreviewCard
+            assessment={previewed}
+            app={applicationsById.get(previewed.application_id)}
+            questions={questionsByAssessment.get(previewed.id) ?? []}
+            style={{
+              left: preview.left,
+              top: preview.top,
+              width: PREVIEW_WIDTH,
+              transform: preview.above ? "translateY(-100%)" : undefined,
+            }}
+          />,
+          document.body
+        )}
     </>
   );
 }
