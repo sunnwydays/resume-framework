@@ -41,8 +41,10 @@ deploy that ships the tracker, or redeploy afterwards.
 - Credentials → the OAuth web client → **Authorized JavaScript origins**: add
   `https://resume-framework.vercel.app`. No redirect URI is needed.
 - Keep the consent screen in **Testing** with your Gmail as a test user.
-  `gmail.readonly` is a restricted scope; publishing would need Google's
-  verification.
+  A scan asks for `gmail.readonly`, or `gmail.modify` when "Mark them read
+  in Gmail" is ticked (the default). Add both under **Data Access** if
+  Google refuses one. Both are restricted scopes; publishing would need
+  Google's verification.
 
 ## Anthropic console
 

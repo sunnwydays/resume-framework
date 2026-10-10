@@ -1,14 +1,23 @@
 // Reads Gmail from the browser. Google Identity Services hands the page a
-// short-lived, read-only access token after a consent popup; it lives in
-// memory only (nothing stored, nothing server-side), and a reload asks again.
-// Everything else (parsing, rules) is pure and lives next to this file.
+// short-lived access token after a consent popup; it lives in memory only
+// (nothing stored, nothing server-side), and a reload asks again. A scan asks
+// for read-only access, or for gmail.modify when it will mark the mail it
+// keeps as read (markRead); nothing here sends, deletes or relabels anything
+// else. Everything else (parsing, rules) is pure and lives next to this file.
 
 import { RULES } from "@/lib/tracker/email/classify";
+import { summarizeMarkRead } from "@/lib/tracker/email/scan";
 import { expandDigest, parseGmailMessage, type EmailFacts, type GmailMessage } from "@/lib/tracker/email/parse";
 
-const SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+// "modify" is only asked for when a scan will mark mail read.
+export type GmailAccess = "read" | "modify";
+const SCOPES: Record<GmailAccess, string> = {
+  read: "https://www.googleapis.com/auth/gmail.readonly",
+  modify: "https://www.googleapis.com/auth/gmail.modify",
+};
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const READ_CONCURRENCY = 8;
+const MODIFY_BATCH = 1000; // batchModify's limit per call
 
 export type GmailErrorCode = "config" | "denied" | "expired" | "quota" | "api" | "network";
 
@@ -24,6 +33,7 @@ export class GmailError extends Error {
 interface TokenResponse {
   access_token?: string;
   expires_in?: number;
+  scope?: string; // the scopes granted, space-separated
   error?: string;
   error_description?: string;
 }
@@ -48,7 +58,23 @@ declare global {
   }
 }
 
-let token: { value: string; expiresAt: number } | null = null;
+export interface HeldToken {
+  value: string;
+  expiresAt: number;
+  modify: boolean; // Google granted gmail.modify
+  askedModify: boolean; // it was asked for, granted or not
+}
+
+let token: HeldToken | null = null;
+
+// Whether the held token will do, or Google has to be asked again. A modify
+// request the user declined (Google's consent lets them untick it) isn't
+// asked again until the token expires: markRead reports it instead, so one
+// scan doesn't keep opening popups.
+export function reusable(held: HeldToken | null, access: GmailAccess, now: number): held is HeldToken {
+  if (!held || held.expiresAt - now <= 60_000) return false;
+  return access === "read" || held.modify || held.askedModify;
+}
 let script: Promise<void> | null = null;
 
 function loadGoogleScript(): Promise<void> {
@@ -66,21 +92,27 @@ function loadGoogleScript(): Promise<void> {
   }));
 }
 
-export async function getToken(): Promise<string> {
-  if (token && token.expiresAt - Date.now() > 60_000) return token.value;
+export async function getToken(access: GmailAccess = "read"): Promise<string> {
+  if (reusable(token, access, Date.now())) return token.value;
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   if (!clientId) throw new GmailError("config", "NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set (it is inlined at build time).");
   await loadGoogleScript();
   return new Promise<string>((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      scope: SCOPE,
+      scope: SCOPES[access],
       callback: (response) => {
         if (response.error || !response.access_token) {
           reject(new GmailError("denied", response.error_description ?? `Google said: ${response.error ?? "no token"}.`));
           return;
         }
-        token = { value: response.access_token, expiresAt: Date.now() + (response.expires_in ?? 3600) * 1000 };
+        const granted = (response.scope ?? SCOPES[access]).split(" ");
+        token = {
+          value: response.access_token,
+          expiresAt: Date.now() + (response.expires_in ?? 3600) * 1000,
+          modify: granted.includes(SCOPES.modify),
+          askedModify: access === "modify",
+        };
         resolve(response.access_token);
       },
       error_callback: (error) =>
@@ -103,23 +135,37 @@ export function forgetToken(): void {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function api<T>(path: string, signal?: AbortSignal, attempt = 0): Promise<T> {
+interface ApiOptions {
+  signal?: AbortSignal;
+  body?: unknown; // sent as a JSON POST
+  access?: GmailAccess;
+}
+
+async function api<T>(path: string, options: ApiOptions = {}, attempt = 0): Promise<T> {
+  const { signal, body, access } = options;
   let res: Response;
   try {
-    res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${await getToken()}` }, signal });
+    const headers: Record<string, string> = { Authorization: `Bearer ${await getToken(access)}` };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    res = await fetch(`${API}${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
+    });
   } catch (error) {
     if (error instanceof GmailError || (error as Error).name === "AbortError") throw error;
     throw new GmailError("network", "Couldn't reach Gmail.");
   }
   if (res.status === 401) {
     token = null;
-    if (attempt < 1) return api(path, signal, attempt + 1);
+    if (attempt < 1) return api(path, options, attempt + 1);
     throw new GmailError("expired", "Google sign-in expired. Scan again to sign in.");
   }
   if (res.status === 429 || res.status >= 500) {
     if (attempt < 4) {
       await sleep(500 * 2 ** attempt);
-      return api(path, signal, attempt + 1);
+      return api(path, options, attempt + 1);
     }
     throw new GmailError("quota", "Gmail is rate-limiting requests. Wait a minute and scan again.");
   }
@@ -132,7 +178,9 @@ async function api<T>(path: string, signal?: AbortSignal, attempt = 0): Promise<
         : `Gmail returned ${res.status}${detail ? `: ${detail}` : ""}.`
     );
   }
-  return res.json() as Promise<T>;
+  // batchModify answers with an empty body.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export type ScanMode = "rules" | "broad";
@@ -155,6 +203,7 @@ export interface ScanProgress {
 
 export interface FetchOptions {
   cap?: number;
+  access?: GmailAccess; // "modify" when the scan will mark mail read afterwards
   onProgress?: (progress: ScanProgress) => void;
   signal?: AbortSignal;
 }
@@ -167,14 +216,14 @@ export interface FetchResult {
 }
 
 // Lists the messages matching a Gmail search and reads each one in full.
-export async function fetchMessages(query: string, { cap = 1500, onProgress, signal }: FetchOptions = {}): Promise<FetchResult> {
+export async function fetchMessages(query: string, { cap = 1500, onProgress, signal, access }: FetchOptions = {}): Promise<FetchResult> {
   const ids: string[] = [];
   let pageToken: string | undefined;
   let capped = false;
   do {
     const page = await api<{ messages?: { id: string }[]; nextPageToken?: string }>(
       `/messages?q=${encodeURIComponent(query)}&maxResults=500${pageToken ? `&pageToken=${pageToken}` : ""}`,
-      signal
+      { signal, access }
     );
     ids.push(...(page.messages ?? []).map((m) => m.id));
     pageToken = page.nextPageToken;
@@ -194,7 +243,7 @@ export async function fetchMessages(query: string, { cap = 1500, onProgress, sig
     while (next < ids.length) {
       const id = ids[next++];
       try {
-        messages.push(await api<GmailMessage>(`/messages/${id}?format=full`, signal));
+        messages.push(await api<GmailMessage>(`/messages/${id}?format=full`, { signal, access }));
       } catch (error) {
         // One deleted or odd message shouldn't sink the scan; sign-in problems should.
         if (error instanceof GmailError && error.code !== "api") throw error;
@@ -206,6 +255,33 @@ export async function fetchMessages(query: string, { cap = 1500, onProgress, sig
   }
   await Promise.all(Array.from({ length: Math.min(READ_CONCURRENCY, ids.length) }, worker));
   return { messages, listed: ids.length, failed, capped };
+}
+
+// Removes the UNREAD label from these messages (ids without a digest "#n"
+// suffix). Returns how many were sent. The scan must have asked for "modify"
+// access up front, so Google's popup opened from the click.
+export async function markRead(ids: string[], signal?: AbortSignal): Promise<number> {
+  if (ids.length === 0) return 0;
+  await getToken("modify");
+  if (!token?.modify) {
+    throw new GmailError("denied", "Google didn't allow changing mail. Allow it when Google asks, or untick \"Mark them read in Gmail\".");
+  }
+  for (let i = 0; i < ids.length; i += MODIFY_BATCH) {
+    const batch = ids.slice(i, i + MODIFY_BATCH);
+    await api<void>("/messages/batchModify", { signal, access: "modify", body: { ids: batch, removeLabelIds: ["UNREAD"] } });
+  }
+  return ids.length;
+}
+
+// markRead for the end of a scan, as a summary piece. The scan's rows are
+// saved by then, so neither a failure nor Stop is allowed to throw.
+export async function markReadNote(ids: string[], noun: string, signal?: AbortSignal): Promise<string> {
+  try {
+    return summarizeMarkRead(await markRead(ids, signal), noun);
+  } catch (e) {
+    if ((e as Error).name === "AbortError") return ` · stopped before marking them read in Gmail`;
+    return ` · couldn't mark them read in Gmail: ${(e as Error).message}`;
+  }
 }
 
 // Jobright's instant alerts since a date (the Postings page reads these).

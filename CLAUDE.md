@@ -541,8 +541,23 @@ tracker paths; the resume pages never hit it.
     review; unmuting shows what was already stored.
   - **applied_on fills** send `{from, to}` and the database only moves the
     date if it still equals `from`, so a stale page can't overwrite a real
-    date (comparing against `created_at::date` would use UTC, not local). The browser gets a
-  short-lived read-only Google token (Google Identity Services,
+    date (comparing against `created_at::date` would use UTC, not local).
+  - **Mark read**: after saving, a scan removes Gmail's `UNREAD` label
+    (`markRead`, one `batchModify` call) from the job mail it kept
+    (`idsToMarkRead` in `scan.ts`: classified, not muted, still unread;
+    digest parts collapse to one message) and from the Jobright alerts it
+    read (in `scanAlerts`). Done at scan time, not on accept, because the
+    token is gone after a reload. One "Mark them read in Gmail" box in both
+    scan dialogs (`MARK_READ_KEY` in localStorage, on by default). Unticked,
+    the scan asks Google for `gmail.readonly` only, for anyone who doesn't
+    want to grant edit access; ticked, it asks for `gmail.modify` *when the
+    scan starts* (the popup must open from the click, not after the fetch).
+    `reusable()` in `gmail.ts` decides when the held token will do; a modify
+    grant the user unticked in Google's consent isn't re-asked, markRead
+    reports it. A failure or Stop there is a note in the summary, never an
+    error, since the rows are already saved. The gmail-debug inspector only
+    reads.
+  The browser gets a short-lived Google token (Google Identity Services,
   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; held in memory, nothing stored or
   scheduled) and reads Gmail directly (`gmail.ts`). Pipeline, all pure
   except `gmail.ts`: `parse.ts` (Gmail message -> `EmailFacts`: headers, text,

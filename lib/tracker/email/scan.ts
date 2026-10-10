@@ -2,7 +2,8 @@
 // Nothing here runs on its own: scans only happen when the button is pressed.
 
 import type { Analyzed } from "@/lib/tracker/email/group";
-import { EMAIL_KINDS, todayISO, type Application, type EmailKind, type GmailScan } from "@/lib/tracker/format";
+import { isMuted } from "@/lib/tracker/email/mute";
+import { EMAIL_KINDS, todayISO, type Application, type EmailKind, type EmailMute, type GmailScan } from "@/lib/tracker/format";
 
 const DAY = 86_400_000;
 // Re-read a little before the last scan: mail that arrived during it, or was
@@ -76,4 +77,23 @@ export function summarizeScan(r: { analyzed: Analyzed[]; muted: number; saved: n
   if (updated) parts.push(`${updated} re-read`);
   if (seen > 0) parts.push(`${seen} seen before`);
   return parts.join(" · ");
+}
+
+// localStorage key for the scan dialogs' "Mark them read in Gmail" box ("1"/"0").
+export const MARK_READ_KEY = "tracker.gmail.markRead";
+
+// The Gmail messages a scan should mark as read: job mail the tracker now
+// holds (classified, not muted) that is still unread. A digest's parts share
+// one message, so its "#n" suffixes collapse to the message id.
+export function idsToMarkRead(analyzed: Analyzed[], mutes: Pick<EmailMute, "kind" | "value">[]): string[] {
+  const ids = new Set<string>();
+  for (const a of analyzed) {
+    if (a.kind && a.facts.unread && !isMuted(a, mutes)) ids.add(a.facts.gmailId.split("#")[0]);
+  }
+  return [...ids];
+}
+
+// The summary's " · marked 3 emails read in Gmail" piece; nothing when none were unread.
+export function summarizeMarkRead(count: number, noun = "email"): string {
+  return count === 0 ? "" : ` · marked ${plural(count, noun)} read in Gmail`;
 }

@@ -1,17 +1,18 @@
 "use client";
 
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
-import { GmailError, scanGmail, type ScanProgress } from "@/lib/tracker/email/gmail";
+import { GmailError, markReadNote, scanGmail, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { analyze } from "@/lib/tracker/email/group";
 import { isMuted } from "@/lib/tracker/email/mute";
 import { toRow } from "@/lib/tracker/email/rows";
-import { defaultScanFrom, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
+import { MARK_READ_KEY, defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls } from "@/lib/tracker/format";
 import type { TablesInsert } from "@/lib/tracker/database.types";
 import { defaultPostingScanFrom } from "@/lib/tracker/postings/scan";
 import type { PostingsStore } from "@/lib/tracker/usePostings";
 import type { Tracker } from "@/lib/tracker/useTracker";
+import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 
 interface Props {
   tracker: Tracker;
@@ -27,10 +28,11 @@ export interface GmailScanHandle {
   start: () => void;
 }
 
-// "Scan Gmail": reads the inbox from the chosen date with a read-only token,
-// keeps what the rules recognize (minus mutes) for review, and records the
-// scan. Then, unless unticked, runs the Postings page's Jobright alert scan
-// on the same token. Nothing is applied to the tracker from here.
+// "Scan Gmail": reads the inbox from the chosen date, keeps what the rules
+// recognize (minus mutes) for review, records the scan, and marks the kept
+// mail read in Gmail. Then, unless unticked, runs the Postings page's Jobright
+// alert scan on the same token. Nothing is applied to the tracker from here.
+// The mark-read box is shared with the Postings page's scan.
 export default function GmailScan({ tracker, postings, pending, now, onScanned, ref }: Props) {
   const { gmail, applications } = tracker;
   const [open, setOpen] = useState(false);
@@ -40,6 +42,8 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [withAlerts, setWithAlerts] = useState(true);
+  const [markReadSetting, setMarkReadSetting] = useLocalSetting(MARK_READ_KEY, "1");
+  const markRead = markReadSetting === "1";
   const [stage, setStage] = useState<"mail" | "alerts">("mail");
   const [reading, setReading] = useState<{ done: number; total: number } | null>(null);
   const [alertsLine, setAlertsLine] = useState<{ text: string; failed: boolean } | null>(null);
@@ -69,6 +73,7 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
         onProgress: setProgress,
         onReading: (done, total) => setReading({ done, total }),
         signal: abort.current?.signal,
+        markRead,
       });
       setAlertsLine("error" in result ? { text: result.error, failed: true } : { text: result.summary, failed: false });
     } catch (e) {
@@ -90,7 +95,13 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
     setStage("mail");
     abort.current = new AbortController();
     try {
-      const result = await scanGmail({ since: scanStart(since), mode: "rules", onProgress: setProgress, signal: abort.current.signal });
+      const result = await scanGmail({
+        since: scanStart(since),
+        mode: "rules",
+        access: markRead ? "modify" : "read",
+        onProgress: setProgress,
+        signal: abort.current.signal,
+      });
       const analyzed = result.facts.map(analyze);
       const rows: TablesInsert<"email_messages">[] = [];
       let muted = 0;
@@ -105,9 +116,10 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
         return;
       }
       await tracker.recordScan({ since: scanStart(since).toISOString(), fetched: result.listed, saved: saved.saved });
+      const readNote = markRead ? await markReadNote(idsToMarkRead(analyzed, gmail.mutes), "email", abort.current.signal) : "";
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = result.failed ? ` · ${result.failed} couldn't be read` : "";
-      setSummary(`${summarizeScan({ analyzed, muted, saved: saved.saved, updated: saved.updated })}${failed}${capped}`);
+      setSummary(`${summarizeScan({ analyzed, muted, saved: saved.saved, updated: saved.updated })}${failed}${readNote}${capped}`);
       if (saved.saved > 0 || saved.updated > 0) onScanned();
       if (withAlerts) await runAlerts();
     } catch (e) {
@@ -141,9 +153,9 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
               )}
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Reads your inbox with read-only access (Google asks first; nothing is kept after you reload) and looks for
-              application confirmations, rejections, and OA and interview invites. They show up under <em>From Gmail</em> as
-              suggestions; nothing changes in the tracker until you accept one.
+              Reads your inbox (Google asks first; nothing is kept after you reload) and looks for application
+              confirmations, rejections, and OA and interview invites. They show up under <em>From Gmail</em> as suggestions;
+              nothing changes in the tracker until you accept one.
             </p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="space-y-1 text-xs font-medium text-neutral-600 dark:text-neutral-400">
@@ -179,6 +191,22 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
                   New postings go to the Postings page. Starts{" "}
                   {postings.postings.length > 0 ? "a day before the newest posting you have" : "two weeks back"} (
                   {alertsStart.toLocaleDateString()}), separately from the date above.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={markRead}
+                onChange={(e) => setMarkReadSetting(e.target.checked ? "1" : "0")}
+                disabled={running}
+                className="mt-0.5"
+              />
+              <span>
+                Mark them read in Gmail
+                <span className="block text-xs text-neutral-500">
+                  The job emails and alerts this scan keeps, since you&apos;ll handle them here. Muted and other mail is left
+                  alone. Unticked, the scan only asks Google for read-only access.
                 </span>
               </span>
             </label>

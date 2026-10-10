@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { GmailError, type ScanProgress } from "@/lib/tracker/email/gmail";
-import { scanStart } from "@/lib/tracker/email/scan";
+import { MARK_READ_KEY, scanStart } from "@/lib/tracker/email/scan";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import { buttonCls, inputCls, primaryButtonCls, type JobPosting } from "@/lib/tracker/format";
 import { defaultPostingScanFrom } from "@/lib/tracker/postings/scan";
 import type { PostingsStore } from "@/lib/tracker/usePostings";
+import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 
 interface Props {
   store: PostingsStore;
@@ -14,9 +15,10 @@ interface Props {
   now: number;
 }
 
-// "Scan alerts": reads Jobright's instant-alert emails from the chosen date
-// with a read-only Gmail token, turns each card into a posting, and stores the
-// new ones. Nothing is applied to the tracker from here.
+// "Scan alerts": reads Jobright's instant-alert emails from the chosen date,
+// turns each card into a posting, stores the new ones, and marks the alerts
+// read in Gmail (the box is shared with "Scan Gmail"). Nothing is applied to
+// the tracker from here.
 export default function PostingsScan({ store, postings, now }: Props) {
   const [open, setOpen] = useState(false);
   const [since, setSince] = useState("");
@@ -26,6 +28,8 @@ export default function PostingsScan({ store, postings, now }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const [markReadSetting, setMarkReadSetting] = useLocalSetting(MARK_READ_KEY, "1");
+  const markRead = markReadSetting === "1";
 
   function start() {
     setSince(defaultPostingScanFrom(postings, now));
@@ -44,6 +48,7 @@ export default function PostingsScan({ store, postings, now }: Props) {
         onProgress: setProgress,
         onReading: (done, total) => setReading({ done, total }),
         signal: abort.current.signal,
+        markRead,
       });
       if ("error" in result) setError(result.error);
       else setSummary(result.summary);
@@ -77,8 +82,8 @@ export default function PostingsScan({ store, postings, now }: Props) {
               )}
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Reads your Jobright instant alerts with read-only Gmail access (Google asks first; nothing is kept after you
-              reload) and lists each posting once, however many alerts it showed up in. Nothing changes in the tracker until
+              Reads your Jobright instant alerts from Gmail (Google asks first; nothing is kept after you reload) and
+              lists each posting once, however many alerts it showed up in. Nothing changes in the tracker until
               you mark one applied.
             </p>
             <div className="flex flex-wrap items-end gap-3">
@@ -101,6 +106,19 @@ export default function PostingsScan({ store, postings, now }: Props) {
                 ? "Starts a day before the newest posting you have; postings already saved, applied or dismissed are skipped."
                 : "First scan: starts two weeks back."}
             </p>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={markRead}
+                onChange={(e) => setMarkReadSetting(e.target.checked ? "1" : "0")}
+                disabled={running}
+                className="mt-0.5"
+              />
+              <span>
+                Mark the alerts read in Gmail
+                <span className="block text-xs text-neutral-500">Unticked, the scan only asks Google for read-only access.</span>
+              </span>
+            </label>
             <div aria-live="polite" className="text-sm">
               {running &&
                 (reading

@@ -69,6 +69,13 @@ describe("parseGmailMessage", () => {
     expect(facts.text).toContain("Thank you for applying to Zephyr.");
   });
 
+  it("notes whether Gmail still has it unread", () => {
+    const message = gmail([{ mimeType: "text/plain", text: "Thank you for applying to Zephyr." }]);
+    expect(parseGmailMessage(message).unread).toBe(false);
+    expect(parseGmailMessage({ ...message, labelIds: ["INBOX", "CATEGORY_UPDATES"] }).unread).toBe(false);
+    expect(parseGmailMessage({ ...message, labelIds: ["UNREAD", "INBOX"] }).unread).toBe(true);
+  });
+
   it("uses the HTML part when the plain part is just a stub", () => {
     const facts = parseGmailMessage(
       gmail([
@@ -135,6 +142,7 @@ describe("expandDigest", () => {
     const parts = expandDigest(digest([confirmation, rejection]));
     expect(parts).toHaveLength(2);
     expect(parts.map((p) => p.gmailId)).toEqual(["m1#1", "m1#2"]);
+    expect(expandDigest({ ...digest([confirmation, rejection]), unread: true }).map((p) => p.unread)).toEqual([true, true]);
     expect(parts.map((p) => classify(p).kind)).toEqual(["confirmation", "rejection"]);
     const first = extractFields(parts[0], "confirmation");
     expect(first.company).toBe("Initrode");

@@ -17,6 +17,7 @@ export interface EmailFacts {
   subject: string;
   text: string;
   links: EmailLink[];
+  unread?: boolean; // had Gmail's UNREAD label when fetched
 }
 
 interface GmailHeader {
@@ -34,6 +35,7 @@ export interface GmailMessage {
   id: string;
   threadId: string;
   internalDate?: string;
+  labelIds?: string[];
   payload?: GmailPart;
 }
 
@@ -165,6 +167,7 @@ export function parseGmailMessage(msg: GmailMessage): EmailFacts {
     subject: cleanText(decodeEntities(header(msg, "Subject"))),
     text,
     links,
+    unread: msg.labelIds?.includes("UNREAD") ?? false,
   };
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyze } from "@/lib/tracker/email/group";
-import { defaultScanFrom, scanNudge, scanStart, summarizeScan } from "@/lib/tracker/email/scan";
+import { defaultScanFrom, idsToMarkRead, scanNudge, scanStart, summarizeMarkRead, summarizeScan } from "@/lib/tracker/email/scan";
 import { local } from "../helpers/fixtures";
 import { mail } from "../helpers/email";
 
@@ -70,5 +70,44 @@ describe("summarizeScan", () => {
 
   it("says so when nothing was job mail", () => {
     expect(summarizeScan({ analyzed: [junk], muted: 0, saved: 0 })).toBe("No job emails · 1 ignored");
+  });
+});
+
+describe("idsToMarkRead", () => {
+  const ats = "no-reply@us.greenhouse-mail.io";
+  const job = (gmailId: string, unread: boolean, company = "Globex") =>
+    analyze(
+      mail({
+        gmailId,
+        unread,
+        fromAddress: ats,
+        subject: `Your application for Backend Intern at ${company}`,
+        text: `Thank you for applying to the Backend Intern position at ${company}.`,
+      })
+    );
+  const junk = analyze(mail({ gmailId: "j1", unread: true, fromAddress: "news@somestore.example", subject: "Big sale", text: "Save 30%" }));
+
+  it("marks unread job mail, not mail already read or ignored by the rules", () => {
+    expect(job("a1", true).kind).toBe("confirmation");
+    expect(junk.kind).toBeNull();
+    expect(idsToMarkRead([job("a1", true), job("a2", false), junk], [])).toEqual(["a1"]);
+  });
+
+  it("leaves muted mail alone, by company or by sender", () => {
+    const emails = [job("a1", true), job("a2", true, "Initech")];
+    expect(idsToMarkRead(emails, [{ kind: "company", value: "Globex" }])).toEqual(["a2"]);
+    expect(idsToMarkRead(emails, [{ kind: "sender", value: ats }])).toEqual([]);
+  });
+
+  it("collapses a digest's parts to its one message", () => {
+    expect(idsToMarkRead([job("d1#1", true), job("d1#2", true), job("a1", true)], [])).toEqual(["d1", "a1"]);
+  });
+});
+
+describe("summarizeMarkRead", () => {
+  it("says how many, and nothing when none were unread", () => {
+    expect(summarizeMarkRead(3)).toBe(" · marked 3 emails read in Gmail");
+    expect(summarizeMarkRead(1, "alert")).toBe(" · marked 1 alert read in Gmail");
+    expect(summarizeMarkRead(0)).toBe("");
   });
 });
