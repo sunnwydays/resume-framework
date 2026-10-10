@@ -1,6 +1,7 @@
 import { scanNudge } from "@/lib/tracker/email/scan";
 import { todayISO, type Application, type Assessment, type JobPosting, type Move } from "@/lib/tracker/format";
 import { nextSteps, type NextStep, type NextStepKind } from "@/lib/tracker/nextSteps";
+import { DEFAULT_POSTING_FILTERS, matchesPostingFilters } from "@/lib/tracker/postings/filters";
 import { buildPostingViews } from "@/lib/tracker/postings/view";
 import { prioritize } from "@/lib/tracker/priority";
 import { plural } from "@/lib/tracker/stats";
@@ -27,6 +28,7 @@ export interface TodayInput {
   assessments: Assessment[];
   moves: Move[];
   postings: JobPosting[];
+  allPostings?: boolean; // count every new posting, not just the ones matching the default filters
   pendingEmails: number; // Gmail suggestion cards waiting for review
   lastScanAt: string | null;
   now: number;
@@ -39,6 +41,7 @@ export interface TodayBrief {
   moreSteps: number;
   pendingEmails: number;
   newPostings: number;
+  otherPostings: number;
   scan: { text: string; stale: boolean };
   // One line for the collapsed card.
   summary: string;
@@ -46,7 +49,7 @@ export interface TodayBrief {
   empty: boolean;
 }
 
-export function buildToday({ applications, assessments, moves, postings, pendingEmails, lastScanAt, now }: TodayInput): TodayBrief {
+export function buildToday({ applications, assessments, moves, postings, allPostings = false, pendingEmails, lastScanAt, now }: TodayInput): TodayBrief {
   const appsById = new Map(applications.map((a) => [a.id, a]));
   const ranked = prioritize(assessments, appsById, now);
   const open = assessments
@@ -61,9 +64,14 @@ export function buildToday({ applications, assessments, moves, postings, pending
   const people = nextSteps(moves, applications, now).filter((s) => PEOPLE_STEPS.includes(s.kind));
 
   // A posting you can't take (defense, clearance) or already track isn't news.
-  const newPostings = buildPostingViews(postings, applications).filter(
+  // By default only the ones the Postings page shows on load count (its default
+  // filters: summer 2027 or no term, internship or no level, up to 4 months or
+  // no length), so tuning those defaults tunes this number too.
+  const fresh = buildPostingViews(postings, applications).filter(
     (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no"
-  ).length;
+  );
+  const matching = fresh.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).length;
+  const newPostings = allPostings ? fresh.length : matching;
 
   const scan = scanNudge(lastScanAt, pendingEmails, now);
   const empty = open.length === 0 && people.length === 0 && pendingEmails === 0 && newPostings === 0;
@@ -81,6 +89,8 @@ export function buildToday({ applications, assessments, moves, postings, pending
     moreSteps: Math.max(0, people.length - MAX_STEPS),
     pendingEmails,
     newPostings,
+    // What the other setting would show, for the card's toggle.
+    otherPostings: allPostings ? matching : fresh.length,
     scan,
     summary: empty ? "Nothing needs you today" : parts.join(" · "),
     empty,

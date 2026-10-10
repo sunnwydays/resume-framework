@@ -9,6 +9,8 @@ import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 
 interface Props {
   brief: TodayBrief;
+  allPostings: boolean;
+  onTogglePostings: () => void;
   now: number;
   onScan: () => void;
   onOpenAssessment: (id: string) => void;
@@ -46,7 +48,7 @@ function Bell({ active }: { active: boolean }) {
 // What needs you right now. Opens on its own the first time you visit each
 // day and stays open until "Done for now"; after that it's a one-line summary
 // you can reopen. When nothing needs you it is only that line.
-export default function TodayCard({ brief, now, onScan, onOpenAssessment, onReviewEmails }: Props) {
+export default function TodayCard({ brief, allPostings, onTogglePostings, now, onScan, onOpenAssessment, onReviewEmails }: Props) {
   const [dismissedDay, setDismissedDay] = useLocalSetting("tracker.today.dismissed", "");
   // null: follow the daily rule; otherwise the user's last choice this visit.
   const [pinned, setPinned] = useState<boolean | null>(null);
@@ -181,8 +183,13 @@ export default function TodayCard({ brief, now, onScan, onOpenAssessment, onRevi
                 <li>
                   <Link href="/tracker/postings" className={tileCls}>
                     <span className="font-medium">{plural(brief.newPostings, "new posting")}</span>
-                    <span className="block text-xs text-neutral-500">From Jobright alerts you haven&rsquo;t looked at</span>
+                    {!allPostings && <span className="block text-xs text-neutral-500">Matching your Postings filters</span>}
                   </Link>
+                  {brief.otherPostings !== brief.newPostings && (
+                    <button type="button" onClick={onTogglePostings} className={`mt-1 ${softTextCls} underline-offset-2 hover:underline`}>
+                      {allPostings ? `Only count the ${brief.otherPostings} matching my filters` : `Count all ${brief.otherPostings} new`}
+                    </button>
+                  )}
                 </li>
               )}
             </ul>

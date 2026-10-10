@@ -16,6 +16,7 @@ import TodayCard from "@/components/tracker/TodayCard";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
 import { buildToday } from "@/lib/tracker/today";
+import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 import { useMoves } from "@/lib/tracker/useMoves";
 import { usePostings } from "@/lib/tracker/usePostings";
 import { useNow, useTracker } from "@/lib/tracker/useTracker";
@@ -104,6 +105,7 @@ function TrackerPageInner() {
     [gmail.emails, gmail.mutes, applications, assessments, statusChanges]
   );
 
+  const [allPostings, setAllPostings] = useLocalSetting("tracker.today.allPostings", "");
   const today = useMemo(
     () =>
       buildToday({
@@ -111,11 +113,12 @@ function TrackerPageInner() {
         assessments,
         moves,
         postings: postings.postings,
+        allPostings: allPostings === "1",
         pendingEmails: review.groups.length,
         lastScanAt: gmail.lastScan?.scanned_at ?? null,
         now,
       }),
-    [applications, assessments, moves, postings.postings, review.groups.length, gmail.lastScan, now]
+    [applications, assessments, moves, postings.postings, allPostings, review.groups.length, gmail.lastScan, now]
   );
 
   const counts = useMemo(() => {
@@ -274,6 +277,8 @@ function TrackerPageInner() {
       {!tracker.loading && !postings.loading && !movesLoading && (
         <TodayCard
           brief={today}
+          allPostings={allPostings === "1"}
+          onTogglePostings={() => setAllPostings(allPostings === "1" ? "" : "1")}
           now={now}
           onScan={() => scanRef.current?.start()}
           onOpenAssessment={openAssessment}

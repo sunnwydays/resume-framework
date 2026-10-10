@@ -493,7 +493,10 @@ tracker paths; the resume pages never hit it.
   "Do first" order), the people steps from `nextSteps` (`PEOPLE_STEPS`: reply,
   follow-up, nudge, close, referral; the weekly habit nudges stay on
   Arbitrage on purpose), pending Gmail review cards, new Postings you can take
-  and haven't tracked, and the scan's age. It opens by itself the first time
+  and haven't tracked (only those matching `DEFAULT_POSTING_FILTERS`, so editing
+  the Postings defaults retunes this count; a link under the tile toggles to
+  counting every new one, kept in localStorage as `tracker.today.allPostings`),
+  and the scan's age. It opens by itself the first time
   each day and stays open until "Done for now" (`tracker.today.dismissed` in
   localStorage holds the day), then is a one-line summary; with nothing to do
   it's only the line. Styled as a notification on purpose, to stand out from

@@ -124,6 +124,28 @@ describe("buildToday", () => {
     });
   });
 
+  describe("posting filters", () => {
+    const postings = [
+      makePosting({ role: "Software Engineer Intern" }), // no term, no length: counts
+      makePosting({ role: "Software Engineer Intern (Summer 2027, 4 months)" }),
+      makePosting({ role: "Software Engineer Intern (Fall 2027)" }),
+      makePosting({ role: "Software Engineer Intern (Summer 2027, 8 months)" }),
+      makePosting({ role: "Software Engineer, New Grad" }),
+    ];
+
+    it("counts only the ones the Postings page shows by default", () => {
+      const b = buildToday(input({ postings }));
+      expect(b.newPostings).toBe(2);
+      expect(b.otherPostings).toBe(5);
+    });
+
+    it("can count every new posting instead", () => {
+      const b = buildToday(input({ postings, allPostings: true }));
+      expect(b.newPostings).toBe(5);
+      expect(b.otherPostings).toBe(2);
+    });
+  });
+
   it("joins everything in one line", () => {
     const b = buildToday(
       input({
