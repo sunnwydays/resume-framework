@@ -1,7 +1,6 @@
 import {
   ASSESSMENT_KINDS,
   formatDate,
-  isFailed,
   isOpen,
   todayISO,
   type Application,
@@ -399,11 +398,26 @@ export interface AssessmentStats {
   facts: Fact[];
 }
 
-function tally(map: Map<string, PassCount>, key: string, a: Assessment) {
+// Pass or fail isn't stored on the assessment; it follows from the
+// application. Getting past the stage this assessment belongs to is a pass
+// (even if you thought you bombed it); a rejection at it, or a bombed one that
+// went nowhere, is a miss. Otherwise it's undecided, as are skipped (expired)
+// and not-yet-taken ones.
+export function assessmentResult(
+  a: Assessment,
+  app: Application | undefined,
+  assessments: Assessment[],
+  changes: StatusChange[]
+): "passed" | "failed" | null {
+  if (!app || a.status !== "completed" || a.outcome === "expired") return null;
+  if (STAGES.indexOf(furthestStage(app, assessments, changes)) > STAGES.indexOf(a.kind as Stage)) return "passed";
+  return a.outcome === "bombed" || app.status === "rejected" ? "failed" : null;
+}
+
+function tally(map: Map<string, PassCount>, key: string, result: "passed" | "failed" | null) {
   const t = map.get(key) ?? { count: 0, passed: 0, failed: 0 };
   t.count++;
-  if (a.outcome === "passed") t.passed++;
-  if (isFailed(a)) t.failed++;
+  if (result) t[result]++;
   map.set(key, t);
 }
 
@@ -434,11 +448,12 @@ export function assessmentStats(
   for (const a of assessments) {
     const app = applicationsById.get(a.application_id);
     const due = a.due_at ? new Date(a.due_at).getTime() : null;
-    tally(kinds, a.kind, a);
-    if (a.difficulty != null) tally(difficulties, String(a.difficulty), a);
-    if (app) tally(types, roleType(app.role), a);
-    if (a.outcome === "passed") passed++;
-    if (isFailed(a)) failed++;
+    const result = assessmentResult(a, app, assessmentsByApp.get(a.application_id) ?? [], changesByApp.get(a.application_id) ?? []);
+    tally(kinds, a.kind, result);
+    if (a.difficulty != null) tally(difficulties, String(a.difficulty), result);
+    if (app) tally(types, roleType(app.role), result);
+    if (result === "passed") passed++;
+    if (result === "failed") failed++;
     if (a.kind === "oa") oaApps.add(a.application_id);
 
     if (isOpen(a)) {

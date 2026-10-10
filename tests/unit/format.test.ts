@@ -193,7 +193,7 @@ describe("labels", () => {
   it("pins the enum values the database check constraints allow", () => {
     // The database tests compare these against the live constraints too.
     expect([...STATUSES]).toEqual(["applied", "oa", "video_interview", "interview", "offer", "rejected", "withdrawn"]);
-    expect(Object.keys(OUTCOMES)).toEqual(["waiting", "passed", "failed", "expired", "bombed"]);
+    expect(Object.keys(OUTCOMES)).toEqual(["expired", "bombed"]);
     expect(Object.keys(QUESTION_SOURCES)).toEqual(["expected", "asked"]);
   });
 });

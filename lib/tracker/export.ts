@@ -542,13 +542,10 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
       return isOpen(s) && due !== null && due < now;
     }),
   };
-  const passed = { f: `COUNTIF(${S("Outcome")},${str(OUTCOMES.passed.label)})`, v: count((s) => s.outcome === "passed") };
-  // Bombed counts as a fail.
-  const failed = {
-    f: `(COUNTIF(${S("Outcome")},${str(OUTCOMES.failed.label)})+COUNTIF(${S("Outcome")},${str(OUTCOMES.bombed.label)}))`,
-    v: count((s) => s.outcome === "failed" || s.outcome === "bombed"),
-  };
-  const decided = { f: `(${passed.f}+${failed.f})`, v: passed.v + failed.v };
+  // Pass or fail follows from the application's status history, which a
+  // formula can't see, so the sheet counts the two outcomes instead.
+  const bombed = { f: `COUNTIF(${S("Outcome")},${str(OUTCOMES.bombed.label)})`, v: count((s) => s.outcome === "bombed") };
+  const expired = { f: `COUNTIF(${S("Outcome")},${str(OUTCOMES.expired.label)})`, v: count((s) => s.outcome === "expired") };
 
   const tiles: Tile[] = [
     { label: "Total", value: live(total), sub: live(cat(completed, " completed")) },
@@ -559,16 +556,8 @@ function assessmentSummary(apps: Application[], assessments: Assessment[]) {
       value: live(overdue),
       sub: live(when({ f: `${overdue.f}>0`, v: overdue.v > 0 }, cat("still pending"))),
     },
-    {
-      label: "Pass rate",
-      value: share(passed, decided),
-      sub: live(when({ f: `${decided.f}>0`, v: decided.v > 0 }, cat(passed, " of ", decided, " with a result"), "no results yet")),
-    },
-    {
-      label: "Waiting on results",
-      value: live({ f: `MAX(0,${completed.f}-${decided.f})`, v: Math.max(0, completed.v - decided.v) }),
-      sub: "completed, no pass/fail",
-    },
+    { label: "Bombed", value: live(bombed), sub: live(percent(bombed, total)) },
+    { label: "Expired", value: live(expired), sub: "skipped, never taken" },
   ];
 
   // Hours between finishing an OA and its due time.

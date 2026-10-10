@@ -7,6 +7,7 @@ import {
   parseDifficulty,
   parseMinutes,
   parseOutcome,
+  parseResultWord,
   parseQuestions,
   parseStatus,
 } from "@/lib/tracker/io";
@@ -262,23 +263,6 @@ describe("parseDifficulty", () => {
 
 describe("parseOutcome", () => {
   it.each([
-    ["Failed", "failed"],
-    ["FAILED", "failed"],
-    ["Rejected", "failed"],
-    ["Unsuccessful", "failed"],
-    ["Didn't pass", "failed"],
-    ["did not pass", "failed"],
-    ["Passed", "passed"],
-    ["Advanced", "passed"],
-    ["Next round", "passed"],
-    ["Moved on", "passed"],
-    ["Offer", "passed"],
-    ["Successful", "passed"],
-    ["Waiting", "waiting"],
-    ["Pending", "waiting"],
-    ["TBD", "waiting"],
-    ["Awaiting results", "waiting"],
-    ["Unknown", "waiting"],
     ["Bombed", "bombed"],
     ["Totally bombed it", "bombed"],
     ["Expired", "expired"],
@@ -286,11 +270,18 @@ describe("parseOutcome", () => {
     ["Skipped", "expired"],
   ])("%j -> %s", (input, expected) => expect(parseOutcome(input)).toBe(expected));
 
-  it("failure wins over pass words ('Unsuccessful', 'did not pass')", () => {
-    expect(parseOutcome("Unsuccessful")).toBe("failed");
-    expect(parseOutcome("Did not pass")).toBe("failed");
-  });
-  it.each(["", "n/a", "maybe"])("null for %j", (input) => expect(parseOutcome(input)).toBeNull());
+  it.each(["", "n/a", "maybe", "Passed", "Failed", "Waiting"])("null for %j", (input) => expect(parseOutcome(input)).toBeNull());
+});
+
+describe("parseResultWord", () => {
+  it.each(["Failed", "FAILED", "Rejected", "Unsuccessful", "Didn't pass", "did not pass", "Passed", "Advanced", "Next round", "Moved on", "Offer", "Successful"])(
+    "%j -> done",
+    (input) => expect(parseResultWord(input)).toBe("done")
+  );
+  it.each(["Waiting", "Pending", "TBD", "Awaiting results", "Unknown"])("%j -> waiting", (input) =>
+    expect(parseResultWord(input)).toBe("waiting")
+  );
+  it.each(["", "n/a", "maybe", "Bombed"])("null for %j", (input) => expect(parseResultWord(input)).toBeNull());
 });
 
 describe("parseQuestions", () => {

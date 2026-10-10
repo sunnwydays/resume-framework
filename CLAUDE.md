@@ -256,11 +256,18 @@ tracker paths; the resume pages never hit it.
   then undated, then ones overdue >72h; ties go to the shorter, then easier.
   Completed ones and ones whose application is rejected/withdrawn are
   unranked. Ranks are computed over the rows on screen.
-- **Outcomes** (`OUTCOMES` in `format.ts`): waiting / passed / failed, plus `expired` (skipped; the
-  assessment stays `pending` but `isOpen()` is false, so it drops out of Do first, overdue, the
-  upcoming strip and stats) and `bombed` (counts as a fail via `isFailed()`). Use those two
-  helpers instead of comparing `status`/`outcome` directly. The Assessments table has an
-  "Open ↗" link column (each assessment keeps its own `link`; several can share one URL).
+- **Outcomes** (`OUTCOMES` in `format.ts`): only `expired` and `bombed`; empty means "done
+  normally". Pass or fail is not stored: `assessmentResult` (`stats.ts`) derives it from the
+  application. Getting past the assessment's stage (furthest stage reached, a booked later
+  round counts) is a pass, even after a bombed one; a rejection at that stage, or a bombed one
+  that went nowhere, is a miss; anything else (still at that stage, withdrawn, expired, not yet
+  taken) is undecided. Picking Bombed in `AssessmentDetail` also sets status `completed`, so it
+  leaves the pending list. Expired (skipped) stays `pending` but `isOpen()` is false, so it
+  drops out of Do first, overdue, the upcoming strip and stats. The importer still reads
+  "Passed"/"Failed" cells (`parseResultWord`) as done with no outcome. The export has Bombed and
+  Expired tiles instead of a pass rate (formulas can't see status history). The Assessments
+  table has an "Open ↗" link column (each assessment keeps its own `link`; several can share
+  one URL).
 - **Sections** (`lib/tracker/sections.ts`, `assessments.sections` jsonb, check: an array):
   the parts of one multi-part OA ("Coding Challenge, 100 min" → sub-parts "Code
   writing", "AI assistant in a repo"; then "Work Simulation, 45 min"), two levels

@@ -37,7 +37,7 @@ export const DEFAULT_APP_FILTERS: AppFilters = {
   noReply: false,
 };
 
-export type OutcomeFilter = "any" | "waiting" | "passed" | "failed" | "bombed" | "expired" | "unset";
+export type OutcomeFilter = "any" | "bombed" | "expired" | "unset";
 
 export interface AssessmentFilters {
   status: "pending" | "completed" | "all";

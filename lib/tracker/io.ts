@@ -180,7 +180,7 @@ export const ASSESSMENT_FIELDS = {
   },
   outcome: {
     label: "Outcome",
-    hint: "Waiting, Passed or Failed",
+    hint: "Expired or Bombed (leave empty if you just did it)",
     aliases: ["outcome", "result", "results", "passed", "verdict"],
   },
   score: { label: "Score", hint: "Free text, e.g. 800/850", aliases: ["score", "grade", "marks", "points"] },
@@ -439,8 +439,15 @@ export function parseOutcome(value: string): Outcome | null {
   const v = value.toLowerCase();
   if (/bomb/.test(v)) return "bombed";
   if (/expir|lapsed|missed|skipped|never did|didn.?t (?:do|take|start)/.test(v)) return "expired";
-  if (/fail|reject|unsuccessful|didn.?t pass|not pass/.test(v)) return "failed";
-  if (/pass|advanc|next round|moved on|offer|success/.test(v)) return "passed";
+  return null;
+}
+
+// Older sheets say Passed / Failed / Waiting. Those aren't outcomes any more
+// (pass or fail follows from how far the application got), but a result means
+// the assessment is done and "waiting" means it isn't known yet.
+export function parseResultWord(value: string): "done" | "waiting" | null {
+  const v = value.toLowerCase();
+  if (/fail|reject|unsuccessful|didn.?t pass|not pass|pass|advanc|next round|moved on|offer|success/.test(v)) return "done";
   if (/wait|pending|tbd|awaiting|unknown/.test(v)) return "waiting";
   return null;
 }
@@ -675,15 +682,12 @@ export function buildImportPlan(
         const details = cell(row, cols.details);
         const sections = parseSections(cell(row, cols.sections));
         // An OA sheet often has "Passed" / "Rejected" in Status rather than
-        // a separate Outcome column; either way a pass/fail means it's done.
-        const statusOutcome = parseOutcome(cell(row, cols.status));
-        const outcome =
-          parseOutcome(cell(row, cols.outcome)) ??
-          (statusOutcome !== "waiting" ? statusOutcome : null);
+        // a separate Outcome column; either way a result means it's done.
+        const outcome = parseOutcome(cell(row, cols.outcome)) ?? parseOutcome(cell(row, cols.status));
         const status =
           /complet|done|submitted|finished/i.test(cell(row, cols.status)) ||
-          outcome === "passed" ||
-          outcome === "failed" ||
+          parseResultWord(cell(row, cols.status)) === "done" ||
+          parseResultWord(cell(row, cols.outcome)) === "done" ||
           outcome === "bombed"
             ? "completed"
             : "pending";
@@ -718,7 +722,7 @@ export function buildImportPlan(
                   : "",
                 // Values we couldn't read are kept rather than dropped.
                 difficultyText && difficulty === null ? `Difficulty: ${difficultyText}` : "",
-                outcomeText && !parseOutcome(outcomeText) ? `Outcome: ${outcomeText}` : "",
+                outcomeText && !parseOutcome(outcomeText) && !parseResultWord(outcomeText) ? `Outcome: ${outcomeText}` : "",
                 cell(row, cols.due) && !dueAt ? `Due: ${cell(row, cols.due)}` : "",
                 ...extraNotes(row, header.labels, unmapped),
               ]

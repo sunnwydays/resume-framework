@@ -16,6 +16,7 @@ import {
   weekStart,
   weekdayIndex,
   type Fact,
+  assessmentResult,
 } from "@/lib/tracker/stats";
 import type { Application, Assessment, Question, StatusChange } from "@/lib/tracker/format";
 import { local, makeApp, makeAssessment, makeChange, makeQuestion } from "../helpers/fixtures";
@@ -348,6 +349,42 @@ describe("applicationStats", () => {
   });
 });
 
+describe("assessmentResult", () => {
+  const done = (o: Partial<Assessment> = {}) => makeAssessment({ kind: "oa", status: "completed", ...o });
+  const result = (a: Assessment, app: Application, others: Assessment[] = [], ch: StatusChange[] = []) =>
+    assessmentResult(a, app, [a, ...others], ch);
+
+  it("passed when the application got past this stage", () => {
+    expect(result(done(), makeApp({ status: "interview" }))).toBe("passed");
+    expect(result(done({ kind: "interview" }), makeApp({ status: "offer" }))).toBe("passed");
+  });
+  it("passed when a later round is already booked", () => {
+    expect(result(done(), makeApp({ status: "oa" }), [makeAssessment({ kind: "interview" })])).toBe("passed");
+  });
+  it("passed when a rejected application had reached a later stage", () => {
+    const app = makeApp({ id: "a", status: "rejected" });
+    expect(result(done(), app, [], [makeChange({ application_id: "a", status: "interview" })])).toBe("passed");
+  });
+  it("a bombed one still passes if the application moved on", () => {
+    expect(result(done({ outcome: "bombed" }), makeApp({ status: "interview" }))).toBe("passed");
+  });
+  it("failed when the application was rejected at this stage", () => {
+    expect(result(done(), makeApp({ status: "rejected" }))).toBe("failed");
+  });
+  it("failed when bombed and the application went nowhere", () => {
+    expect(result(done({ outcome: "bombed" }), makeApp({ status: "oa" }))).toBe("failed");
+  });
+  it("undecided while the application is still at this stage", () => {
+    expect(result(done(), makeApp({ status: "oa" }))).toBeNull();
+    expect(result(done(), makeApp({ status: "withdrawn" }))).toBeNull();
+  });
+  it("no result for expired, not-yet-taken, or an unknown application", () => {
+    expect(result(done({ outcome: "expired" }), makeApp({ status: "interview" }))).toBeNull();
+    expect(result(makeAssessment({ kind: "oa" }), makeApp({ status: "interview" }))).toBeNull();
+    expect(assessmentResult(done(), undefined, [], [])).toBeNull();
+  });
+});
+
 describe("assessmentStats", () => {
   const apps = [
     makeApp({ id: "app-1", company: "Acme", role: "SWE Intern", applied_on: "2026-09-10", status: "interview" }),
@@ -355,13 +392,13 @@ describe("assessmentStats", () => {
   ];
   const s1 = makeAssessment({
     id: "s1", application_id: "app-1", kind: "oa", title: "CodeSignal GCA", status: "completed",
-    due_at: local(2026, 9, 20, 12), completed_at: local(2026, 9, 19, 12), duration_min: 60, difficulty: 4, outcome: "passed",
+    due_at: local(2026, 9, 20, 12), completed_at: local(2026, 9, 19, 12), duration_min: 60, difficulty: 4,
   });
   const s2 = makeAssessment({ id: "s2", application_id: "app-1", kind: "oa", title: "Second OA", due_at: local(2026, 10, 5, 12) });
   const s3 = makeAssessment({ id: "s3", application_id: "app-2", kind: "interview", title: "Onsite", due_at: local(2026, 10, 1, 12) });
   const s4 = makeAssessment({
     id: "s4", application_id: "app-2", kind: "oa", title: "HackerRank", status: "completed",
-    due_at: local(2026, 9, 25, 12), completed_at: local(2026, 9, 25, 6), duration_min: 30, difficulty: 2, outcome: "failed",
+    due_at: local(2026, 9, 25, 12), completed_at: local(2026, 9, 25, 6), duration_min: 30, difficulty: 2, outcome: "bombed",
   });
   const s5 = makeAssessment({ id: "s5", application_id: "app-1", kind: "video_interview", title: "HireVue", status: "completed" });
   const all = [s1, s2, s3, s4, s5];
@@ -383,20 +420,21 @@ describe("assessmentStats", () => {
   const stats = run(all);
   const fact = (label: string): Fact | undefined => stats.facts.find((f) => f.label === label);
 
-  it("bombed counts as a fail; expired is neither a result nor overdue", () => {
-    const bombed = makeAssessment({ id: "b", application_id: "app-1", status: "completed", outcome: "bombed" });
+  it("expired is neither a result nor overdue; a bombed one that went nowhere is a miss", () => {
+    const miss = makeApp({ id: "app-3", company: "Gamma", role: "SWE Intern", status: "rejected" });
+    const bombed = makeAssessment({ id: "b", application_id: "app-3", kind: "oa", status: "completed", outcome: "bombed" });
     const expired = makeAssessment({ id: "e", application_id: "app-1", due_at: local(2026, 9, 1, 12), outcome: "expired" });
-    expect(run([...all, bombed, expired])).toMatchObject({ total: 7, completed: 4, passed: 1, failed: 2, overdue: 1 });
+    expect(run([...all, bombed, expired], [...apps, miss])).toMatchObject({ total: 7, completed: 4, passed: 3, failed: 1, overdue: 1 });
   });
 
-  it("counts", () => {
-    expect(stats).toMatchObject({ total: 5, completed: 3, passed: 1, failed: 1, dueThisWeek: 1, overdue: 1 });
+  it("counts: the application moving on is the pass, even for a bombed one", () => {
+    expect(stats).toMatchObject({ total: 5, completed: 3, passed: 3, failed: 0, dueThisWeek: 1, overdue: 1 });
   });
 
   it("by kind, in the kind list's order", () => {
     expect(stats.byKind.map((k) => [k.kind, k.count, k.passed, k.failed])).toEqual([
-      ["oa", 3, 1, 1],
-      ["video_interview", 1, 0, 0],
+      ["oa", 3, 2, 0],
+      ["video_interview", 1, 1, 0],
       ["interview", 1, 0, 0],
     ]);
   });
@@ -404,7 +442,7 @@ describe("assessmentStats", () => {
   it("by difficulty, always one to five", () => {
     expect(stats.byDifficulty).toEqual([
       { difficulty: 1, count: 0, passed: 0, failed: 0 },
-      { difficulty: 2, count: 1, passed: 0, failed: 1 },
+      { difficulty: 2, count: 1, passed: 1, failed: 0 },
       { difficulty: 3, count: 0, passed: 0, failed: 0 },
       { difficulty: 4, count: 1, passed: 1, failed: 0 },
       { difficulty: 5, count: 0, passed: 0, failed: 0 },
@@ -413,8 +451,8 @@ describe("assessmentStats", () => {
 
   it("by role type", () => {
     expect(stats.byType.map((t) => [t.type, t.count, t.passed, t.failed])).toEqual([
-      ["data", 2, 0, 1],
-      ["swe", 3, 1, 0],
+      ["data", 2, 1, 0],
+      ["swe", 3, 2, 0],
     ]);
   });
 

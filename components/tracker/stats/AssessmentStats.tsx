@@ -16,15 +16,15 @@ interface Props {
   scope: string | null;
 }
 
-// Pass rate counts only assessments with a result, so waiting ones don't
-// drag it down.
+// Pass or miss comes from the application (see assessmentResult); pass rate
+// counts only the assessments that have one, so undecided ones don't drag it down.
 function passNote(t: { passed: number; failed: number }): string | undefined {
   const decided = t.passed + t.failed;
   return decided ? `${pct(t.passed, decided)} passed` : undefined;
 }
 
 function passTip(label: string, t: { count: number; passed: number; failed: number }): string {
-  return `${label}: ${t.count} total, ${t.passed} passed, ${t.failed} failed`;
+  return `${label}: ${t.count} total, ${t.passed} passed, ${t.failed} missed`;
 }
 
 export default function AssessmentStats({
@@ -55,7 +55,7 @@ export default function AssessmentStats({
         <StatTile label="Due this week" value={s.dueThisWeek} />
         <StatTile label="Overdue" value={s.overdue} sub={s.overdue ? "still pending" : undefined} />
         <StatTile label="Pass rate" value={pct(s.passed, decided)} sub={decided ? `${s.passed} of ${decided} with a result` : "no results yet"} />
-        <StatTile label="Waiting on results" value={Math.max(0, s.completed - decided)} sub="completed, no pass/fail" />
+        <StatTile label="Waiting on results" value={Math.max(0, s.completed - decided)} sub="completed, application hasn't moved" />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">

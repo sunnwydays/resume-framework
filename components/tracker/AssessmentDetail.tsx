@@ -506,12 +506,16 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
             <span className={labelCls}>Outcome</span>
             <select
               value={a.outcome ?? ""}
-              onChange={(e) => update({ outcome: (e.target.value || null) as Outcome | null })}
+              onChange={(e) => {
+                const outcome = (e.target.value || null) as Outcome | null;
+                // Bombed means it was taken, so it comes off the pending list.
+                update(outcome === "bombed" ? { outcome, status: "completed" } : { outcome });
+              }}
               className={`rounded border border-neutral-300 bg-surface px-1.5 py-0.5 text-sm dark:border-neutral-700 ${
                 a.outcome ? OUTCOMES[a.outcome as Outcome]?.cls ?? "" : ""
               }`}
             >
-              <option value="">—</option>
+              <option value="">Done</option>
               {Object.entries(OUTCOMES).map(([value, o]) => (
                 <option key={value} value={value}>
                   {o.label}

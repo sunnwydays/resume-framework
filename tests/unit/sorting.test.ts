@@ -167,14 +167,11 @@ describe("applicationSortValue", () => {
 });
 
 describe("resultRank and assessmentSortValue", () => {
-  it("orders pending < completed (no result) < passed < failed", () => {
+  it("orders pending < done < bombed < expired", () => {
     expect(resultRank(makeAssessment({ status: "pending" }))).toBe(0);
     expect(resultRank(makeAssessment({ status: "completed" }))).toBe(1);
-    expect(resultRank(makeAssessment({ status: "completed", outcome: "waiting" }))).toBe(1);
-    expect(resultRank(makeAssessment({ status: "completed", outcome: "passed" }))).toBe(2);
-    expect(resultRank(makeAssessment({ status: "completed", outcome: "failed" }))).toBe(3);
-    expect(resultRank(makeAssessment({ status: "completed", outcome: "bombed" }))).toBe(4);
-    expect(resultRank(makeAssessment({ status: "pending", outcome: "expired" }))).toBe(5);
+    expect(resultRank(makeAssessment({ status: "completed", outcome: "bombed" }))).toBe(2);
+    expect(resultRank(makeAssessment({ status: "pending", outcome: "expired" }))).toBe(3);
   });
 
   it("reads each column", () => {

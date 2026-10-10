@@ -29,7 +29,7 @@ const ASSESSMENTS: RawSheet = {
     ],
     [
       "Acme", "SWE Intern", "OA", "GCA", "Four problems", "1h 30m", "2026-10-10", "Sam", "https://codesignal.com/x", "yes", "Completed",
-      "2026-10-08T16:45:00Z", "hard", "Passed", "800/850", "Graphs", "Ran out of time", "Q1 → A1\nQ2", "Q3 → A3", "calm",
+      "2026-10-08T16:45:00Z", "hard", "Bombed", "800/850", "Graphs", "Ran out of time", "Q1 → A1\nQ2", "Q3 → A3", "calm",
       "Coding (60 min) – Two problems\n  - With an AI assistant\nSurvey (5 min)",
     ],
     ["Existing Co", "Role", "Interview", "Final round", "", "45", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
@@ -87,7 +87,7 @@ describe.skipIf(!dbReady)("import_rows", () => {
             important: true,
             status: "completed",
             difficulty: 4,
-            outcome: "passed",
+            outcome: "bombed",
             score: "800/850",
             prep_notes: "Graphs",
             reflection: "Ran out of time",

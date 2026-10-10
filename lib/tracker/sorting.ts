@@ -88,12 +88,11 @@ export function applicationSortValue(
 
 export type AssessmentSortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result" | "questions";
 
-// Pending, then completed with no result yet, then passed, failed, bombed,
-// and expired last.
+// Pending, then done normally, then bombed, and expired last.
 export function resultRank(a: Assessment): number {
-  if (a.outcome === "expired") return 5;
-  if (a.status !== "completed") return 0;
-  return a.outcome === "passed" ? 2 : a.outcome === "failed" ? 3 : a.outcome === "bombed" ? 4 : 1;
+  if (a.outcome === "expired") return 3;
+  if (a.outcome === "bombed") return 2;
+  return a.status === "completed" ? 1 : 0;
 }
 
 export function assessmentSortValue(

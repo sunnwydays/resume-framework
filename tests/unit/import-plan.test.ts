@@ -268,7 +268,7 @@ describe("assessments sheet", () => {
         "yes",
         "Completed",
         "hard",
-        "Passed",
+        "Bombed",
         "800/850",
         "Two sum → hash map\nLRU cache",
         "calm",
@@ -289,7 +289,7 @@ describe("assessments sheet", () => {
       completed_at: null,
       notes: "calm",
       difficulty: 4,
-      outcome: "passed",
+      outcome: "bombed",
       score: "800/850",
       prep_notes: null,
       reflection: null,
@@ -339,17 +339,22 @@ describe("assessments sheet", () => {
     it("'Completed' alone is completed with no result", () => {
       expect(run("Completed")).toEqual({ status: "completed", outcome: null });
     });
-    it("a pass or fail written in Status means done", () => {
-      expect(run("Passed")).toEqual({ status: "completed", outcome: "passed" });
-      expect(run("Rejected")).toEqual({ status: "completed", outcome: "failed" });
+    it("a pass or fail written in Status means done, with no outcome", () => {
+      expect(run("Passed")).toEqual({ status: "completed", outcome: null });
+      expect(run("Rejected")).toEqual({ status: "completed", outcome: null });
     });
     it("an Outcome column of pass or fail also means done", () => {
-      expect(run("", "Failed")).toEqual({ status: "completed", outcome: "failed" });
-      expect(run("Pending", "Passed")).toEqual({ status: "completed", outcome: "passed" });
+      expect(run("", "Failed")).toEqual({ status: "completed", outcome: null });
+      expect(run("Pending", "Passed")).toEqual({ status: "completed", outcome: null });
+    });
+    it("bombed means done, expired stays pending", () => {
+      expect(run("", "Bombed")).toEqual({ status: "completed", outcome: "bombed" });
+      expect(run("Pending", "Bombed")).toEqual({ status: "completed", outcome: "bombed" });
+      expect(run("", "Expired")).toEqual({ status: "pending", outcome: "expired" });
     });
     it("waiting stays pending", () => {
       expect(run("Waiting")).toEqual({ status: "pending", outcome: null });
-      expect(run("", "Waiting")).toEqual({ status: "pending", outcome: "waiting" });
+      expect(run("", "Waiting")).toEqual({ status: "pending", outcome: null });
     });
     it("blank is pending", () => {
       expect(run("")).toEqual({ status: "pending", outcome: null });

@@ -165,12 +165,11 @@ describe("matchesAssessmentFilters", () => {
   });
   it("outcome, including 'not set'", () => {
     expect(run(makeAssessment({ outcome: null }), { outcome: "unset" })).toBe(true);
-    expect(run(makeAssessment({ outcome: "passed" }), { outcome: "unset" })).toBe(false);
-    expect(run(makeAssessment({ outcome: "passed" }), { outcome: "passed" })).toBe(true);
-    expect(run(makeAssessment({ outcome: "waiting" }), { outcome: "passed" })).toBe(false);
+    expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "unset" })).toBe(false);
+    expect(run(makeAssessment({ outcome: null }), { outcome: "bombed" })).toBe(false);
     expect(run(makeAssessment({ outcome: null }), { outcome: "any" })).toBe(true);
     expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "bombed" })).toBe(true);
-    expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "failed" })).toBe(false);
+    expect(run(makeAssessment({ outcome: "bombed" }), { outcome: "expired" })).toBe(false);
     expect(run(makeAssessment({ outcome: "expired" }), { outcome: "expired" })).toBe(true);
   });
   it("an expired assessment is never overdue", () => {

@@ -75,7 +75,7 @@ const assessments = [
     status: "completed",
     completed_at: local(2026, 10, 8, 16, 45),
     difficulty: 4,
-    outcome: "passed",
+    outcome: "bombed",
     score: "800/850",
     prep_notes: "Graphs, DP",
     reflection: "Ran out of time on Q4",
@@ -178,7 +178,7 @@ describe("XLSX export -> import", () => {
       completed_at: assessments[0].completed_at,
       notes: "Quiet room",
       difficulty: 4,
-      outcome: "passed",
+      outcome: "bombed",
       score: "800/850",
       prep_notes: "Graphs, DP",
       reflection: "Ran out of time on Q4",
@@ -264,7 +264,7 @@ describe("the XLSX summary", () => {
     });
     expect(s).toEqual({
       A4: 3, B4: 2, C4: 0, D4: 0, E4: 1, F4: 0,
-      A5: "1 completed", D5: undefined, E5: "1 of 1 with a result", // D5 is "", which reads back as nothing
+      A5: "1 completed", D5: undefined, E5: "33%", // D5 is "", which reads back as nothing
       A7: "Procrastination index: 2 days early — 0% done in the final 24h",
       A8: "Time in assessments: 70 min — completed ones, from the listed durations",
       A9: "Average difficulty: 4.0 / 5 — over 1 rated one",
@@ -323,7 +323,7 @@ describe("CSV export -> import", () => {
       due_at: assessments[0].due_at,
       completed_at: assessments[0].completed_at,
       status: "completed",
-      outcome: "passed",
+      outcome: "bombed",
       difficulty: 4,
       duration_min: 70,
       important: true,

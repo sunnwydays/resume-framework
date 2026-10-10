@@ -109,13 +109,10 @@ export function ApplicationFilterBar({
 }
 
 const OUTCOME_OPTIONS: [OutcomeFilter, string][] = [
-  ["any", "any result"],
-  ["waiting", "waiting"],
-  ["passed", "passed"],
-  ["failed", "failed"],
+  ["any", "any outcome"],
   ["bombed", "bombed"],
   ["expired", "expired"],
-  ["unset", "not set"],
+  ["unset", "no outcome"],
 ];
 
 export function AssessmentFilterBar({
