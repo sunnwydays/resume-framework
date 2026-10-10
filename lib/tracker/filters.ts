@@ -118,6 +118,8 @@ export function matchesAssessmentFilters(
   now: number
 ): boolean {
   if (f.status !== "all" && a.status !== f.status) return false;
+  // Expired stays status "pending" but isn't open; picking the Expired outcome still shows them.
+  if (f.status === "pending" && f.outcome !== "expired" && !isOpen(a)) return false;
   if (f.kind && a.kind !== f.kind) return false;
   if (f.outcome !== "any" && (a.outcome ?? "unset") !== f.outcome) return false;
   if (f.hideRejected && app?.status === "rejected") return false;

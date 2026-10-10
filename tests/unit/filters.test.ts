@@ -159,6 +159,12 @@ describe("matchesAssessmentFilters", () => {
     expect(run(makeAssessment({ status: "completed" }), { status: "completed" })).toBe(true);
     expect(run(makeAssessment({ status: "completed" }), { status: "all" })).toBe(true);
   });
+  it("pending hides expired ones unless the Expired outcome is picked", () => {
+    const expired = makeAssessment({ status: "pending", outcome: "expired" });
+    expect(run(expired)).toBe(false);
+    expect(run(expired, { status: "all" })).toBe(true);
+    expect(run(expired, { outcome: "expired" })).toBe(true);
+  });
   it("kind", () => {
     expect(run(makeAssessment({ kind: "oa" }), { kind: "oa" })).toBe(true);
     expect(run(makeAssessment({ kind: "interview" }), { kind: "oa" })).toBe(false);
