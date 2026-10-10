@@ -470,4 +470,25 @@ describe("groupIntoJobs: a hiring agency's relay mail", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].target).toMatchObject({ type: "new", company: "Clera", role: "Computer Vision & Robotics Intern" });
   });
+
+  it("the agency's rejection lands on the right one of its roles", () => {
+    const rejected = analyze(
+      mail({
+        gmailId: "relay2",
+        threadId: "trelay2",
+        fromAddress: "pat@clera-talents.com",
+        fromName: "Pat",
+        subject: "Update on your application through Clera",
+        text: "Hey Sam,\n\nWe finished reviewing you for Computer Vision & Robotics Intern at Initech. We don't think it's the right match at this time, so we won't pitch you there unfortunately.\n\nRobin from Clera",
+        receivedAt: at(12),
+      })
+    );
+    const apps = [
+      makeApp({ company: "Clera", role: "Backend Intern" }),
+      makeApp({ company: "Clera", role: "Computer Vision & Robotics Intern" }),
+    ];
+    const [g] = groupIntoJobs([rejected], apps, [], []);
+    expect(g.target).toMatchObject({ type: "existing", application: { role: "Computer Vision & Robotics Intern" } });
+    expect(g.steps.map((s) => [s.status, s.apply])).toEqual([["rejected", true]]);
+  });
 });

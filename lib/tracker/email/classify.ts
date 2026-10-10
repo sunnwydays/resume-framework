@@ -32,7 +32,7 @@ export const RULES = {
   // is never the company.
   relayDomains: ["ripplematch.com", "joinhandshake.com", "wellfound.com", "linkedin.com", "indeed.com"],
   // Hiring agencies whose own mail names the client ("Thanks for applying for
-  // Robotics Intern at Trenon") while the same job's Ashby/Greenhouse mail says
+  // Robotics Intern at Initech") while the same job's Ashby/Greenhouse mail says
   // the agency. The agency is the company, so both mails land on one card.
   agencyDomains: { "clera-talents.com": "Clera", "getclera.com": "Clera" } as Record<string, string>,
   personalDomains: [
@@ -92,6 +92,13 @@ export const RULES = {
     /(?:were|was|have|has|are|is)\s+not\s+(?:been\s+)?(?:selected|chosen|successful|shortlisted)/i,
     /regret\s+to\s+(?:inform|tell|let|advise|share)/i,
     new RegExp(`(?:isn't|is\\s+not|${N})\\s+(?:an?\\s+)?(?:ideal|good|strong|right|best|great)\\s+(?:fit|match)`, "i"),
+    // "We don't think it's the right match", "do not believe you're a strong fit"
+    new RegExp(
+      `${N}\\s+(?:think|believe|feel)\\s+(?:it's|it\\s+is|this\\s+is|that's|you're|you\\s+are|there's|there\\s+is)\\s+(?:an?\\s+|the\\s+)?(?:ideal|good|strong|right|best|great)\\s+(?:fit|match)`,
+      "i"
+    ),
+    // A hiring agency: "so we won't pitch you there", "will not be submitting your profile"
+    /(?:won't|will\s+not|wouldn't)\s+(?:be\s+)?(?:pitch(?:ing)?|submit(?:ting)?|present(?:ing)?|put(?:ting)?\s+forward|refer(?:ring)?)\s+(?:you|your\s+(?:profile|application|resume))\b/i,
     /after\s+(?:careful|thorough|much)\s+(?:consideration|review)[^.]{0,160}?\b(?:determined|decided|regret|unable)/i,
     /(?:position|role|opening|vacancy)\s+(?:has|have)\s+been\s+filled/i,
     /(?:will|we)\s+not\s+be\s+(?:offering|extending|able to offer)/i,

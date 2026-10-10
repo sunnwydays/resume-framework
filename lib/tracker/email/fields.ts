@@ -415,6 +415,11 @@ function candidates(f: EmailFacts): Candidate[] {
     add("role", m[1], "body: applying for …");
     if (m[2]) add("company", m[2], "body: applying for …");
   }
+  // A hiring agency: "We finished reviewing you for Robotics Intern at Initech." Role
+  // only: the company stays the agency (agencyDomains), the same as its confirmation.
+  if ((m = new RegExp(String.raw`\b(?:review(?:ing|ed)?|consider(?:ing|ed)?)\s+you\s+for\s+(?:the\s+)?${RO}\s+at\s+${CO}`, "i").exec(flat))) {
+    add("role", m[1], "body: reviewing you for …");
+  }
   // "your application for Software Development Engineer Internships at this time."
   if ((m = new RegExp(String.raw`\byour\s+application\s+for\s+(?:the\s+|our\s+)?${RO}(?=\s+at\s+this\s+time|\s+has\s+been\b|,|\.(?:\s|$)|!|$)`, "i").exec(flat))) {
     add("role", m[1], "body: your application for …");

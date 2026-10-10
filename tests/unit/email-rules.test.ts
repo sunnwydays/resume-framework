@@ -39,6 +39,9 @@ describe("classify: rejections hide inside 'thank you' emails", () => {
     "we've determined that there isn't an ideal fit at this time",
     "your application was not successful this time",
     "after careful consideration of your background, we have decided to pursue other candidates",
+    "we don't think it's the right match at this time",
+    "we do not believe you're a strong fit for this team",
+    "we won't be submitting your profile to the client",
   ])("rejection phrase: %s", (phrase) => {
     const m = mail({
       fromAddress: "no-reply@us.greenhouse-mail.io",
@@ -55,6 +58,36 @@ describe("classify: rejections hide inside 'thank you' emails", () => {
       text: "Hi Sam, Thank you for your interest in the Software Engineer Intern, Test Automation (Summer 2027) position. Due to the high volume of applications, we may not be able to reach out to every applicant. However, your application will be thoughtfully reviewed. Early Talent Programs at Zephyr",
     });
     expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("does not read 'we think you're the right match' as a rejection", () => {
+    const m = mail({
+      fromAddress: "no-reply@us.greenhouse-mail.io",
+      subject: "Thank you for applying to Zephyr",
+      text: "Hi Sam, thank you for applying. We think you're the right match for this role.",
+    });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("a hiring agency's 'won't pitch you there' names the role it was for", () => {
+    const m = mail({
+      fromAddress: "pat@clera-talents.com",
+      fromName: "Pat",
+      subject: "Update on your application through Clera",
+      text: [
+        "Hey Sam,",
+        "We finished reviewing you for Computer Vision & Robotics Intern at Initech. We don't think it's the right match at this time, so we won't pitch you there unfortunately.",
+        "But this doesn't mean we can't help you. We work with hundreds of startups, and many roles we have access to aren't even public. If you want, tell me what you're looking for (salary range, remote or in person, your relocation preferences) and we can reach back out when we find something fitting.",
+        "You can also update everything on this link if you'd prefer and it shows roles we hire for that we think could fit you:",
+        "https://www.getclera.com/match/abc123",
+        "Feel free to reach out whenever,",
+        "Robin from Clera",
+      ].join("\n\n"),
+    });
+    expect(kindOf(m)).toBe("rejection");
+    const f = extractFields(m, "rejection");
+    expect(f.company).toBe("Clera");
+    expect(f.role).toBe("Computer Vision & Robotics Intern");
   });
 
   it("reads LinkedIn's tracking URL when the text is empty", () => {
