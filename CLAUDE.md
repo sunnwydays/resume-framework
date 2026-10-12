@@ -601,7 +601,10 @@ tracker paths; the resume pages never hit it.
   steps, assessment actions and missing-date fills; recomputed on every
   render, so accepting one job makes the next match the new row).
   `match.ts` holds the fuzzy company/role matching shared with the import.
-  Gotchas learned from the real inbox: one company sends many roles (a
+  Gotchas learned from the real inbox: a reply's quoted history ("On … wrote:",
+  Gmail's `gmail_quote` block, Outlook's "From:/Sent:") is cut in `parse.ts`
+  before any rule runs, or a "thanks for confirming" reply re-reads the invite
+  it quotes and the quote header's date becomes the interview time; one company sends many roles (a
   thread is not a job; match on role and job id); "may not be able to reach
   out to every applicant" is a confirmation, not a rejection; sentences about
   what *might* happen (a round-by-round timeline, "if selected…", a portal's

@@ -109,6 +109,32 @@ export function htmlToText(html: string): { text: string; links: EmailLink[] } {
   return { text: cleanText(text), links };
 }
 
+// A reply's quoted history ("On Mon, Oct 12, 2026 at 1:42 PM Pat Lee
+// <pat@…> wrote:" and everything under it): the rules read only what's new.
+// Otherwise a "thanks for confirming" reply re-reads the invite it quotes, and
+// the quote header's date passes for the interview time.
+const QUOTE_START = [
+  /^On\b[^\n]{0,200}(?:\n[^\n]{0,200})?\bwrote:[ \t]*$/m,
+  /^-{2,} ?Original Message ?-{2,}/im,
+  /^From:[^\n]*\n(?:Sent|Date):/m,
+];
+const HTML_QUOTE = /<div\b[^>]*\bclass\s*=\s*["'][^"']*\b(?:gmail_quote|yahoo_quoted)\b|<div\b[^>]*\bid\s*=\s*["']divRplyFwdMsg\b/i;
+
+export function withoutQuote(text: string): string {
+  const cut = Math.min(text.length, ...QUOTE_START.map((r) => r.exec(text)?.index ?? text.length));
+  return text
+    .slice(0, cut)
+    .split("\n")
+    .filter((line) => !line.startsWith(">"))
+    .join("\n")
+    .trim();
+}
+
+const htmlWithoutQuote = (html: string) => {
+  const quote = HTML_QUOTE.exec(html);
+  return quote ? html.slice(0, quote.index) : html;
+};
+
 function plainLinks(text: string): EmailLink[] {
   return (text.match(/https?:\/\/[^\s<>"')\]]+/g) ?? []).map((url) => ({ url, label: "" }));
 }
@@ -144,8 +170,9 @@ export function parseGmailMessage(msg: GmailMessage): EmailFacts {
   const bodies = { plain: [] as string[], html: [] as string[] };
   collect(msg.payload, bodies);
 
-  const plain = cleanText(decodeEntities(bodies.plain.join("\n")));
-  const html = bodies.html.length ? htmlToText(bodies.html.join("\n")) : null;
+  const plain = withoutQuote(cleanText(decodeEntities(bodies.plain.join("\n"))));
+  const fromHtml = bodies.html.length ? htmlToText(htmlWithoutQuote(bodies.html.join("\n"))) : null;
+  const html = fromHtml && { ...fromHtml, text: withoutQuote(fromHtml.text) };
   // Some senders ship a one-line plain part ("view this email in your
   // browser") next to the real HTML body.
   const usePlain = plain.replace(/\s/g, "").length >= 80 || !html;

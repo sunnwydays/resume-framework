@@ -117,6 +117,52 @@ describe("parseGmailMessage", () => {
   });
 });
 
+describe("a reply's quoted history", () => {
+  // A coordinator's "thanks for confirming" reply, quoting the booking.
+  const invite = [
+    "Hi Sam,",
+    "I'm Kim Park, a Recruiting Coordinator working with Lee to schedule your interview as follows:",
+    "1st Interview: Monday, October 19, 2026 at 1:00pm - 1:45pm.",
+    "2nd Interview: Monday, October 19, 2026 at 2:00pm - 2:45pm.",
+    "*All timings are listed in EDT.",
+  ];
+  const reply = "Hi Sam,\n\nThank you for confirming your interviews. If you have any further questions regarding scheduling logistics, please reach out.\n\nBest,\nKim";
+  const headers = { From: "Kim Park <coordinator@xwf.hooli.com>", Subject: "Re: [Please Confirm] Hooli Meet Interviews - Sam Lee" };
+
+  it("plain text: everything from 'On … wrote:' down is dropped, even when the header wraps", () => {
+    const text = `${reply}\n\nOn Mon, Oct 12, 2026 at 1:42 PM Kim Park <\ncoordinator@xwf.hooli.com> wrote:\n\n${invite.map((l) => `> ${l}`).join("\n")}`;
+    const facts = parseGmailMessage(gmail([{ mimeType: "text/plain", text }], headers));
+    expect(facts.text).toBe(cleanText(reply));
+    // Read on its own, the reply isn't an invite, so it can't move the interview.
+    expect(classify(facts).kind).toBeNull();
+  });
+
+  it("HTML: Gmail's quote block and its links are dropped", () => {
+    const html =
+      `<div dir="ltr"><p>${reply.replace(/\n+/g, "</p><p>")}</p></div>` +
+      `<div class="gmail_quote"><div class="gmail_attr">On Mon, Oct 12, 2026 at 1:42 PM Kim Park wrote:</div>` +
+      `<blockquote>${invite.map((l) => `<p>${l}</p>`).join("")}<a href="https://meet.example/abc">Video Call Link 1</a></blockquote></div>`;
+    const facts = parseGmailMessage(gmail([{ mimeType: "text/html", text: html }], headers));
+    expect(facts.text).not.toMatch(/1st Interview|wrote:/);
+    expect(facts.links).toEqual([]);
+    expect(classify(facts).kind).toBeNull();
+  });
+
+  it("Outlook's 'From: … Sent: …' block is dropped, and '>' lines without a header too", () => {
+    const outlook = `${reply}\n\nFrom: Kim Park <coordinator@hooli.com>\nSent: Monday, October 12, 2026 1:42 PM\nTo: Sam Lee\n\n${invite.join("\n")}`;
+    expect(parseGmailMessage(gmail([{ mimeType: "text/plain", text: outlook }], headers)).text).toBe(cleanText(reply));
+    const bare = `Thanks, see you then!\n> ${invite[2]}`;
+    expect(parseGmailMessage(gmail([{ mimeType: "text/plain", text: bare }], headers)).text).toBe("Thanks, see you then!");
+  });
+
+  it("a mail that isn't a reply is untouched", () => {
+    const text = invite.join("\n");
+    const facts = parseGmailMessage(gmail([{ mimeType: "text/plain", text }], { ...headers, Subject: "[Please Confirm] Hooli Meet Interviews - Sam Lee" }));
+    expect(facts.text).toBe(cleanText(text));
+    expect(classify(facts).kind).toBe("interview_invite");
+  });
+});
+
 describe("expandDigest", () => {
   const digest = (notifications: string[]) =>
     mail({
