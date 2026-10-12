@@ -1,5 +1,4 @@
 import { ROLE_TYPE_ORDER, roleType } from "@/lib/tracker/roles";
-import type { Priority } from "@/lib/tracker/priority";
 import {
   STATUSES,
   isOpen,
@@ -85,7 +84,7 @@ export function applicationSortValue(
 
 // ----------------------------------------------------------- assessments
 
-export type AssessmentSortKey = "priority" | "company" | "title" | "due" | "difficulty" | "result";
+export type AssessmentSortKey = "company" | "title" | "due" | "difficulty" | "result";
 
 // Pending, then done normally, then bombed, and expired last.
 export function resultRank(a: Assessment): number {
@@ -97,12 +96,9 @@ export function resultRank(a: Assessment): number {
 export function assessmentSortValue(
   a: Assessment,
   key: AssessmentSortKey,
-  app: Application | undefined,
-  priority: Map<string, Priority>
+  app: Application | undefined
 ): string | number | null {
   switch (key) {
-    case "priority":
-      return priority.get(a.id)?.rank ?? null;
     case "company":
       return app ? `${app.company} ${app.role}` : null;
     case "title":

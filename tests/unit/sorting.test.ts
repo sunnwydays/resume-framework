@@ -177,9 +177,7 @@ describe("resultRank and assessmentSortValue", () => {
   it("reads each column", () => {
     const app = makeApp({ company: "Acme", role: "SWE" });
     const a = makeAssessment({ id: "x", title: "Round 1", due_at: "2026-10-05T00:00:00.000Z", difficulty: 4 });
-    const priority = new Map([["x", { rank: 2, reason: "" }]]);
-    const get = (key: Parameters<typeof assessmentSortValue>[1]) => assessmentSortValue(a, key, app, priority);
-    expect(get("priority")).toBe(2);
+    const get = (key: Parameters<typeof assessmentSortValue>[1]) => assessmentSortValue(a, key, app);
     expect(get("company")).toBe("Acme SWE");
     expect(get("title")).toBe("Round 1");
     expect(get("due")).toBe("2026-10-05T00:00:00.000Z");
@@ -189,9 +187,8 @@ describe("resultRank and assessmentSortValue", () => {
 
   it("gives null (sorts last) when there is nothing to show", () => {
     const a = makeAssessment({ id: "x" });
-    expect(assessmentSortValue(a, "priority", undefined, new Map())).toBeNull();
-    expect(assessmentSortValue(a, "company", undefined, new Map())).toBeNull();
-    expect(assessmentSortValue(a, "due", undefined, new Map())).toBeNull();
-    expect(assessmentSortValue(a, "difficulty", undefined, new Map())).toBeNull();
+    expect(assessmentSortValue(a, "company", undefined)).toBeNull();
+    expect(assessmentSortValue(a, "due", undefined)).toBeNull();
+    expect(assessmentSortValue(a, "difficulty", undefined)).toBeNull();
   });
 });

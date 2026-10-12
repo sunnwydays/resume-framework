@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import AssessmentDetail, { DifficultyDots, SourceTag } from "@/components/tracker/AssessmentDetail";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { assessmentSortValue, type AssessmentSortKey as SortKey, type SortDir } from "@/lib/tracker/sorting";
-import type { Priority } from "@/lib/tracker/priority";
 import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
 import { sectionsLabel, sectionsOf } from "@/lib/tracker/sections";
 import type { Tracker } from "@/lib/tracker/useTracker";
@@ -25,8 +24,6 @@ interface Props {
   assessments: Assessment[];
   applicationsById: Map<string, Application>;
   questionsByAssessment: Map<string, Question[]>;
-  // Do-first rank per pending assessment (see lib/tracker/priority.ts).
-  priority: Map<string, Priority>;
   expandedId: string | null;
   onToggle: (id: string) => void;
   onOpenApplication: (applicationId: string) => void;
@@ -38,7 +35,6 @@ const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide
 const tdCls = "px-3 py-2 align-middle";
 
 const FIRST_DIR: Record<SortKey, SortDir> = {
-  priority: "asc",
   company: "asc",
   title: "asc",
   due: "asc",
@@ -55,7 +51,6 @@ export default function AssessmentsTable({
   assessments,
   applicationsById,
   questionsByAssessment,
-  priority,
   expandedId,
   onToggle,
   onOpenApplication,
@@ -64,13 +59,13 @@ export default function AssessmentsTable({
 }: Props) {
   const value = useCallback(
     (a: Assessment, key: SortKey) =>
-      assessmentSortValue(a, key, applicationsById.get(a.application_id), priority),
-    [applicationsById, priority]
+      assessmentSortValue(a, key, applicationsById.get(a.application_id)),
+    [applicationsById]
   );
-  // Default: what to do first. Unranked (done, or the application is closed)
-  // go last.
+  // Default: closest due date first, undated last. The Pending filter is how
+  // to see only what's left to do.
   const { sort, setSort, sorted } = useSortedRows<Assessment, SortKey>(assessments, value, {
-    key: "priority",
+    key: "due",
     dir: "asc",
   });
 
@@ -120,7 +115,6 @@ export default function AssessmentsTable({
         <table className="w-full min-w-3xl text-sm">
           <thead className="border-b border-neutral-200 dark:border-neutral-800">
             <tr>
-              {header("priority", "Do first")}
               {header("company", "Company")}
               {header("title", "Assessment")}
               {header("due", "Due / when")}
@@ -138,7 +132,6 @@ export default function AssessmentsTable({
               const open = isOpen(a);
               const overdue = open && a.due_at && new Date(a.due_at).getTime() < now;
               const outcome = a.outcome ? OUTCOMES[a.outcome as Outcome] : null;
-              const rank = priority.get(a.id);
               return (
                 <Fragment key={a.id}>
                   <tr
@@ -153,12 +146,6 @@ export default function AssessmentsTable({
                       expanded ? "bg-neutral-50 dark:bg-neutral-900" : ""
                     }`}
                   >
-                    <td
-                      className={`${tdCls} tabular-nums ${rank ? "font-medium" : "text-neutral-400"}`}
-                      title={rank?.reason}
-                    >
-                      {rank ? `#${rank.rank}` : "—"}
-                    </td>
                     <td className={`${tdCls} font-medium`}>
                       <span className="mr-1.5 inline-block w-3 text-neutral-400">{expanded ? "▾" : "▸"}</span>
                       {app?.company ?? "?"}
@@ -229,7 +216,7 @@ export default function AssessmentsTable({
                   </tr>
                   {expanded && (
                     <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                      <td colSpan={7}className="bg-background/50">
+                      <td colSpan={6} className="bg-background/50">
                         <AssessmentDetail
                           key={a.id}
                           assessment={a}

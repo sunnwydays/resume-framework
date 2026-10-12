@@ -44,7 +44,6 @@ import {
   type Question,
   type StatusChange,
 } from "@/lib/tracker/format";
-import { prioritize } from "@/lib/tracker/priority";
 import { groupBy } from "@/lib/tracker/stats";
 import { ROLE_TYPES, roleType, roleTypeLabel, type RoleType } from "@/lib/tracker/roles";
 
@@ -168,12 +167,6 @@ function TrackerPageInner() {
     () => assessmentStatusCounts(statsAssessments, asmtFilters, now),
     [statsAssessments, asmtFilters, now]
   );
-  // Ranked among what's on screen, so #1 is the best next pick in this view.
-  const priority = useMemo(
-    () => prioritize(visibleAssessments, applicationsById, now),
-    [visibleAssessments, applicationsById, now]
-  );
-
   // Role-type chips list the types present in each tab's own data.
   const typeCounts = useMemo(() => {
     const c = new Map<RoleType, number>();
@@ -413,7 +406,6 @@ function TrackerPageInner() {
                   assessments={visibleAssessments}
                   applicationsById={applicationsById}
                   questionsByAssessment={questionsByAssessment}
-                  priority={priority}
                   expandedId={expandedAsmtId}
                   onToggle={(id) => setExpandedAsmtId((cur) => (cur === id ? null : id))}
                   onOpenApplication={openApplication}

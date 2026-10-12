@@ -251,11 +251,14 @@ tracker paths; the resume pages never hit it.
   edited in the panel). Both tables sort via `components/tracker/sorting.tsx` (the header
   button and hook) over the pure `lib/tracker/sorting.ts` (`sortRows`, the
   per-column sort values, `nextStep`).
-  Its default sort is "Do first" (`lib/tracker/priority.ts`): tiered, not a
-  score. Dated pending ones by deadline (important counts a day earlier),
+  Its default sort is plain due date, soonest first, undated last (Sunny
+  marks overdue ones Expired and uses the Pending filter to see what's
+  left; a "Do first" rank column was removed as redundant). The tiered
+  "Do first" order (`lib/tracker/priority.ts`) now only feeds the Today
+  card: dated pending ones by deadline (important counts a day earlier),
   then undated, then ones overdue >72h; ties go to the shorter, then easier.
   Completed ones and ones whose application is rejected/withdrawn are
-  unranked. Ranks are computed over the rows on screen.
+  unranked.
 - **Outcomes** (`OUTCOMES` in `format.ts`): only `expired` and `bombed`; empty means "done
   normally". Pass or fail is not stored: `assessmentResult` (`stats.ts`) derives it from the
   application. Getting past the assessment's stage (furthest stage reached, a booked later
