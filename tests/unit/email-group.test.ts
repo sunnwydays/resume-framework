@@ -362,6 +362,41 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.assessments[0]).toMatchObject({ existing, apply: true, link: "https://www.hackerrank.com/test/abc" });
   });
 
+  it("a company's heads-up then the platform's invite: one OA, with the platform's link", () => {
+    const app = makeApp({ company: "Vandelay & Company", role: "Associate Intern", status: "applied" });
+    const headsUp = analyze(
+      mail({
+        gmailId: "h1",
+        threadId: "th1",
+        fromAddress: "recruiting.assessments@vandelay.com",
+        subject: "Vandelay & Company: TestGorilla assessment",
+        text: "Thank you for applying to Vandelay & Company! We request that you complete the TestGorilla online assessment by October 13th, 2026. The assessment will take approximately ~40 minutes to complete.",
+        links: [{ url: "https://www.vandelay.com/careers/assessment-hub", label: "Digital Assessment Hub" }],
+        receivedAt: at(28, 13),
+      })
+    );
+    const invite = analyze(
+      mail({
+        gmailId: "h2",
+        threadId: "th2",
+        fromAddress: "assessments@testgorilla.com",
+        fromName: "TestGorilla Assessments",
+        subject: "Your application for Vandelay & Company",
+        text: "You're invited to take an assessment for Vandelay & Company! As part of your application to Vandelay & Company, we request that you complete the TestGorilla online assessment.",
+        links: [{ url: "https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001", label: "Go to assessment" }],
+        receivedAt: at(28, 14),
+      })
+    );
+    expect([headsUp.kind, invite.kind]).toEqual(["oa_invite", "oa_invite"]);
+    const [g] = groupIntoJobs([headsUp, invite], [app], [], []);
+    expect(g.assessments).toHaveLength(1);
+    expect(g.assessments[0]).toMatchObject({
+      link: "https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001",
+      apply: true,
+    });
+    expect(g.assessments[0].dueAt).not.toBeNull();
+  });
+
   it("'assessment completed' marks the pending OA completed, at the time the mail says", () => {
     const app = makeApp({ company: "Wayne Labs", role: "Frontend SWE", status: "oa", status_changed_at: at(22) });
     const pending = makeAssessment({ application_id: app.id, kind: "oa", status: "pending", title: "Wayne Labs Frontend Challenge" });

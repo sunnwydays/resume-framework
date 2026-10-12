@@ -194,9 +194,10 @@ export const RULES = {
   ],
 
   reminder: [
-    // Not "As a reminder, rescheduling takes up a lot of time…" (boilerplate
-    // in an interview follow-up).
-    /(?<!\bas\s+a\s+)\breminder\b/i,
+    // Not "As a reminder, rescheduling takes up a lot of time…" or "As a
+    // friendly reminder, our interview questions are confidential"
+    // (boilerplate in an interview follow-up or booking).
+    /(?<!\bas\s+a\s+(?:\w+\s+)?)\breminder\b/i,
     /(?:haven't|have not)\s+(?:had\s+a\s+chance|yet)\s+(?:to\s+)?(?:complete|start|begin|finish)/i,
     /\b(?:still\s+pending|is\s+still\s+waiting|still\s+waiting\s+for)\b/i,
     /don't\s+forget/i,

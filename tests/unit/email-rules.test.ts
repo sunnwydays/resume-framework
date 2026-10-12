@@ -726,6 +726,80 @@ describe("fixes from the third inbox review", () => {
   });
 });
 
+describe("fixes from the fourth inbox review", () => {
+  // A coordinator's booking confirmation, shaped like a big tech one.
+  const booked = mail({
+    fromAddress: "coordinator@xwf.hooli.com",
+    fromName: "Kim Park (xWF)",
+    subject: "[Please Confirm] Hooli Meet Interviews - Sam Lee",
+    text: [
+      "Hi Sam,",
+      "We're excited to connect you with members of our team. I'm Kim Park, a Recruiting Coordinator working with Lee to schedule your interview. I'm here to ensure you have a smooth process by scheduling your interview as follows:",
+      "1st Interview: Monday, October 19, 2026 at 1:00pm - 1:45pm.",
+      "Video Call Link: Video Call Link 1",
+      "2nd Interview: Monday, October 19, 2026 at 2:00pm - 2:45pm.",
+      "Video Call Link: Video Call Link 2",
+      "*All timings are listed in EDT.",
+      "If your interviewer doesn't join within the first 10 minutes of your interview, please contact me.",
+      "Please join no more than 5 minutes early.",
+      "As a friendly reminder, our interview questions are confidential, so please keep things under wraps.",
+    ].join("\n"),
+    receivedAt: "2026-10-12T18:28:00.000Z",
+  });
+
+  it("'As a friendly reminder, our questions are confidential' doesn't make a booking a reminder", () => {
+    expect(kindOf(booked)).toBe("interview_invite");
+  });
+
+  it("'1st Interview: <date> at <time>' is the interview time, in the zone stated elsewhere", () => {
+    const f = extractFields(booked, "interview_invite");
+    expect(f.dueAt).toBe("2026-10-19T17:00:00.000Z");
+  });
+
+  // A company's heads-up, then the platform's own invite with the real link.
+  const headsUp = mail({
+    fromAddress: "Recruiting.Assessments@vandelay.com",
+    fromName: "Recruiting Assessments",
+    subject: "Vandelay & Company: TestGorilla assessment",
+    text: [
+      "Dear Sam,",
+      "Thank you for taking the time to apply to Vandelay & Company!",
+      "As part of the application process, we request that you complete the TestGorilla online assessment by Tuesday, October 13th, at 11:59 p.m. PT.",
+      "The assessment will take approximately ~40 minutes to complete and must be completed in one sitting.",
+      "You will soon receive a separate email from TestGorilla with your individual link to the assessment. If you do not receive the link within the next 24 hours, please check your SPAM folder.",
+      "You can find more information in the candidate guide to completing the assessment.",
+      "To learn more about the assessment, we encourage you to visit our Digital Assessment Hub.",
+    ].join("\n"),
+    links: [
+      { url: "https://candidates.testgorilla.com/hc/en-us/articles/100-Comprehensive-guide-to-taking-your-assessment", label: "candidate guide" },
+      { url: "https://www.vandelay.com/careers/digital-assessment-hub", label: "Digital Assessment Hub" },
+    ],
+    receivedAt: "2026-10-12T17:40:00.000Z",
+  });
+
+  it("a heads-up that says the link comes in a separate email has no link (not the guide)", () => {
+    const f = extractFields(headsUp, "oa_invite");
+    expect(f.link).toBeNull();
+    expect(f.dueAt).toBe("2026-10-14T06:59:00.000Z");
+  });
+
+  it("a help-center article on the platform's domain is never the assessment link", () => {
+    const f = extractFields(
+      mail({
+        fromAddress: "assessments@testgorilla.com",
+        subject: "Your application for Vandelay & Company",
+        text: "You're invited to take an assessment. Read our guide first.",
+        links: [
+          { url: "https://candidates.testgorilla.com/hc/en-us/articles/100-guide", label: "guide" },
+          { url: "https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001", label: "Go to assessment" },
+        ],
+      }),
+      "oa_invite"
+    );
+    expect(f.link).toBe("https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001");
+  });
+});
+
 describe("extractFields: deadlines and completion", () => {
   it("platform 'End Login Date/Time' with a zone", () => {
     const f = extractFields(

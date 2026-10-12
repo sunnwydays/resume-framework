@@ -612,7 +612,10 @@ tracker paths; the resume pages never hit it.
   (`RULES.hypothetical` / `conditional`); LinkedIn's
   plain text is empty but its tracking URLs name the mail type; some
   employers' links are tracking redirects, so assessment links are chosen by
-  anchor text. Personal sender domains to ignore (e.g. Sunny's school) live in
+  anchor text; a company's "you'll get a separate email with your link" heads-up
+  gives no link (its links are guides, often on the platform's own domain), and
+  when two mails land on one assessment the platform sender's own link wins
+  (`linkRank` in `group.ts`). Personal sender domains to ignore (e.g. Sunny's school) live in
   `NEXT_PUBLIC_GMAIL_IGNORE_DOMAINS` in `.env.local`, not in `RULES`.
   **Tune the rules with the dev inspector at `/tracker/gmail-debug`**
   (404 in production): a dry-run scan that shows every fetched email with

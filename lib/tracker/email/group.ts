@@ -4,8 +4,8 @@
 // tracker data, so accepting one job immediately makes the next one's match
 // land on the new row. Nothing here is applied automatically.
 
-import { RULES, classify } from "@/lib/tracker/email/classify";
-import { extractFields, type EmailFields } from "@/lib/tracker/email/fields";
+import { RULES, classify, isAssessmentSender } from "@/lib/tracker/email/classify";
+import { PLATFORM_LINK, extractFields, type EmailFields } from "@/lib/tracker/email/fields";
 import { companyCloseness, hasDistinctRole, key, mentionsJobId, roleCloseness } from "@/lib/tracker/email/match";
 import type { EmailFacts } from "@/lib/tracker/email/parse";
 import {
@@ -183,6 +183,15 @@ const byTime = (a: Analyzed, b: Analyzed) => a.facts.receivedAt.localeCompare(b.
 // repeats what the application row already says.
 const assessmentTitle = (e: Analyzed, kind: AssessmentKind) => e.fields.assessmentTitle ?? kindLabel(kind);
 
+// Which of two mails about one assessment has the better link: the platform's
+// own invite (the candidate's personal link) beats a platform link the company
+// forwarded, which beats a link picked by its anchor text.
+function linkRank(e: Analyzed): number {
+  if (!e.fields.link) return 0;
+  if (e.fields.origins.link !== PLATFORM_LINK) return 1;
+  return isAssessmentSender(e.facts.fromAddress) ? 3 : 2;
+}
+
 interface Cluster {
   company: string | null;
   role: string | null;
@@ -274,8 +283,8 @@ function planGroup(
       if (have) {
         // A second mail for the same assessment (platform invite after the
         // company's, or a deadline extension): merge, keeping what's known.
+        if (linkRank(email) > Math.max(...have.emails.map(linkRank))) have.link = email.fields.link;
         have.emails.push(email);
-        have.link ??= email.fields.link;
         have.dueAt = email.fields.dueAt ?? have.dueAt;
         continue;
       }

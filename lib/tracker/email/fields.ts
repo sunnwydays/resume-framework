@@ -84,8 +84,9 @@ function findDate(slice: string, ref: Date): Found | null {
   return { y: year, m: month, d: +hit.day, index: hit.r.index, end: hit.r.index + hit.r[0].length };
 }
 
-// Date plus the time and zone written near it. No time means end of that day.
-export function findDateTime(slice: string, ref: Date): string | null {
+// Date plus the time and zone written near it (else `zone`, one stated once for
+// the whole email). No time means end of that day.
+export function findDateTime(slice: string, ref: Date, zone?: string): string | null {
   const date = findDate(slice, ref);
   if (!date) return null;
   const times = [...slice.matchAll(TIME)].map((t) => {
@@ -103,7 +104,7 @@ export function findDateTime(slice: string, ref: Date): string | null {
   });
   const near = times.filter((t) => t.gap >= -2 && t.gap <= 30).sort((a, b) => a.gap - b.gap)[0];
   const [h, min] = near ? [near.h, near.min] : [23, 59];
-  const tz = TZ.exec(slice)?.[1];
+  const tz = TZ.exec(slice)?.[1] ?? zone;
   const when = tz
     ? new Date(Date.UTC(date.y, date.m, date.d, h, min) - tzOffsetMinutes(tz, date.y, date.m, date.d) * 60_000)
     : new Date(date.y, date.m, date.d, h, min);
@@ -120,13 +121,18 @@ const NUMBER_WORDS: Record<string, number> = {
 const SPAN = `\\b(\\d+|${Object.keys(NUMBER_WORDS).join("|")})\\s+(?:calendar\\s+|business\\s+)?(days?|weeks?)\\b`;
 
 // An interview invite carries the time it is scheduled for, not a deadline.
-const SCHEDULE_WORDS = /(?:scheduled\s+(?:for|on)|will\s+(?:be\s+)?(?:held\s+)?on|date(?:\s*(?:and|&)\s*time)?:|\bon)\s*:?\s*/gi;
+// "1st Interview: Monday, October 19, 2026 at 1:00pm" is a coordinator's booking.
+const SCHEDULE_WORDS = /(?:scheduled\s+(?:for|on)|will\s+(?:be\s+)?(?:held\s+)?on|date(?:\s*(?:and|&)\s*time)?:|\binterview\s*:|\bon)\s*:?\s*/gi;
+
+// "*All timings are listed in EDT." below the times it applies to.
+const EMAIL_ZONE = new RegExp(String.raw`\b[Tt]im(?:es?|ings?)\s+(?:are\s+)?(?:\w+\s+)?in\s+${TZ.source}`);
 
 export function findDeadline(text: string, receivedAt: string, interview = false): { at: string; origin: string } | null {
   const ref = new Date(receivedAt);
+  const zone = EMAIL_ZONE.exec(text)?.[1];
   for (const word of text.matchAll(interview ? SCHEDULE_WORDS : DEADLINE_WORDS)) {
     const start = (word.index ?? 0) + word[0].length;
-    const at = findDateTime(text.slice(start, start + 70), ref);
+    const at = findDateTime(text.slice(start, start + 70), ref, zone);
     if (at) return { at, origin: `deadline: "${word[0].trim().slice(0, 30)}"` };
   }
   // "within 14 calendar days", "no later than one week from now": counted from
@@ -521,12 +527,22 @@ function hostOf(url: string): string {
   }
 }
 
+// "You will soon receive a separate email from TestGorilla with your individual
+// link": a company's heads-up, whose own links are guides. The platform's mail
+// that follows carries the real one.
+const LINK_COMES_LATER = /\bseparate\s+email\b[^.]{0,120}?\blink\b|\blink\b[^.]{0,120}?\bseparate\s+email\b/i;
+
+export const PLATFORM_LINK = "assessment platform link";
+
 function pickLink(f: EmailFacts): { url: string; origin: string } | null {
+  if (LINK_COMES_LATER.test(f.text)) return null;
+  // Help-center articles live on the platform's domain too (…/hc/en-us/articles/…).
   const usable = f.links.filter(
-    (l) => !/unsubscribe|privacy|preferences|mailto:|support\.|help\.|\/faq/i.test(l.url + " " + l.label)
+    (l) =>
+      !/unsubscribe|privacy|preferences|mailto:|support\.|help\.|\/faq|\/hc\/|\/articles?\/|\bguides?\b/i.test(l.url + " " + l.label)
   );
   const platform = usable.find((l) => RULES.assessmentDomains.some((d) => hostOf(l.url).endsWith(d)));
-  if (platform) return { url: platform.url, origin: "assessment platform link" };
+  if (platform) return { url: platform.url, origin: PLATFORM_LINK };
   // BigCo-style tracking redirects: the anchor text says what the link is.
   const labelled = usable.find((l) => /start|begin|take|access|launch|this url|assessment|test link|schedule|book/i.test(l.label));
   return labelled ? { url: labelled.url, origin: `link "${labelled.label.slice(0, 30)}"` } : null;
