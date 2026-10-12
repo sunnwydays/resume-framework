@@ -120,6 +120,18 @@ export function matchesAssessmentFilters(a: Assessment, f: AssessmentFilters, no
   return true;
 }
 
+// What each status chip would show: the table's own filter with only the
+// status swapped, so "Pending" leaves out expired ones just like the table.
+export function assessmentStatusCounts(
+  assessments: Assessment[],
+  f: AssessmentFilters,
+  now: number
+): Record<AssessmentFilters["status"], number> {
+  const count = (status: AssessmentFilters["status"]) =>
+    assessments.filter((a) => matchesAssessmentFilters(a, { ...f, status }, now)).length;
+  return { pending: count("pending"), completed: count("completed"), all: count("all") };
+}
+
 export function isDefault<T extends object>(f: T, defaults: T): boolean {
   return (Object.keys(defaults) as (keyof T)[]).every((k) => f[k] === defaults[k]);
 }

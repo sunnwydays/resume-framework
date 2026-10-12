@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_APP_FILTERS,
   DEFAULT_ASSESSMENT_FILTERS,
+  assessmentStatusCounts,
   isDefault,
   matchesApplicationFilters,
   matchesApplicationSearch,
@@ -143,6 +144,26 @@ describe("matchesApplicationFilters", () => {
     const app = makeApp({ status: "oa", applied_on: ago(40) });
     expect(run(app, { appliedWithin: 30, hasSteps: true })).toBe(false);
     expect(run(app, { appliedWithin: 90, hasSteps: true })).toBe(true);
+  });
+});
+
+describe("assessmentStatusCounts", () => {
+  // Shaped like the bug: 4 open, 7 expired (still status "pending"), 12 done.
+  const rows = [
+    ...Array.from({ length: 4 }, () => makeAssessment({ status: "pending" })),
+    ...Array.from({ length: 7 }, () => makeAssessment({ status: "pending", outcome: "expired" })),
+    ...Array.from({ length: 12 }, () => makeAssessment({ status: "completed" })),
+  ];
+
+  it("counts what each chip would show, so Pending leaves out expired ones like the table", () => {
+    expect(assessmentStatusCounts(rows, DEFAULT_ASSESSMENT_FILTERS, NOW)).toEqual({ pending: 4, completed: 12, all: 23 });
+    const shown = rows.filter((a) => matchesAssessmentFilters(a, DEFAULT_ASSESSMENT_FILTERS, NOW));
+    expect(shown).toHaveLength(4);
+  });
+
+  it("holds the other filters: with the Expired outcome picked, Pending counts the expired ones", () => {
+    const f = { ...DEFAULT_ASSESSMENT_FILTERS, outcome: "expired" as const };
+    expect(assessmentStatusCounts(rows, f, NOW)).toEqual({ pending: 7, completed: 0, all: 7 });
   });
 });
 

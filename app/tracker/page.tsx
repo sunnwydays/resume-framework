@@ -24,6 +24,7 @@ import {
   CLOSED,
   DEFAULT_APP_FILTERS,
   DEFAULT_ASSESSMENT_FILTERS,
+  assessmentStatusCounts,
   matchesApplicationFilters,
   matchesApplicationSearch,
   matchesAssessmentFilters,
@@ -147,16 +148,6 @@ function TrackerPageInner() {
     [statsApps, appFilters, assessmentsByApp, now]
   );
 
-  const asmtCounts = useMemo(() => {
-    const c: Record<string, number> = { all: 0, pending: 0, completed: 0 };
-    for (const a of assessments) {
-      if (asmtFilters.kind && a.kind !== asmtFilters.kind) continue;
-      c.all++;
-      c[a.status]++;
-    }
-    return c;
-  }, [assessments, asmtFilters.kind]);
-
   const statsAssessments = useMemo(
     () =>
       assessments.filter((a) => {
@@ -171,6 +162,10 @@ function TrackerPageInner() {
   const visibleAssessments = useMemo(
     () =>
       statsAssessments.filter((a) => matchesAssessmentFilters(a, asmtFilters, now)),
+    [statsAssessments, asmtFilters, now]
+  );
+  const asmtCounts = useMemo(
+    () => assessmentStatusCounts(statsAssessments, asmtFilters, now),
     [statsAssessments, asmtFilters, now]
   );
   // Ranked among what's on screen, so #1 is the best next pick in this view.
