@@ -178,16 +178,10 @@ const rank = (status: string) => STAGES.indexOf(status as (typeof STAGES)[number
 const isClosed = (status: string) => status === "rejected" || status === "withdrawn";
 const byTime = (a: Analyzed, b: Analyzed) => a.facts.receivedAt.localeCompare(b.facts.receivedAt);
 
-const assessmentTitle = (e: Analyzed, kind: AssessmentKind) => {
-  if (e.fields.assessmentTitle) return e.fields.assessmentTitle;
-  const subject = e.facts.subject
-    .replace(/^\[?action required\]?:?\s*/i, "")
-    .replace(/^(?:reminder:?\s*)/i, "")
-    .replace(/\s+invitation$/i, "")
-    .replace(/^your\s+/i, "")
-    .trim();
-  return subject || kindLabel(kind);
-};
+// A named test ("Globex Frontend Challenge Assessment"), else just "OA": the
+// subject ("Sam, You're invited! Assessment for <Role> - <Company>") only
+// repeats what the application row already says.
+const assessmentTitle = (e: Analyzed, kind: AssessmentKind) => e.fields.assessmentTitle ?? kindLabel(kind);
 
 interface Cluster {
   company: string | null;

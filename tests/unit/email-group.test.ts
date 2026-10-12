@@ -292,6 +292,12 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.steps[0].note).toMatch(/at or past/);
   });
 
+  it("an invite with no named test is titled by its kind, not its subject", () => {
+    const app = makeApp({ company: "Initech", role: "Backend Intern", status: "applied" });
+    const [g] = groupIntoJobs([oaInvite("Initech", "Backend Intern", 22)], [app], [], []);
+    expect(g.assessments[0]).toMatchObject({ kind: "oa", title: "OA" });
+  });
+
   it("an OA invite on an applied row proposes the step", () => {
     const app = makeApp({ company: "Initech", role: "Backend Intern", status: "applied" });
     const [g] = groupIntoJobs([oaInvite("Initech", "Backend Intern", 22)], [app], [], []);
