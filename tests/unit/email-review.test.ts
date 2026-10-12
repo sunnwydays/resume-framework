@@ -65,7 +65,7 @@ const shape = (g: JobGroup) => ({
   ready: g.ready,
   nothingToDo: g.nothingToDo,
   steps: g.steps.map((s) => [s.status, s.at, s.apply]),
-  assessments: g.assessments.map((a) => [a.kind, a.title, a.link, a.dueAt, a.completedAt, a.apply]),
+  assessments: g.assessments.map((a) => [a.kind, a.title, a.link, a.dueAt, a.durationMin, a.sections, a.completedAt, a.apply]),
   fills: g.fills.map((f) => [f.field, f.value]),
 });
 
@@ -93,6 +93,26 @@ describe("rows: storing and reading back", () => {
     const apps = [makeApp({ company: "Initech", role: "Data Intern" })];
     const back = fresh.map((a) => fromRow(stored(a)));
     expect(groupIntoJobs(back, apps, [], []).map(shape)).toEqual(groupIntoJobs(fresh, apps, [], []).map(shape));
+  });
+
+  // Two booked slots, so the stored row carries a length and sections.
+  const booking = () =>
+    analyze(
+      mail({
+        gmailId: `m${++n}`,
+        threadId: `t${n}`,
+        fromAddress: "coordinator@hooli.com",
+        subject: "Hooli Interviews - Sam Lee",
+        text: "I'm here to schedule your interview as follows:\n1st Interview: Monday, October 19, 2026 at 1:00pm - 1:45pm.\n2nd Interview: Monday, October 19, 2026 at 2:00pm - 2:45pm.",
+        receivedAt: at(12),
+      })
+    );
+
+  it("keeps a booking's length and parts through storage", () => {
+    const fresh = [booking()];
+    expect(fresh[0].fields.sections).toHaveLength(2);
+    const back = fresh.map((a) => fromRow(stored(a)));
+    expect(groupIntoJobs(back, [], [], []).map(shape)).toEqual(groupIntoJobs(fresh, [], [], []).map(shape));
   });
 
   it("reads Postgres timestamps back as the ISO strings the rules compare", () => {
@@ -136,6 +156,15 @@ describe("rows: storing and reading back", () => {
       const origins = Object.fromEntries(Object.entries(row.field_origins as object).reverse());
       const old = stored(a, { due_at: row.due_at!.replace(".000Z", "+00:00"), field_origins: origins });
       expect(planSave([row], [old])).toEqual({ insert: [], refresh: [] });
+    });
+
+    it("leaves unchanged sections alone, whatever order jsonb gives their keys", () => {
+      const a = booking();
+      const row = toRow(a)!;
+      const reordered = (row.sections as Record<string, unknown>[]).map((s) => Object.fromEntries(Object.entries(s).reverse()));
+      expect(planSave([row], [stored(a, { sections: reordered as EmailMessage["sections"] })])).toEqual({ insert: [], refresh: [] });
+      // …but a rule that now reads a different length does rewrite it.
+      expect(planSave([row], [stored(a, { duration_min: 60 })]).refresh).toHaveLength(1);
     });
 
     it("never touches an accepted row", () => {
@@ -345,7 +374,7 @@ describe("buildPayload", () => {
     const oa = makeAssessment({ application_id: app.id, kind: "oa", status: "pending", link: null });
     const [g] = groupIntoJobs([oaInvite("Globex", "Backend Intern", 22)], [app], [oa], []);
     expect(buildPayload(g, defaultTicks(g), rowIdOf).assessments).toEqual([
-      { id: oa.id, link: "https://www.hackerrank.com/test/abc", due_at: null, completed_at: null },
+      { id: oa.id, link: "https://www.hackerrank.com/test/abc", due_at: null, duration_min: null, sections: [], completed_at: null },
     ]);
   });
 

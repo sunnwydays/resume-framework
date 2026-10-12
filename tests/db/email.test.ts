@@ -178,7 +178,51 @@ describe.skipIf(!dbReady)("apply_email_job", () => {
         expect(row.status).toBe("completed");
         expect(iso(row.completed_at)).toBe(T3);
         expect((await acceptFor(tx, app)).assessments_before).toEqual([
-          { id: oa, link: "https://assess.example/t/3", due_at: null, status: "pending", completed_at: null },
+          { id: oa, link: "https://assess.example/t/3", due_at: null, duration_min: null, sections: [], status: "pending", completed_at: null },
+        ]);
+      });
+    });
+
+    it("fills an empty length and empty sections, never replacing set ones", async () => {
+      await asNewUser(async (tx) => {
+        const app = await addApplication(tx);
+        const slots = [
+          { id: "slot-1", title: "1st Interview", minutes: 45, details: "Monday at 1:00pm - 1:45pm", notes: null, parts: [] },
+          { id: "slot-2", title: "2nd Interview", minutes: 45, details: "Monday at 2:00pm - 2:45pm", notes: null, parts: [] },
+        ];
+        const empty = await addAssessment(tx, app, { kind: "interview", title: "Interview" });
+        const mine = [{ id: "a", title: "Mine", minutes: 30, details: null, notes: "went well", parts: [] }];
+        const set = await addAssessment(tx, app, { kind: "interview", title: "Set", duration_min: 30, sections: JSON.stringify(mine) });
+        await applyEmailJob(tx, {
+          application_id: app,
+          assessments: [
+            { id: empty, duration_min: 90, sections: slots },
+            { id: set, duration_min: 90, sections: slots },
+          ],
+          message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+        });
+        const row = (id: string) => tx.one<{ duration_min: number | null; sections: unknown }>("select duration_min, sections from public.assessments where id = $1", [id]);
+        expect(await row(empty)).toEqual({ duration_min: 90, sections: slots });
+        expect(await row(set)).toEqual({ duration_min: 30, sections: mine });
+      });
+    });
+
+    it("adds a new assessment with its length and sections (none when the payload has none)", async () => {
+      await asNewUser(async (tx) => {
+        const slots = [{ id: "slot-1", title: "1st Interview", minutes: 45, details: null, notes: null, parts: [] }];
+        const id = await applyEmailJob(tx, {
+          new_application: { company: "Hooli", role: "SWE Intern", status_changed_at: T2 },
+          assessments: [
+            { kind: "interview", title: "Interview", duration_min: 45, sections: slots, completed_at: null },
+            { kind: "oa", title: "OA", completed_at: null },
+          ],
+          message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+        });
+        expect(
+          await tx.rows("select title, duration_min, sections from public.assessments where application_id = $1 order by title", [id])
+        ).toEqual([
+          { title: "Interview", duration_min: 45, sections: slots },
+          { title: "OA", duration_min: null, sections: [] },
         ]);
       });
     });
@@ -369,6 +413,44 @@ describe.skipIf(!dbReady)("undo_email_job", () => {
       );
       await tx.query("update public.applications set notes = 'called them' where id = $1", [app]);
       expect((await undoFails(tx, first)).message).toMatch(/edited after/);
+    });
+  });
+
+  it("undo empties the length and sections the card filled in", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      const interview = await addAssessment(tx, app, { kind: "interview", title: "Interview" });
+      const slots = [{ id: "slot-1", title: "1st Interview", minutes: 45, details: null, notes: null, parts: [] }];
+      await applyEmailJob(tx, {
+        application_id: app,
+        assessments: [{ id: interview, duration_min: 45, sections: slots }],
+        message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+      });
+      await undo(tx, await acceptIdFor(tx, app));
+      expect(await tx.one("select duration_min, sections from public.assessments where id = $1", [interview])).toEqual({ duration_min: null, sections: [] });
+    });
+  });
+
+  it("an accept recorded before lengths and sections were tracked leaves them as they are", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      const oa = await addAssessment(tx, app, { title: "OA" });
+      await applyEmailJob(tx, { application_id: app, assessments: [{ id: oa, link: "https://assess.example/t/9" }], message_ids: [await addEmail(tx, { kind: "reminder" })] });
+      const acceptId = await acceptIdFor(tx, app);
+      // What an older apply_email_job wrote: no duration_min or sections keys.
+      await tx.query(
+        "update public.email_accepts set assessments_before = jsonb_build_array((assessments_before->0) - 'duration_min' - 'sections') where id = $1",
+        [acceptId]
+      );
+      const typed = [{ id: "a", title: "Typed later", minutes: 20, details: null, notes: null, parts: [] }];
+      // Set by hand in the meantime (a hand edit on the assessment, not the application row).
+      await tx.query("update public.assessments set duration_min = 20, sections = $2::jsonb where id = $1", [oa, JSON.stringify(typed)]);
+      await undo(tx, acceptId);
+      expect(await tx.one("select link, duration_min, sections from public.assessments where id = $1", [oa])).toEqual({
+        link: null,
+        duration_min: 20,
+        sections: typed,
+      });
     });
   });
 

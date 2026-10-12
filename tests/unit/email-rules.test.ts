@@ -756,6 +756,55 @@ describe("fixes from the fourth inbox review", () => {
     expect(f.dueAt).toBe("2026-10-19T17:00:00.000Z");
   });
 
+  it("two booked slots are one interview with two parts, timed by their ranges", () => {
+    const f = extractFields(booked, "interview_invite");
+    expect(f.sections).toEqual([
+      { id: "slot-1", title: "1st Interview", minutes: 45, details: "Monday, October 19, 2026 at 1:00pm - 1:45pm", notes: null, parts: [] },
+      { id: "slot-2", title: "2nd Interview", minutes: 45, details: "Monday, October 19, 2026 at 2:00pm - 2:45pm", notes: null, parts: [] },
+    ]);
+    expect(f.durationMin).toBe(90);
+    // The same email read twice gives the same value, so a re-scan changes nothing.
+    expect(extractFields(booked, "interview_invite").sections).toEqual(f.sections);
+  });
+
+  it("one booked slot sets the length but makes no parts", () => {
+    const f = extractFields(
+      mail({
+        fromAddress: "pat@initech.com",
+        subject: "Interview confirmation",
+        text: "Your interview is scheduled for Monday, October 19, 2026 at 11:30am - 12:15pm ET.",
+      }),
+      "interview_invite"
+    );
+    expect(f.durationMin).toBe(45);
+    expect(f.sections).toEqual([]);
+  });
+
+  it("a slot line without a label is numbered, and '1:00 - 1:45pm' takes the pm", () => {
+    const f = extractFields(
+      mail({
+        fromAddress: "pat@initech.com",
+        subject: "Interview confirmation",
+        text: "We'd like to schedule your interviews:\nMonday, October 19 at 1:00 - 1:45pm\nMonday, October 19 at 2:00 - 3:00pm",
+      }),
+      "interview_invite"
+    );
+    expect(f.sections.map((s) => [s.title, s.minutes])).toEqual([
+      ["Interview 1", 45],
+      ["Interview 2", 60],
+    ]);
+    expect(f.durationMin).toBe(105);
+  });
+
+  it("an OA invite's time ranges aren't slots", () => {
+    const f = extractFields(
+      mail({ fromAddress: "a@initech.com", subject: "Invitation for assessments", text: "Office hours: Monday, October 19 at 1:00pm - 3:00pm" }),
+      "oa_invite"
+    );
+    expect(f.sections).toEqual([]);
+    expect(f.durationMin).toBeNull();
+  });
+
   // A company's heads-up, then the platform's own invite with the real link.
   const headsUp = mail({
     fromAddress: "Recruiting.Assessments@vandelay.com",
@@ -781,6 +830,7 @@ describe("fixes from the fourth inbox review", () => {
     const f = extractFields(headsUp, "oa_invite");
     expect(f.link).toBeNull();
     expect(f.dueAt).toBe("2026-10-14T06:59:00.000Z");
+    expect(f.durationMin).toBe(40);
   });
 
   it("a help-center article on the platform's domain is never the assessment link", () => {
@@ -797,6 +847,34 @@ describe("fixes from the fourth inbox review", () => {
       "oa_invite"
     );
     expect(f.link).toBe("https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001");
+  });
+
+  it.each([
+    ["The assessment will take ~40 minutes to complete.", 40],
+    ["Duration: 90 min", 90],
+    ["The full assessment takes about 2 hours.", 120],
+    ["It takes approximately 1.5 hours.", 90],
+    ["You will be scheduled for two 45 minute interviews via video call.", 45],
+    ["This is a 60-minute coding challenge.", 60],
+  ])("reads the length from '%s'", (text, minutes) => {
+    const f = extractFields(mail({ fromAddress: "a@initech.com", subject: "Invitation for assessments", text }), "oa_invite");
+    expect(f.durationMin).toBe(minutes);
+  });
+
+  it.each([
+    "If your interviewer doesn't join within the first 10 minutes, contact me.",
+    "Please join no more than 5 minutes early.",
+    "You will get the assessment link within 24 hours.",
+  ])("'%s' is not a length", (text) => {
+    expect(extractFields(mail({ fromAddress: "a@initech.com", subject: "Invitation for assessments", text }), "oa_invite").durationMin).toBeNull();
+  });
+
+  it("a confirmation doesn't get a length", () => {
+    const f = extractFields(
+      mail({ fromAddress: "a@initech.com", subject: "Application received", text: "Our process takes about 30 minutes of your time." }),
+      "confirmation"
+    );
+    expect(f.durationMin).toBeNull();
   });
 });
 

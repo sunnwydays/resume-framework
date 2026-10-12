@@ -242,6 +242,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           due_at: string | null
+          duration_min: number | null
           field_origins: Json
           from_address: string
           from_name: string
@@ -253,6 +254,7 @@ export type Database = {
           matched_phrase: string | null
           received_at: string
           role: string | null
+          sections: Json
           snippet: string
           state: string
           subject: string
@@ -267,6 +269,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_at?: string | null
+          duration_min?: number | null
           field_origins?: Json
           from_address: string
           from_name?: string
@@ -278,6 +281,7 @@ export type Database = {
           matched_phrase?: string | null
           received_at: string
           role?: string | null
+          sections?: Json
           snippet?: string
           state?: string
           subject?: string
@@ -292,6 +296,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_at?: string | null
+          duration_min?: number | null
           field_origins?: Json
           from_address?: string
           from_name?: string
@@ -303,6 +308,7 @@ export type Database = {
           matched_phrase?: string | null
           received_at?: string
           role?: string | null
+          sections?: Json
           snippet?: string
           state?: string
           subject?: string

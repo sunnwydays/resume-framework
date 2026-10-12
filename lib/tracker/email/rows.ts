@@ -6,6 +6,7 @@ import type { Json, TablesInsert } from "@/lib/tracker/database.types";
 import type { EmailFields, FieldName } from "@/lib/tracker/email/fields";
 import type { Analyzed } from "@/lib/tracker/email/group";
 import type { EmailKind, EmailMessage } from "@/lib/tracker/format";
+import { sectionsOf } from "@/lib/tracker/sections";
 
 export const SNIPPET_MAX = 200;
 
@@ -36,6 +37,8 @@ export function toRow(a: Analyzed): TablesInsert<"email_messages"> | null {
     job_id: fields.jobId,
     link: fields.link,
     due_at: fields.dueAt,
+    duration_min: fields.durationMin,
+    sections: fields.sections as unknown as Json,
     completed_at: fields.completedAt,
     assessment_title: fields.assessmentTitle,
     field_origins: fields.origins as Json,
@@ -53,6 +56,8 @@ export function fromRow(row: EmailMessage): Analyzed {
     jobId: row.job_id,
     link: row.link,
     dueAt: isoOrNull(row.due_at),
+    durationMin: row.duration_min,
+    sections: sectionsOf(row.sections),
     completedAt: isoOrNull(row.completed_at),
     assessmentTitle: row.assessment_title,
     origins: (row.field_origins ?? {}) as Partial<Record<FieldName, string>>,
@@ -79,19 +84,27 @@ export function fromRow(row: EmailMessage): Analyzed {
 // so a rule fix reaches emails saved before it. Accepted rows are history and
 // dismissed ones stay dismissed: neither is touched.
 const RULE_COLUMNS = [
-  "kind", "matched_phrase", "company", "role", "job_id", "link", "due_at", "completed_at", "assessment_title",
-  "field_origins",
+  "kind", "matched_phrase", "company", "role", "job_id", "link", "due_at", "duration_min", "sections", "completed_at",
+  "assessment_title", "field_origins",
 ] as const;
 type RuleColumn = (typeof RULE_COLUMNS)[number];
 export type RuleChanges = Pick<TablesInsert<"email_messages">, RuleColumn>;
 
-// jsonb hands keys back in its own order; timestamps come back as "+00:00".
+// jsonb hands keys back in its own order (at every level); timestamps come
+// back as "+00:00".
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+  if (v && typeof v === "object") {
+    const entries = Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`).join(",")}}`;
+  }
+  return JSON.stringify(v ?? null);
+}
+
 function same(column: RuleColumn, stored: unknown, fresh: unknown): boolean {
   if (column === "due_at" || column === "completed_at") return isoOrNull(stored as string | null) === isoOrNull(fresh as string | null);
-  if (column === "field_origins") {
-    const sorted = (v: unknown) => JSON.stringify(Object.entries((v ?? {}) as object).sort(([a], [b]) => a.localeCompare(b)));
-    return sorted(stored) === sorted(fresh);
-  }
+  if (column === "field_origins") return canonical(stored ?? {}) === canonical(fresh ?? {});
+  if (column === "sections") return canonical(stored ?? []) === canonical(fresh ?? []);
   return (stored ?? null) === (fresh ?? null);
 }
 

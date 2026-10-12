@@ -18,6 +18,7 @@ import {
   type EmailKind,
   type StatusChange,
 } from "@/lib/tracker/format";
+import { sectionsOf, type Section } from "@/lib/tracker/sections";
 import { STAGES, furthestStage } from "@/lib/tracker/stats";
 
 export interface Analyzed {
@@ -134,6 +135,8 @@ export interface AssessmentAction {
   title: string;
   link: string | null;
   dueAt: string | null;
+  durationMin: number | null;
+  sections: Section[];
   existing: Assessment | null; // fill this one in instead of adding another
   completedAt: string | null; // set when a "you completed it" mail was seen
   apply: boolean;
@@ -190,6 +193,20 @@ function linkRank(e: Analyzed): number {
   if (!e.fields.link) return 0;
   if (e.fields.origins.link !== PLATFORM_LINK) return 1;
   return isAssessmentSender(e.facts.fromAddress) ? 3 : 2;
+}
+
+// Whether a mail has something a tracked assessment is missing: the database
+// only ever fills empty values, so anything else would be a no-op.
+function fillsIn(
+  a: Assessment,
+  f: Pick<EmailFields, "link" | "dueAt" | "durationMin" | "sections">
+): boolean {
+  return Boolean(
+    (!a.link && f.link) ||
+      (!a.due_at && f.dueAt) ||
+      (a.duration_min == null && f.durationMin) ||
+      (!sectionsOf(a.sections).length && f.sections.length)
+  );
 }
 
 interface Cluster {
@@ -286,6 +303,8 @@ function planGroup(
         if (linkRank(email) > Math.max(...have.emails.map(linkRank))) have.link = email.fields.link;
         have.emails.push(email);
         have.dueAt = email.fields.dueAt ?? have.dueAt;
+        have.durationMin ??= email.fields.durationMin;
+        if (!have.sections.length) have.sections = email.fields.sections;
         continue;
       }
       const existing = pending(invite).length === 1 ? pending(invite)[0] : null;
@@ -295,12 +314,14 @@ function planGroup(
         title: assessmentTitle(email, invite),
         link: email.fields.link,
         dueAt: email.fields.dueAt,
+        durationMin: email.fields.durationMin,
+        sections: email.fields.sections,
         existing,
         completedAt: null,
         apply: true,
       };
       // Already tracked and nothing new to say: don't offer a no-op.
-      if (existing && (existing.link || !action.link) && (existing.due_at || !action.dueAt)) {
+      if (existing && !fillsIn(existing, action)) {
         action.apply = false;
         action.note = "already tracked";
       }
@@ -311,13 +332,15 @@ function planGroup(
       if (mine) {
         mine.emails.push(email);
         mine.dueAt = email.fields.dueAt ?? mine.dueAt;
-      } else if (only && ((!only.link && email.fields.link) || (!only.due_at && email.fields.dueAt))) {
+      } else if (only && fillsIn(only, email.fields)) {
         actions.push({
           emails: [email],
           kind: only.kind as AssessmentKind,
           title: only.title,
           link: email.fields.link,
           dueAt: email.fields.dueAt,
+          durationMin: email.fields.durationMin,
+          sections: email.fields.sections,
           existing: only,
           completedAt: null,
           apply: true,
@@ -343,6 +366,8 @@ function planGroup(
           title: only.title,
           link: null,
           dueAt: null,
+          durationMin: null,
+          sections: [],
           existing: only,
           completedAt: at,
           apply: true,
@@ -354,6 +379,8 @@ function planGroup(
           title: assessmentTitle(email, done),
           link: null,
           dueAt: null,
+          durationMin: null,
+          sections: [],
           existing: null,
           completedAt: at,
           apply: true,

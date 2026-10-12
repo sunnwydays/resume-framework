@@ -15,6 +15,7 @@ import {
   type EmailJobPayload,
 } from "@/lib/tracker/email/payload";
 import { gmailLink } from "@/lib/tracker/email/rows";
+import { sectionsOf } from "@/lib/tracker/sections";
 import {
   EMAIL_KINDS,
   STATUS_META,
@@ -56,11 +57,24 @@ function assessmentText(a: AssessmentAction): string {
   const what = kindLabel(a.kind);
   if (a.existing) {
     if (a.completedAt) return `Mark “${a.existing.title}” completed on ${formatDateTime(a.completedAt)}`;
-    const parts = [a.link && !a.existing.link && "its link", a.dueAt && !a.existing.due_at && `due ${formatDateTime(a.dueAt)}`].filter(Boolean);
+    const parts = [
+      a.link && !a.existing.link && "its link",
+      a.dueAt && !a.existing.due_at && `due ${formatDateTime(a.dueAt)}`,
+      a.durationMin && a.existing.duration_min == null && `${a.durationMin} min`,
+      a.sections.length > 0 && !sectionsOf(a.existing.sections).length && `${a.sections.length} parts`,
+    ].filter(Boolean);
     return `Fill in “${a.existing.title}”: ${parts.join(", ") || "nothing new"}`;
   }
   if (a.completedAt) return `Add completed ${what}: ${a.title} (${formatDateTime(a.completedAt)})`;
-  return `Add ${what}: ${a.title}${a.dueAt ? ` · due ${formatDateTime(a.dueAt)}` : ""}${a.link ? " · with link" : ""}`;
+  return [
+    `Add ${what}: ${a.title}`,
+    a.dueAt && `due ${formatDateTime(a.dueAt)}`,
+    a.durationMin && `${a.durationMin} min`,
+    a.sections.length > 0 && `${a.sections.length} parts (${a.sections.map((s) => s.title).join(", ")})`,
+    a.link && "with link",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function fillText(f: DateFill, app: Application | null): string {

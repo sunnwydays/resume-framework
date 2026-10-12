@@ -7,8 +7,9 @@ import { RULES } from "@/lib/tracker/email/classify";
 import { companyCloseness } from "@/lib/tracker/email/match";
 import type { EmailKind } from "@/lib/tracker/format";
 import type { EmailFacts } from "@/lib/tracker/email/parse";
+import { totalMinutes, type Section } from "@/lib/tracker/sections";
 
-export type FieldName = "company" | "role" | "jobId" | "link" | "dueAt" | "completedAt";
+export type FieldName = "company" | "role" | "jobId" | "link" | "dueAt" | "durationMin" | "sections" | "completedAt";
 
 export interface EmailFields {
   company: string | null;
@@ -16,6 +17,8 @@ export interface EmailFields {
   jobId: string | null;
   link: string | null;
   dueAt: string | null;
+  durationMin: number | null; // how long the assessment or interview takes
+  sections: Section[]; // an interview booked as several back-to-back slots
   completedAt: string | null;
   // "Globex Frontend Challenge Assessment": CodeSignal names the test, not the company.
   assessmentTitle: string | null;
@@ -164,6 +167,67 @@ export function findCompletion(text: string, receivedAt: string): string | null 
   if (!m) return null;
   const start = m.index + m[0].length;
   return findDateTime(text.slice(start, start + 60), new Date(receivedAt));
+}
+
+// "will take approximately ~40 minutes", "Duration: 90 min", "two 45 minute
+// interviews". Not "within the first 10 minutes of your interview" or "join no
+// more than 5 minutes early", so a bare number of minutes isn't enough.
+const LENGTH = String.raw`(?:approximately|approx\.?|about|around|roughly|up\s+to)?\s*~?\s*(\d+(?:\.\d+)?)\s*-?\s*(minutes?|mins?|hours?|hrs?)\b`;
+const LENGTH_PATTERNS = [
+  new RegExp(String.raw`\b(?:takes?|taking|lasts?|lasting)\s+${LENGTH}`, "i"),
+  new RegExp(String.raw`\bduration\s*:?\s*${LENGTH}`, "i"),
+  new RegExp(
+    String.raw`${LENGTH}\s+(?:to\s+complete|long|in\s+length|(?:(?:online|coding|technical|video|phone|live)\s+)?(?:assessments?|tests?|challenges?|exercises?|interviews?))\b`,
+    "i"
+  ),
+];
+
+export function findDuration(text: string): { minutes: number; origin: string } | null {
+  for (const pattern of LENGTH_PATTERNS) {
+    const m = pattern.exec(text);
+    if (!m) continue;
+    const minutes = Math.round(+m[1] * (/^h/i.test(m[2]) ? 60 : 1));
+    if (minutes >= 5 && minutes <= 600) return { minutes, origin: `"${m[0].trim().slice(0, 40)}"` };
+  }
+  return null;
+}
+
+// "1:00pm - 1:45pm", "1:00 - 1:45 pm" (the first takes the second's am/pm).
+const TIME_RANGE = /\b(\d{1,2})(?::(\d\d))?\s*(?:([ap])\.?m\.?)?\s*(?:-|–|—|to)\s*(\d{1,2})(?::(\d\d))?\s*([ap])\.?m\.?(?![a-z])/i;
+
+function rangeMinutes(m: RegExpExecArray): number | null {
+  const clock = (h: string, min: string | undefined, ap: string) => (+h % 12) * 60 + (ap.toLowerCase() === "p" ? 720 : 0) + (min ? +min : 0);
+  const end = clock(m[4], m[5], m[6]);
+  const start = clock(m[1], m[2], m[3] ?? m[6]);
+  const minutes = end - start;
+  return minutes > 0 && minutes <= 480 ? minutes : null;
+}
+
+// A coordinator's booking, one slot per line: "1st Interview: Monday, October
+// 19, 2026 at 1:00pm - 1:45pm." Each line with a date and a time range is a
+// slot, titled by the label before its colon. Ids are fixed so a re-scan reads
+// the same value (and leaves a pending row alone).
+export function findSlots(text: string, receivedAt: string): Section[] {
+  const ref = new Date(receivedAt);
+  return text
+    .split(/\n+/)
+    .flatMap((line) => {
+      const range = TIME_RANGE.exec(line);
+      const minutes = range && findDate(line, ref) ? rangeMinutes(range) : null;
+      if (!minutes) return [];
+      // Not the "Monday, October 19 at 1" before the colon in "1:00".
+      const found = /^\s*([^:]{2,40}?)\s*:\s*(.+)$/.exec(line);
+      const label = found && !/\d$/.test(found[1]) && !findDate(found[1], ref) ? found : null;
+      return [{ label: label?.[1] ?? null, when: (label?.[2] ?? line).trim().replace(/\.$/, ""), minutes }];
+    })
+    .map((slot, i) => ({
+      id: `slot-${i + 1}`,
+      title: slot.label ?? `Interview ${i + 1}`,
+      minutes: slot.minutes,
+      details: slot.when,
+      notes: null,
+      parts: [],
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -559,8 +623,16 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
 
   const link = pickLink(f);
   const flatAll = `${f.subject}\n${f.text}`.replace(/\s+/g, " ");
-  const deadline =
-    kind && DEADLINE_KINDS.includes(kind) ? findDeadline(flatAll, f.receivedAt, kind === "interview_invite") : null;
+  const invite = kind !== null && DEADLINE_KINDS.includes(kind);
+  const deadline = invite ? findDeadline(flatAll, f.receivedAt, kind === "interview_invite") : null;
+  // Booked slots say how long each one is; else the email's own words.
+  const slots = kind === "interview_invite" ? findSlots(f.text, f.receivedAt) : [];
+  const duration = slots.length
+    ? { minutes: totalMinutes(slots)!, origin: slots.length > 1 ? `${slots.length} booked slots` : "booked time" }
+    : invite
+      ? findDuration(flatAll)
+      : null;
+  const sections = slots.length > 1 ? slots : [];
   const completed = kind === "assessment_done" ? findCompletion(flatAll, f.receivedAt) : null;
 
   return {
@@ -569,6 +641,8 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
     jobId: jobId?.value ?? null,
     link: link?.url ?? null,
     dueAt: deadline?.at ?? null,
+    durationMin: duration?.minutes ?? null,
+    sections,
     completedAt: completed,
     assessmentTitle: assessmentTitleOf(f),
     origins: {
@@ -577,6 +651,8 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
       ...(jobId && { jobId: jobId.origin }),
       ...(link && { link: link.origin }),
       ...(deadline && { dueAt: deadline.origin }),
+      ...(duration && { durationMin: duration.origin }),
+      ...(sections.length > 0 && { sections: "booked slots" }),
       ...(completed && { completedAt: "completion time" }),
     },
   };

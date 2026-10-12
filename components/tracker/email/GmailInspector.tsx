@@ -361,8 +361,10 @@ export default function GmailInspector() {
                         <td className="px-2 py-2">
                           {fields.link ? <div className="truncate text-sky-700 dark:text-sky-400" title={fields.link}>{fields.link.replace(/^https?:\/\//, "")}</div> : null}
                           {fields.dueAt ? <div>due {formatDate(fields.dueAt)}</div> : null}
+                          {fields.durationMin ? <div title={fields.origins.durationMin}>{fields.durationMin} min</div> : null}
+                          {fields.sections.length ? <div>{fields.sections.map((s) => `${s.title} (${s.minutes} min)`).join(", ")}</div> : null}
                           {fields.completedAt ? <div>done {formatDate(fields.completedAt)}</div> : null}
-                          {!fields.link && !fields.dueAt && !fields.completedAt && <span className="text-neutral-400">—</span>}
+                          {!fields.link && !fields.dueAt && !fields.durationMin && !fields.completedAt && <span className="text-neutral-400">—</span>}
                         </td>
                         <td className="px-2 py-2">
                           {r.match ? (

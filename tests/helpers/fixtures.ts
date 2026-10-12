@@ -179,6 +179,8 @@ export function makeEmailMessage(overrides: Partial<EmailMessage> = {}): EmailMe
     job_id: null,
     link: null,
     due_at: null,
+    duration_min: null,
+    sections: [],
     completed_at: null,
     assessment_title: null,
     field_origins: {},

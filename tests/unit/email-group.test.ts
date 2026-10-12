@@ -362,6 +362,34 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.assessments[0]).toMatchObject({ existing, apply: true, link: "https://www.hackerrank.com/test/abc" });
   });
 
+  it("an invite fills a missing length into the OA that is already tracked", () => {
+    const app = makeApp({ company: "Initech", role: "Backend Intern", status: "oa", status_changed_at: at(22) });
+    const existing = makeAssessment({ application_id: app.id, kind: "oa", link: "https://www.hackerrank.com/test/abc", due_at: at(30), duration_min: null });
+    const [g] = groupIntoJobs([oaInvite("Initech", "Backend Intern", 22, "The test will take 90 minutes.")], [app], [existing], []);
+    expect(g.assessments[0]).toMatchObject({ existing, apply: true, durationMin: 90 });
+    const timed = makeAssessment({ application_id: app.id, kind: "oa", link: "https://www.hackerrank.com/test/abc", due_at: at(30), duration_min: 60 });
+    const [same] = groupIntoJobs([oaInvite("Initech", "Backend Intern", 22, "The test will take 90 minutes.")], [app], [timed], []);
+    expect(same.assessments[0]).toMatchObject({ apply: false, note: "already tracked" });
+  });
+
+  it("a booking with two slots fills the parts of an interview that has none", () => {
+    const app = makeApp({ company: "Hooli", role: "SWE Intern", status: "interview", status_changed_at: at(20) });
+    const interview = makeAssessment({ application_id: app.id, kind: "interview", title: "Interview", due_at: at(30), link: "https://meet.example/x" });
+    const booking = analyze(
+      mail({
+        gmailId: "b1",
+        fromAddress: "coordinator@hooli.com",
+        subject: "Hooli Interviews - Sam Lee",
+        text: "I'm here to schedule your interview as follows:\n1st Interview: Monday, October 19, 2026 at 1:00pm - 1:45pm.\n2nd Interview: Monday, October 19, 2026 at 2:00pm - 2:45pm.",
+        receivedAt: at(25),
+      })
+    );
+    expect(booking.kind).toBe("interview_invite");
+    const [g] = groupIntoJobs([booking], [app], [interview], []);
+    expect(g.assessments[0]).toMatchObject({ existing: interview, apply: true, durationMin: 90 });
+    expect(g.assessments[0].sections.map((s) => s.title)).toEqual(["1st Interview", "2nd Interview"]);
+  });
+
   it("a company's heads-up then the platform's invite: one OA, with the platform's link", () => {
     const app = makeApp({ company: "Vandelay & Company", role: "Associate Intern", status: "applied" });
     const headsUp = analyze(
@@ -392,6 +420,7 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.assessments).toHaveLength(1);
     expect(g.assessments[0]).toMatchObject({
       link: "https://talent-assessment.testgorilla.com/0a1b2c3d-0000-4000-8000-000000000001",
+      durationMin: 40,
       apply: true,
     });
     expect(g.assessments[0].dueAt).not.toBeNull();
