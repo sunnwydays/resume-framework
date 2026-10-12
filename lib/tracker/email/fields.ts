@@ -131,10 +131,14 @@ export function findDeadline(text: string, receivedAt: string, interview = false
   }
   // "within 14 calendar days", "no later than one week from now": counted from
   // when the email arrived, keeping its clock time. Not hours: "within 24
-  // hours" is about when the next email comes.
+  // hours" is about when the next email comes. Nor a span about the employer's
+  // side: "Results will be verified within three business days".
   const within =
+    new RegExp(`(?:have|get|given)\\s+(?:only\\s+)?${SPAN}\\s+to\\s+(?:complete|take|finish|submit)`, "i").exec(text) ??
     new RegExp(`(?:after|in)\\s+${SPAN}[^.]{0,60}?expire`, "i").exec(text) ??
-    new RegExp(`within\\s+${SPAN}`, "i").exec(text) ??
+    [...text.matchAll(new RegExp(`within\\s+${SPAN}`, "gi"))].find(
+      (w) => !/\b(?:results?|verified|reviewed|hear|respond|reply|contact|get back)\b[^.]*$/i.test(text.slice(Math.max(0, (w.index ?? 0) - 80), w.index))
+    ) ??
     new RegExp(`${SPAN}\\s+from\\s+(?:now|today|(?:the\\s+date\\s+of\\s+)?(?:this|the)\\s+(?:email|invitation|invite))`, "i").exec(text);
   if (within) {
     const n = /^\d+$/.test(within[1]) ? +within[1] : NUMBER_WORDS[within[1].toLowerCase()];

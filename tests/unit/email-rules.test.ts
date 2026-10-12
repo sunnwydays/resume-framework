@@ -800,6 +800,17 @@ describe("extractFields: deadlines and completion", () => {
     expect(invite(`Please complete the assessment ${phrase}.`).dueAt).not.toBeNull();
   });
 
+  it("'you'll have 5 days to complete', not when results are verified", () => {
+    const f = invite(
+      "You'll have 5 days to complete your CodeSignal online assessment. You must complete the test in one sitting. Results will be verified within three business days."
+    );
+    expect(f.dueAt).toBe(daysAfter("2026-09-25T12:00:00.000Z", 5));
+  });
+
+  it("'within three business days' about results is not a deadline", () => {
+    expect(invite("Results will be verified within three business days.").dueAt).toBeNull();
+  });
+
   it("'within 24 hours' (when the next email comes) is not a deadline", () => {
     expect(invite("You will get the assessment link within 24 hours.").dueAt).toBeNull();
   });
