@@ -150,7 +150,7 @@ describe("matchesPostingFilters", () => {
       makePosting({ id: "p-new-ca", company: "Vandelay Industries", location: "Toronto, ON", match_pct: 90 }),
       makePosting({ id: "p-new-us", company: "Globex", location: "Austin, TX", match_pct: 60, role: "Machine Learning Intern" }),
       makePosting({ id: "p-defense", company: "Lockheed Martin", location: "Marietta, GA", match_pct: 99 }),
-      makePosting({ id: "p-aero", company: "Hooli", location: "Denver, CO", categories: "Aerospace · Private", match_pct: null }),
+      makePosting({ id: "p-gov", company: "Hooli", location: "Denver, CO", categories: "Government · Private", match_pct: null }),
       makePosting({ id: "p-tracked", company: "Initech", location: "Toronto, ON" }),
       makePosting({ id: "p-saved", company: "Umbrella", state: "saved" }),
       makePosting({ id: "p-applied", company: "Initech", state: "applied", application_id: apps[0].id }),
@@ -163,7 +163,7 @@ describe("matchesPostingFilters", () => {
     views.filter((v) => matchesPostingFilters(v, { ...ANY_TERM_AND_LENGTH, ...f })).map((v) => v.posting.id);
 
   it("by default: new ones, not-eligible and already-tracked hidden", () => {
-    expect(ids({})).toEqual(["p-new-ca", "p-new-us", "p-aero"]);
+    expect(ids({})).toEqual(["p-new-ca", "p-new-us", "p-gov"]);
   });
 
   it("by default: Summer 2027 and up to 4 months, keeping postings that state neither", () => {
@@ -204,9 +204,9 @@ describe("matchesPostingFilters", () => {
   });
 
   it("by region", () => {
-    expect(ids({ regions: new Set(["us"]) })).toEqual(["p-new-us", "p-aero"]);
+    expect(ids({ regions: new Set(["us"]) })).toEqual(["p-new-us", "p-gov"]);
     expect(ids({ regions: new Set(["canada"]) })).toEqual(["p-new-ca"]);
-    expect(ids({ regions: new Set(["us", "canada"]) })).toEqual(["p-new-ca", "p-new-us", "p-aero"]);
+    expect(ids({ regions: new Set(["us", "canada"]) })).toEqual(["p-new-ca", "p-new-us", "p-gov"]);
   });
 
   it("by role type", () => {
@@ -294,8 +294,8 @@ describe("matchesPostingFilters", () => {
   it("by search over company, role, location and industry", () => {
     expect(ids({ query: " globex " })).toEqual(["p-new-us"]);
     expect(ids({ query: "machine learning" })).toEqual(["p-new-us"]);
-    expect(ids({ query: "denver" })).toEqual(["p-aero"]);
-    expect(ids({ query: "aerospace" })).toEqual(["p-aero"]);
+    expect(ids({ query: "denver" })).toEqual(["p-gov"]);
+    expect(ids({ query: "government" })).toEqual(["p-gov"]);
     expect(ids({ query: "nothing like this" })).toEqual([]);
   });
 

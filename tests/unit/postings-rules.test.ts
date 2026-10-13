@@ -93,11 +93,18 @@ describe("postingEligibility", () => {
     expect(e("Vandelay Industries", "Intern, Secrets Management").level).toBe("ok");
   });
 
-  it("an aerospace or government industry is a check, not a no", () => {
-    expect(e("Vandelay Industries", "Software Engineer Intern", "Aerospace · Public Company")).toMatchObject({ level: "check" });
+  it("an aerospace, space or defense industry is out", () => {
+    expect(e("Vandelay Industries", "Software Engineer Intern", "Aerospace · Public Company")).toMatchObject({ level: "no", why: expect.stringContaining("ITAR") });
+    expect(e("Vandelay Industries", "Intern", "Defense · Private").level).toBe("no");
+    expect(e("Vandelay Industries", "Intern", "Space Technology · Startup").level).toBe("no");
+    expect(e("Vandelay Industries", "Intern", "Military · Private").level).toBe("no");
+  });
+
+  it("a government industry is a check, not a no", () => {
     expect(e("Vandelay Industries", "Intern", "Government · Nonprofit").level).toBe("check");
-    expect(e("Vandelay Industries", "Intern", "Defense · Private").level).toBe("check");
     expect(e("Vandelay Industries", "Intern", "Apps · Public Company").level).toBe("ok");
+    // "space" only as a word, not inside "Workspace".
+    expect(e("Vandelay Industries", "Intern", "Workspace Software · Startup").level).toBe("ok");
   });
 
   it("only US postings can be flagged", () => {

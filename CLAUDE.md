@@ -468,9 +468,10 @@ tracker paths; the resume pages never hit it.
     the bucket. Both are often absent, so "not stated" is its own chip, and a
     term or length chip hides everything that doesn't match it, including
     not-stated ones, unless that chip is on too), `eligibility.ts` (`ELIGIBILITY_RULES` holds the
-    defense-employer list, the title phrases and the "check" industries; the
-    page's citizen-only / clearance flags are a "no" too, ahead of the industry
-    "check"; only US postings can be flagged), `match.ts` (an existing application with the
+    defense-employer list, the title phrases, the "no" industries (aerospace,
+    space, defense, military: nearly all carry an ITAR citizenship line) and the
+    "check" industry (government); the page's citizen-only / clearance flags are
+    a "no" too; only US postings can be flagged), `match.ts` (an existing application with the
     same company and role: the "In tracker" pill), `view.ts` (all of that per
     posting, once per render), `filters.ts`, `sorting.ts`. "Applied" adds an
     application (`source: 'alert'`, role trimmed with the default trims,

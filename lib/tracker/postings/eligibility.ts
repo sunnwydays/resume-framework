@@ -22,8 +22,12 @@ export const ELIGIBILITY_RULES = {
   // Titles that say so outright.
   ineligibleTitle: /clearance|\bTS\/SCI\b|\bsecret\b|\bU\.?S\.?\s+citizen|\bUS\s+persons?\b|\bITAR\b/i,
 
+  // Industries that are a "no" on their own: US aerospace and defense roles
+  // almost all carry an ITAR / export-control citizenship line.
+  ineligibleCategories: /defen[cs]e|military|aerospace|\bspace\b|national security/i,
+
   // Industries worth a second look ("check"), not a "no".
-  checkCategories: /defen[cs]e|military|government|aerospace|space|national security/i,
+  checkCategories: /government/i,
 };
 
 export type EligibilityLevel = "ok" | "check" | "no";
@@ -53,6 +57,10 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
 
   if (p.citizen_only) return { level: "no", why: "The posting page says U.S. citizens only" };
   if (p.clearance_required) return { level: "no", why: "The posting page says a security clearance is required" };
+
+  if (p.categories && rules.ineligibleCategories.test(p.categories)) {
+    return { level: "no", why: `The company's industry is listed as "${p.categories}": US aerospace and defense roles need US citizenship (ITAR)` };
+  }
 
   const category = p.categories ? rules.checkCategories.exec(p.categories) : null;
   if (category) return { level: "check", why: `The company's industry is listed as "${p.categories}": check it doesn't need a clearance` };
