@@ -1,4 +1,4 @@
-// What the "From Gmail" tab shows: pending stored emails, minus muted ones,
+// What the "Gmail Updates" tab shows: pending stored emails, minus muted ones,
 // grouped into one card per job against the current tracker data.
 // Recomputed on every change, so accepting a card re-matches the rest.
 

@@ -157,7 +157,7 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
               Reads your inbox (Google asks first; nothing is kept after you reload) and looks for application
-              confirmations, rejections, and OA and interview invites. They show up under <em>From Gmail</em> as suggestions;
+              confirmations, rejections, and OA and interview invites. They show up under <em>Gmail Updates</em> as suggestions;
               nothing changes in the tracker until you accept one.
             </p>
             <div className="flex flex-wrap items-end gap-3">

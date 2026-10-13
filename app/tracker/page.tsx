@@ -299,7 +299,7 @@ function TrackerPageInner() {
         <div role="tablist" className="flex gap-5 border-b border-neutral-200 dark:border-neutral-800">
           {tabButton("applications", "Applications", applications.length)}
           {tabButton("assessments", "Assessments & interviews", assessments.length)}
-          {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "From Gmail", review.groups.length)}
+          {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", review.groups.length)}
         </div>
 
         {tab === "gmail" &&

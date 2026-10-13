@@ -525,7 +525,7 @@ tracker paths; the resume pages never hit it.
     a re-scan rewrites the rule columns of rows still pending, `planSave` in
     `rows.ts`, so a rule fix reaches mail saved before it) and
     a `gmail_scans` row (drives the "Last scanned…" nudge and the next default
-    "Scan from", `lib/tracker/email/scan.ts`) -> the "From Gmail" tab
+    "Scan from", `lib/tracker/email/scan.ts`) -> the "Gmail Updates" tab
     (`EmailReview.tsx`, shown while anything is pending): `buildReview`
     (`review.ts`) turns pending rows back into `Analyzed` (`rows.ts`) and
     groups them every render, one `EmailJobCard` per job (existing match,

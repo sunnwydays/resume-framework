@@ -32,7 +32,7 @@ interface Props {
 
 const PAGE = 40;
 
-// The "From Gmail" tab: one card per job, newest activity first.
+// The "Gmail Updates" tab: one card per job, newest activity first.
 export default function EmailReview({ tracker, review }: Props) {
   const { applications, assessments, statusChanges, gmail } = tracker;
   const [filter, setFilter] = useState<ReviewFilter>("all");
