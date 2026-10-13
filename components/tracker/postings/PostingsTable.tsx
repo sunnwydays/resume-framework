@@ -9,6 +9,7 @@ import { levelLabel, type Level } from "@/lib/tracker/postings/level";
 import { formatLength } from "@/lib/tracker/postings/term";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
 import { postingSortValue, type PostingSortKey as SortKey } from "@/lib/tracker/postings/sorting";
+import { postingUndo, type PostingUndo } from "@/lib/tracker/postings/undo";
 import { splitTracked, type PostingView } from "@/lib/tracker/postings/view";
 import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
 import { trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
@@ -22,6 +23,8 @@ interface Props {
   // Tidies the role shown here and the one "Applied" saves on a new application.
   trims: RoleTrimOptions;
   now: number;
+  // Save, Dismiss and Applied report here, for the page's undo banner.
+  onAction: (undo: PostingUndo) => void;
 }
 
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
@@ -62,7 +65,7 @@ function TrackedPill({ app }: { app: Application }) {
   );
 }
 
-export default function PostingsTable({ views, store, addApplication, trims, now }: Props) {
+export default function PostingsTable({ views, store, addApplication, trims, now, onAction }: Props) {
   const { sort, setSort, sorted } = useSortedRows<PostingView, SortKey>(views, postingSortValue, { key: "posted", dir: "desc" });
 
   const header = (key: SortKey, label: string) => (
@@ -171,7 +174,10 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                       {posting.state !== "applied" && (
                         <button
                           type="button"
-                          onClick={() => store.markApplied(posting, addApplication, tracked, trims)}
+                          onClick={async () => {
+                            const done = await store.markApplied(posting, addApplication, tracked, trims);
+                            if (done) onAction(postingUndo(posting, "applied", done.created));
+                          }}
                           className={smallButtonCls}
                           title={tracked ? "Link it to the application you already have" : "Add it to the tracker as applied today"}
                         >
@@ -179,7 +185,15 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                         </button>
                       )}
                       {posting.state === "new" && (
-                        <button type="button" onClick={() => store.setState(posting.id, "saved")} className={smallButtonCls}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onAction(postingUndo(posting, "saved"));
+                            store.setState(posting.id, "saved");
+                          }}
+                          className={smallButtonCls}
+                          title="Keep it on the Saved list to apply to later"
+                        >
                           Save
                         </button>
                       )}
@@ -189,7 +203,14 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                         </button>
                       )}
                       {(posting.state === "new" || posting.state === "saved") && (
-                        <button type="button" onClick={() => store.setState(posting.id, "dismissed")} className={smallButtonCls}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onAction(postingUndo(posting, "dismissed"));
+                            store.setState(posting.id, "dismissed");
+                          }}
+                          className={smallButtonCls}
+                        >
                           Dismiss
                         </button>
                       )}

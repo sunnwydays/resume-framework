@@ -484,6 +484,10 @@ tracker paths; the resume pages never hit it.
     same for dismissed, new and applied), and "N+ referrals" is Jobright's list
     of outreach contacts at the company, not Sunny's network. Don't re-add the
     Match column, its filter or the referrals line.
+  - **Undo**: the last Save / Dismiss / Applied shows a green banner with
+    Undo (`lib/tracker/postings/undo.ts`). Undo puts the posting's state and
+    link back; for Applied it also deletes the application it added, unless
+    that one was edited since or has an assessment (`removesCreatedApp`).
   - **Clear all**: a red "Clear all…" button next to Scan alerts reuses
     `ClearAllDialog` (three steps) and `deleteAllPostings`. Linked applications
     stay; a later scan re-adds everything still in the inbox as new, since the

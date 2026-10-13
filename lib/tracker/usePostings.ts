@@ -9,6 +9,7 @@ import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
 import type { PostingDetails } from "@/lib/tracker/postings/details";
 import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
 import { dedupePostings, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
+import type { PostingUndo } from "@/lib/tracker/postings/undo";
 import { supabase } from "@/lib/tracker/useTracker";
 
 // Pages per request to the details route (its limit is 10).
@@ -180,13 +181,14 @@ export function usePostings() {
 
   // "Applied": adds the application (or links the one it already matches),
   // then marks the posting applied. `trims` tidies the role on a new application.
+  // Returns the application it added (null when it linked one, or failed), for undo.
   const markApplied = useCallback(
     async (
       posting: JobPosting,
       addApplication: (row: TablesInsert<"applications">) => Promise<Application | null>,
       existing?: Application | null,
       trims: RoleTrimOptions = DEFAULT_TRIMS
-    ) => {
+    ): Promise<{ created: Application | null } | null> => {
       const app =
         existing ??
         (await addApplication({
@@ -198,8 +200,17 @@ export function usePostings() {
           status: "applied",
           source: "alert",
         }));
-      if (app) await patch(posting.id, { state: "applied", application_id: app.id });
+      if (!app) return null;
+      await patch(posting.id, { state: "applied", application_id: app.id });
+      return { created: existing ? null : app };
     },
+    [patch]
+  );
+
+  // Puts a posting back the way it was before the last Save / Dismiss /
+  // Applied. Removing an application "Applied" added is the caller's part.
+  const undo = useCallback(
+    (u: PostingUndo) => patch(u.postingId, { state: u.before.state, application_id: u.before.application_id }),
     [patch]
   );
 
@@ -222,6 +233,7 @@ export function usePostings() {
     scanAlerts,
     setState,
     markApplied,
+    undo,
     deleteAllPostings,
   };
 }

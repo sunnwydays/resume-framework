@@ -11,6 +11,7 @@ import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } f
 import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
+import { removesCreatedApp, undoMessage, type PostingUndo } from "@/lib/tracker/postings/undo";
 import { buildPostingViews } from "@/lib/tracker/postings/view";
 import { ROLE_TYPES, roleType, type RoleType } from "@/lib/tracker/roles";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
@@ -82,6 +83,16 @@ export default function PostingsPage() {
     };
   }, [views, filters]);
 
+  // The last Save / Dismiss / Applied, for the undo banner; a new one replaces it.
+  const [last, setLast] = useState<PostingUndo | null>(null);
+  const undoLast = async () => {
+    if (!last) return;
+    setLast(null);
+    const removeApp = removesCreatedApp(last, tracker.applications, tracker.assessments);
+    await store.undo(last);
+    if (removeApp) await tracker.deleteApplication(last.created!.id);
+  };
+
   const loading = store.loading || tracker.loading;
   const error = store.error ?? tracker.error;
 
@@ -149,10 +160,28 @@ export default function PostingsPage() {
               </label>
             ))}
           </div>
+          {last && (
+            <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+              {undoMessage(last)}
+              <button type="button" className="underline" onClick={undoLast}>
+                Undo
+              </button>
+              <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
+                Hide
+              </button>
+            </p>
+          )}
           {shown.length === 0 ? (
             <p className="py-8 text-center text-sm text-neutral-500">No postings match these filters.</p>
           ) : (
-            <PostingsTable views={shown} store={store} addApplication={tracker.addApplication} trims={trims} now={now} />
+            <PostingsTable
+              views={shown}
+              store={store}
+              addApplication={tracker.addApplication}
+              trims={trims}
+              now={now}
+              onAction={setLast}
+            />
           )}
         </>
       )}
