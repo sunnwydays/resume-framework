@@ -41,3 +41,11 @@ export function buildPostingViews(postings: JobPosting[], applications: Applicat
 export function splitTracked(views: PostingView[]): { open: PostingView[]; tracked: PostingView[] } {
   return { open: views.filter((v) => !v.tracked), tracked: views.filter((v) => v.tracked) };
 }
+
+// New or saved postings that match an application: "Mark them applied" links
+// each to its application. Dismissed ones stay dismissed.
+export function trackedToMark(views: PostingView[]): { posting: JobPosting; app: Application }[] {
+  return views.flatMap(({ posting, tracked }) =>
+    tracked && (posting.state === "new" || posting.state === "saved") ? [{ posting, app: tracked }] : []
+  );
+}

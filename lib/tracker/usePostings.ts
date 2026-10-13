@@ -207,6 +207,20 @@ export function usePostings() {
     [patch]
   );
 
+  // Marks postings applied in one go, each linked to the application it
+  // matches. Nothing is added to the tracker.
+  const markTrackedApplied = useCallback(
+    async (pairs: { posting: JobPosting; app: Application }[]) => {
+      const stamp = new Date().toISOString();
+      const changes = new Map(pairs.map(({ posting, app }) => [posting.id, { state: "applied" as const, application_id: app.id, updated_at: stamp }]));
+      setPostings((list) => list.map((p) => (changes.has(p.id) ? { ...p, ...changes.get(p.id) } : p)));
+      const writes = await Promise.all([...changes].map(([id, c]) => supabase().from("job_postings").update(c).eq("id", id)));
+      const failed = writes.find((w) => w.error);
+      if (failed?.error) fail(failed.error.message);
+    },
+    [fail]
+  );
+
   // Puts a posting back the way it was before the last Save / Dismiss /
   // Applied. Removing an application "Applied" added is the caller's part.
   const undo = useCallback(
@@ -233,6 +247,7 @@ export function usePostings() {
     scanAlerts,
     setState,
     markApplied,
+    markTrackedApplied,
     undo,
     deleteAllPostings,
   };

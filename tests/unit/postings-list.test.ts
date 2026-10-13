@@ -6,7 +6,7 @@ import type { ParsedPosting } from "@/lib/tracker/postings/parse";
 import { dedupePostings, defaultPostingScanFrom, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
 import { NO_TERM } from "@/lib/tracker/postings/term";
 import { postingSortValue } from "@/lib/tracker/postings/sorting";
-import { buildPostingViews, splitTracked, type PostingView } from "@/lib/tracker/postings/view";
+import { buildPostingViews, splitTracked, trackedToMark, type PostingView } from "@/lib/tracker/postings/view";
 import { sortRows } from "@/lib/tracker/sorting";
 import { local, makeApp, makePosting } from "../helpers/fixtures";
 
@@ -323,6 +323,26 @@ describe("splitTracked", () => {
     const { open, tracked } = splitTracked(views);
     expect(open.map((v) => v.posting.id)).toEqual(["a", "c"]);
     expect(tracked.map((v) => v.posting.id)).toEqual(["b", "d"]);
+  });
+});
+
+describe("trackedToMark", () => {
+  it("picks new and saved postings that match an application, paired with it", () => {
+    const app = makeApp({ id: "app-1", company: "Initech", role: "Software Engineer Intern" });
+    const views = buildPostingViews(
+      [
+        makePosting({ id: "new", company: "Initech" }),
+        makePosting({ id: "saved", company: "Initech", state: "saved" }),
+        makePosting({ id: "applied", company: "Initech", state: "applied" }),
+        makePosting({ id: "dismissed", company: "Initech", state: "dismissed" }),
+        makePosting({ id: "untracked", company: "Hooli" }),
+      ],
+      [app]
+    );
+    expect(trackedToMark(views).map(({ posting, app }) => [posting.id, app.id])).toEqual([
+      ["new", "app-1"],
+      ["saved", "app-1"],
+    ]);
   });
 });
 

@@ -10,7 +10,7 @@ import { formatLength } from "@/lib/tracker/postings/term";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
 import { postingSortValue, type PostingSortKey as SortKey } from "@/lib/tracker/postings/sorting";
 import { postingUndo, type PostingUndo } from "@/lib/tracker/postings/undo";
-import { splitTracked, type PostingView } from "@/lib/tracker/postings/view";
+import { splitTracked, trackedToMark, type PostingView } from "@/lib/tracker/postings/view";
 import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
 import { trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import type { SortDir } from "@/lib/tracker/sorting";
@@ -73,6 +73,7 @@ export default function PostingsTable({ views, store, addApplication, trims, now
   );
 
   const { open, tracked: inTracker } = splitTracked(sorted);
+  const toMark = trackedToMark(inTracker);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-surface dark:border-neutral-800">
@@ -100,12 +101,22 @@ export default function PostingsTable({ views, store, addApplication, trims, now
             const dimmed = blocked || (tracked !== null && open.length > 0);
             return (
               <Fragment key={posting.id}>
-                {i === open.length && i > 0 && (
+                {i === open.length && (i > 0 || toMark.length > 0) && (
                   <tr>
                     <td colSpan={8} className="px-3 pb-1 pt-4 text-xs font-medium text-neutral-500">
                       <div className="flex items-center gap-3">
                         <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
                         {inTracker.length} already in the tracker
+                        {toMark.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => store.markTrackedApplied(toMark)}
+                            className="underline hover:text-neutral-800 dark:hover:text-neutral-200"
+                            title="Link each to the application it matches and move it to Applied"
+                          >
+                            Mark {toMark.length === 1 ? "it" : `all ${toMark.length}`} applied
+                          </button>
+                        )}
                         <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
                       </div>
                     </td>
