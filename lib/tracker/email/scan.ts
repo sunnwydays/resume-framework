@@ -37,11 +37,20 @@ function ago(ms: number): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
+// "2:34 PM", with the date first when it wasn't today: "Oct 7, 2:34 PM". The
+// clock time keeps the nudge honest on a page left open ("just now" never ages).
+function scannedAt(at: Date, now: number): string {
+  const time = at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (todayISO(at.getTime()) === todayISO(now)) return time;
+  return `${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`;
+}
+
 export function scanNudge(lastScanAt: string | null, pending: number, now: number = Date.now()): { text: string; stale: boolean } {
   const review = pending > 0 ? ` · ${pending} to review` : "";
   if (!lastScanAt) return { text: `Gmail not scanned yet${review}`, stale: false };
-  const elapsed = Math.max(0, now - new Date(lastScanAt).getTime());
-  return { text: `Last scanned ${ago(elapsed)}${review}`, stale: elapsed >= STALE_DAYS * DAY };
+  const at = new Date(lastScanAt);
+  const elapsed = Math.max(0, now - at.getTime());
+  return { text: `Last scanned ${ago(elapsed)} (${scannedAt(at, now)})${review}`, stale: elapsed >= STALE_DAYS * DAY };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

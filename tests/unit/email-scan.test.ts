@@ -32,17 +32,20 @@ describe("scanNudge", () => {
   const before = (ms: number) => new Date(now - ms).toISOString();
 
   it.each([
-    [10 * 60_000, "Last scanned just now", false],
-    [5 * HOUR, "Last scanned 5h ago", false],
-    [DAY + HOUR, "Last scanned 1 day ago", false],
-    [6 * DAY, "Last scanned 6 days ago", false],
-    [7 * DAY, "Last scanned 7 days ago", true],
+    [10 * 60_000, "Last scanned just now (11:50 AM)", false],
+    [5 * HOUR, "Last scanned 5h ago (7:00 AM)", false],
+    [DAY + HOUR, "Last scanned 1 day ago (Oct 2, ", false],
+    [6 * DAY, "Last scanned 6 days ago (Sep 27, ", false],
+    [7 * DAY, "Last scanned 7 days ago (Sep 26, ", true],
   ])("%d ms ago -> %s", (ms, text, stale) => {
-    expect(scanNudge(before(ms), 0, now)).toEqual({ text, stale });
+    const got = scanNudge(before(ms), 0, now);
+    // Whole-day cases only pin the date: the clock hour moves across a DST change.
+    expect(got.stale).toBe(stale);
+    expect(got.text.startsWith(text) || got.text === text).toBe(true);
   });
 
   it("adds what's waiting for review", () => {
-    expect(scanNudge(before(2 * HOUR), 12, now).text).toBe("Last scanned 2h ago · 12 to review");
+    expect(scanNudge(before(2 * HOUR), 12, now).text).toBe("Last scanned 2h ago (10:00 AM) · 12 to review");
   });
 
   it("never scanned isn't an alarm", () => {
