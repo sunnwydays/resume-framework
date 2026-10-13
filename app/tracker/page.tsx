@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
 import AssessmentsTable from "@/components/tracker/AssessmentsTable";
@@ -70,11 +70,13 @@ function TrackerPageInner() {
   const now = useNow();
   const scanRef = useRef<GmailScanHandle>(null);
   const { applications, assessments, questions, statusChanges, gmail } = tracker;
-  const router = useRouter();
   const pathname = usePathname();
   const tab = parseTab(useSearchParams().get("tab"));
+  // history.replaceState, not router.replace: Next feeds it into useSearchParams
+  // without a server round trip (router.replace re-ran the proxy, and a stalled
+  // one left every later tab click doing nothing).
   const setTab = (next: Tab) =>
-    router.replace(next === "applications" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
+    window.history.replaceState(null, "", next === "applications" ? pathname : `${pathname}?tab=${next}`);
   const [appFilters, setAppFilters] = useState<AppFilters>(DEFAULT_APP_FILTERS);
   const [asmtFilters, setAsmtFilters] = useState<AssessmentFilters>(DEFAULT_ASSESSMENT_FILTERS);
   const [roleTypes, setRoleTypes] = useState<Set<RoleType>>(new Set());
