@@ -446,7 +446,9 @@ tracker paths; the resume pages never hit it.
     card is a link wrapping `<table id="job-section">` with fields found by
     element id (`job-company-name`, `job-title`, `job-tag` x0-3, ...). Tags
     are classified by what they say (pay / location / referrals), not by
-    position. Bare `$` is not a US signal (a Montreal posting shows "$18/hr");
+    position. Two `noreply@jobright.ai` subjects use this card layout, the
+    single-job "X just posted…" and the ten-job "Your Top Job matches for
+    …"; `isJobrightAlert` and `alertQuery` must list the same subjects. Bare `$` is not a US signal (a Montreal posting shows "$18/hr");
     `CA$` is a Canada one. The daily "Today's Matching Jobs" digest
     (`support@jobright.ai`, different layout) is not handled; its jobs overlap
     the instant alerts. If Jobright changes the card markup, the parse tests'

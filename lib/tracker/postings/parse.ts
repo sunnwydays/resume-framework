@@ -24,8 +24,11 @@ export interface ParsedPosting {
 
 export const JOBRIGHT_ALERT_SENDER = "noreply@jobright.ai";
 
+// Two subjects share the card layout: the single-job "Vandelay just posted a
+// 89% match ..." and the multi-job "Your Top Job matches for "Intern" — 98%
+// match from Jobright - 10/13/2026". alertQuery in email/gmail.ts searches the same two.
 export function isJobrightAlert(fromAddress: string, subject: string): boolean {
-  return fromAddress.toLowerCase() === JOBRIGHT_ALERT_SENDER && /\bjust posted\b/i.test(subject);
+  return fromAddress.toLowerCase() === JOBRIGHT_ALERT_SENDER && /\bjust posted\b|\btop job matches\b/i.test(subject);
 }
 
 const MINUTE = 60_000;

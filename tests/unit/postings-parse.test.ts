@@ -10,6 +10,9 @@ describe("isJobrightAlert", () => {
     expect(isJobrightAlert("noreply@jobright.ai", "Vandelay just posted a 89% match Software Engineer Intern role 1 hour ago")).toBe(true);
     expect(isJobrightAlert("NoReply@Jobright.ai", "Initech JUST POSTED a role")).toBe(true);
   });
+  it("is also the multi-job 'Top Job matches' alert", () => {
+    expect(isJobrightAlert("noreply@jobright.ai", "Your Top Job matches for “Software Intern” — 97% match from Jobright - 10/13/2026")).toBe(true);
+  });
   it("is not the daily digest or other mail", () => {
     expect(isJobrightAlert("support@jobright.ai", "Today's Matching Jobs")).toBe(false);
     expect(isJobrightAlert("noreply@jobright.ai", "Welcome to Jobright")).toBe(false);
