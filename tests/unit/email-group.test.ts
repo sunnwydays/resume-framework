@@ -212,6 +212,22 @@ describe("matchApplications", () => {
     expect(matchApplications(f, tracked, { ...ctx, kind: "rejection" }).matches).toHaveLength(1);
   });
 
+  it("a confirmation naming a role unlike any tracked one there is new, even next to a vague one", () => {
+    const tracked = [
+      makeApp({ company: "Hooli", role: "AI SWE", applied_on: "2026-09-20" }),
+      makeApp({ company: "Hooli", role: "SWE", applied_on: "2026-09-21" }),
+    ];
+    const f = { company: "Hooli", role: "Cloud Network Engineering Internship Oportunities", jobId: "200099999", assessmentTitle: null };
+    const ctx = { kind: "confirmation" as const, receivedAt: new Date(2026, 8, 27, 21).toISOString() };
+    const r = matchApplications(f, tracked, ctx);
+    expect(r.matches).toEqual([]);
+    expect(r.how).toMatch(/not this role/);
+    // A rejection could still be about the vague one, so it asks.
+    expect(matchApplications(f, tracked, { ...ctx, kind: "rejection" }).matches).toHaveLength(2);
+    // A generic role in the confirmation can't rule anything out.
+    expect(matchApplications({ ...f, role: "Software Engineering Intern" }, tracked, ctx).matches.length).toBeGreaterThan(0);
+  });
+
   it("a requisition number inside a posting URL matches", () => {
     const tracked = [makeApp({ company: "stark", role: "swe", url: "https://careers.stark.com/job/STARKGLOBAL09999999EXTERNAL/Software-Engineer" }), makeApp({ company: "stark", role: "swe" })];
     expect(matchApplications({ company: "Stark", role: "Software Engineering Intern", jobId: "09999999", assessmentTitle: null }, tracked).how).toBe("job id");

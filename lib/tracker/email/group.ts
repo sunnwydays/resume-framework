@@ -77,6 +77,18 @@ export function matchApplications(
   if (context?.kind === "confirmation" && f.role && result.how === "company" && roleCloseness(f.role, result.matches[0].role) === 0) {
     return { matches: [], how: "company tracked, but not this role" };
   }
+  // Several there, and the confirmation names a specific role that shares no
+  // word with any of them. A vague tracked "SWE" keeps other mail a pick, but a
+  // confirmation starts an application, and none was tracked that day.
+  if (
+    context?.kind === "confirmation" &&
+    f.role &&
+    hasDistinctRole(f.role) &&
+    result.matches.length > 1 &&
+    result.matches.every((a) => roleCloseness(f.role!, a.role) === 0)
+  ) {
+    return { matches: [], how: "company tracked, but not this role" };
+  }
   return result;
 }
 

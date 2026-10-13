@@ -196,7 +196,10 @@ export default function EmailJobCard({ group, applications, assessments, statusC
           {group.target.type === "pick" && choice.type === "auto" && (
             <p className="text-sm">
               Several applications at <span className="font-medium">{group.target.company ?? "this company"}</span> fit. Which one is
-              this?
+              this?{" "}
+              <button type="button" className="text-xs text-neutral-500 underline" onClick={() => setChoice({ type: "new" })}>
+                None, it&apos;s a new application
+              </button>
             </p>
           )}
           {showPicker && (
