@@ -26,6 +26,8 @@ describe("trimRole with the defaults", () => {
     ["Software Engineer (Remote)", "SWE (Remote)"],
     ["2027 Internship Perception, Learned Mapping & SLAM", "Perception, Learned Mapping & SLAM"],
     ["Software Engineer Intern - 2027", "SWE"],
+    ["Cloud Network Engineering Internship Oportunities", "Cloud Network Engineering"],
+    ["Hardware Engineering Internship Opportunities", "Hardware Engineering"],
   ])("%j -> %j", (input, expected) => expect(trimRole(input, DEFAULT_TRIMS)).toBe(expected));
 
   it("leaves words that merely contain 'intern' alone", () => {

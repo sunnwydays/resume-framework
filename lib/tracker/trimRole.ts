@@ -47,10 +47,11 @@ function trimTerm(role: string): string {
 
 // Drops "Intern", "Internship", "Intern Program" and "Co-op" (and a "/" or "&"
 // joining it to a neighbour: "Co-op/Intern" goes entirely). Everything in the
-// tracker is an internship or co-op, so the word is noise.
+// tracker is an internship or co-op, so the word is noise. "Internship
+// Opportunities" goes too, misspelt "Oportunities" included (a real posting).
 function trimIntern(role: string): string {
   return role.replace(
-    /(?:[/&]\s*)?\b(?:intern(?:ship)?s?|co[\s-]?op)(?:\s+(?:program|opportunity|position|role))?\b(?:\s*[/&])?/gi,
+    /(?:[/&]\s*)?\b(?:intern(?:ship)?s?|co[\s-]?op)(?:\s+(?:programs?|opp?ortunit(?:y|ies)|positions?|roles?))?\b(?:\s*[/&])?/gi,
     ""
   );
 }
