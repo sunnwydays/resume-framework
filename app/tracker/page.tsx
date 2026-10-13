@@ -253,6 +253,7 @@ function TrackerPageInner() {
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
+          <AddApplication applications={applications} onAdd={tracker.addApplication} />
           <GmailScan ref={scanRef} tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
           <ImportExport
             applications={applications}
@@ -292,8 +293,6 @@ function TrackerPageInner() {
         onComplete={(id) => tracker.updateAssessment(id, { status: "completed" })}
         now={now}
       />
-
-      <AddApplication applications={applications} onAdd={tracker.addApplication} />
 
       <section className="space-y-3">
         <div role="tablist" className="flex gap-5 border-b border-neutral-200 dark:border-neutral-800">

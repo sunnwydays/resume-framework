@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import type { TablesInsert } from "@/lib/tracker/database.types";
 import type { ExtractField, ExtractResult } from "@/lib/tracker/extract";
 import {
@@ -8,6 +9,7 @@ import {
   STATUS_META,
   buttonCls,
   inputCls,
+  pastedLink,
   primaryButtonCls,
   sameUrl,
   todayISO,
@@ -53,7 +55,16 @@ interface Props {
   onAdd: (row: TablesInsert<"applications">) => Promise<Application | null>;
 }
 
+// Whether a paste landed somewhere that takes text itself (search box, notes…).
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.closest("input, textarea, select") !== null;
+}
+
+// A header button that opens the add form in a dialog. Pasting a job link
+// anywhere on the page outside a text field opens it too, already looking up.
 export default function AddApplication({ applications, onAdd }: Props) {
+  const [open, setOpen] = useState(false);
   const [link, setLink] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [lookupNote, setLookupNote] = useState<string | null>(null);
@@ -115,6 +126,25 @@ export default function AddApplication({ applications, onAdd }: Props) {
     }
   }
 
+  // The page-wide paste listener is attached once, so it calls the latest lookUp.
+  const lookUpRef = useRef(lookUp);
+  useEffect(() => {
+    lookUpRef.current = lookUp;
+  });
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      if (isEditable(e.target) || document.querySelector("[data-modal]")) return;
+      const url = pastedLink(e.clipboardData?.getData("text") ?? "");
+      if (!url) return;
+      e.preventDefault();
+      setOpen(true);
+      setLink(url);
+      lookUpRef.current(url);
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, []);
+
   // Re-trim the looked-up title when an option flips, unless it's been edited.
   function toggleTrim(key: keyof RoleTrimOptions) {
     const next = { ...trims, [key]: !trims[key] };
@@ -140,6 +170,11 @@ export default function AddApplication({ applications, onAdd }: Props) {
     setFocusField(null);
   }
 
+  function close() {
+    reset();
+    setOpen(false);
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!draft || !draft.company.trim() || !draft.role.trim()) return;
@@ -156,7 +191,7 @@ export default function AddApplication({ applications, onAdd }: Props) {
       source: extracted?.source ?? "manual",
     });
     setSaving(false);
-    if (added) reset();
+    if (added) close();
   }
 
   const set = (key: keyof Draft) => (
@@ -193,120 +228,138 @@ export default function AddApplication({ applications, onAdd }: Props) {
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-surface p-4 space-y-3">
-      <form
-        className="flex flex-col gap-2 sm:flex-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          lookUp(link);
-        }}
-      >
-        <input
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          onPaste={(e) => {
-            const pasted = e.clipboardData.getData("text").trim();
-            if (/^https?:\/\//i.test(pasted)) {
-              e.preventDefault();
-              setLink(pasted);
-              lookUp(pasted);
-            }
-          }}
-          placeholder="Paste a job link to fill in the details…"
-          className={inputCls}
-          disabled={extracting}
-        />
-        <div className="flex gap-2 shrink-0">
-          <button type="submit" disabled={extracting || !normalizedLink} className={primaryButtonCls}>
-            {extracting ? "Looking up…" : "Look up"}
-          </button>
-          <button type="button" onClick={() => openManual()} className={buttonCls}>
-            Add manually
-          </button>
-        </div>
-      </form>
+    <div className="flex flex-col items-end gap-1">
+      <button type="button" onClick={() => setOpen(true)} className={buttonCls}>
+        + Add application
+      </button>
+      <span className="text-xs text-neutral-500">or paste a job link anywhere</span>
 
-      {duplicate && (
-        <p className="text-sm text-amber-700 dark:text-amber-400">
-          Already tracking this link: {duplicate.company} · {duplicate.role}
-        </p>
-      )}
-      {lookupNote && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">{lookupNote}</p>
-      )}
+      {open && (
+        <ModalBackdrop onDismiss={saving || extracting ? undefined : close}>
+          <div className="w-full max-w-2xl space-y-3 rounded-lg bg-surface p-5 shadow-xl">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 className="text-lg font-semibold">Add application</h2>
+              <button type="button" onClick={close} disabled={saving || extracting} className="text-sm text-neutral-500 underline">
+                Cancel
+              </button>
+            </div>
+            <form
+              className="flex flex-col gap-2 sm:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                lookUp(link);
+              }}
+            >
+              <input
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = pastedLink(e.clipboardData.getData("text"));
+                  if (pasted) {
+                    e.preventDefault();
+                    setLink(pasted);
+                    lookUp(pasted);
+                  }
+                }}
+                placeholder="Paste a job link to fill in the details…"
+                className={inputCls}
+                autoFocus
+                disabled={extracting}
+              />
+              <div className="flex gap-2 shrink-0">
+                <button type="submit" disabled={extracting || !normalizedLink} className={primaryButtonCls}>
+                  {extracting ? "Looking up…" : "Look up"}
+                </button>
+                <button type="button" onClick={() => openManual()} className={buttonCls}>
+                  Add manually
+                </button>
+              </div>
+            </form>
 
-      {draft && (
-        <form onSubmit={save} className="space-y-3 pt-1">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {field("company", "Company", true)}
-            <div className="space-y-1">
-              {field("role", "Role", true)}
-              {extracted?.fields.role && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {(Object.keys(TRIM_LABELS) as (keyof RoleTrimOptions)[]).map((key) => (
-                    <label
-                      key={key}
-                      className="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
-                    >
-                      <input type="checkbox" checked={trims[key]} onChange={() => toggleTrim(key)} />
-                      {TRIM_LABELS[key]}
+            {duplicate && (
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                Already tracking this link: {duplicate.company} · {duplicate.role}
+              </p>
+            )}
+            {lookupNote && (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">{lookupNote}</p>
+            )}
+
+            {draft && (
+              <form onSubmit={save} className="space-y-3 pt-1">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {field("company", "Company", true)}
+                  <div className="space-y-1">
+                    {field("role", "Role", true)}
+                    {extracted?.fields.role && (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {(Object.keys(TRIM_LABELS) as (keyof RoleTrimOptions)[]).map((key) => (
+                          <label
+                            key={key}
+                            className="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
+                          >
+                            <input type="checkbox" checked={trims[key]} onChange={() => toggleTrim(key)} />
+                            {TRIM_LABELS[key]}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {field("location", "Location")}
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                        Applied
+                      </span>
+                      <input type="date" value={draft.applied_on} onChange={set("applied_on")} className={inputCls} />
                     </label>
-                  ))}
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                        Status
+                      </span>
+                      <select value={draft.status} onChange={set("status")} className={inputCls}>
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_META[s].label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block space-y-1 sm:col-span-2">
+                    <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Link</span>
+                    <input value={draft.url} onChange={set("url")} className={inputCls} />
+                  </label>
+                  <label className="block space-y-1 sm:col-span-2">
+                    <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Notes</span>
+                    <input value={draft.notes} onChange={set("notes")} className={inputCls} />
+                  </label>
                 </div>
-              )}
-            </div>
-            {field("location", "Location")}
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                  Applied
-                </span>
-                <input type="date" value={draft.applied_on} onChange={set("applied_on")} className={inputCls} />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                  Status
-                </span>
-                <select value={draft.status} onChange={set("status")} className={inputCls}>
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_META[s].label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label className="block space-y-1 sm:col-span-2">
-              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Link</span>
-              <input value={draft.url} onChange={set("url")} className={inputCls} />
-            </label>
-            <label className="block space-y-1 sm:col-span-2">
-              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Notes</span>
-              <input value={draft.notes} onChange={set("notes")} className={inputCls} />
-            </label>
+                <details>
+                  <summary className="cursor-pointer text-xs font-medium text-neutral-500">
+                    Job description {draft.description ? `(${draft.description.length} chars)` : "(empty)"}
+                  </summary>
+                  <textarea
+                    value={draft.description}
+                    onChange={set("description")}
+                    rows={8}
+                    className={`${inputCls} mt-2 font-mono text-xs`}
+                    placeholder="Paste the description to keep a copy (postings disappear)."
+                  />
+                </details>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={saving} className={primaryButtonCls}>
+                    {saving ? "Saving…" : "Add application"}
+                  </button>
+                  <button type="button" onClick={close} className={buttonCls}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
-          <details>
-            <summary className="cursor-pointer text-xs font-medium text-neutral-500">
-              Job description {draft.description ? `(${draft.description.length} chars)` : "(empty)"}
-            </summary>
-            <textarea
-              value={draft.description}
-              onChange={set("description")}
-              rows={8}
-              className={`${inputCls} mt-2 font-mono text-xs`}
-              placeholder="Paste the description to keep a copy (postings disappear)."
-            />
-          </details>
-          <div className="flex gap-2">
-            <button type="submit" disabled={saving} className={primaryButtonCls}>
-              {saving ? "Saving…" : "Add application"}
-            </button>
-            <button type="button" onClick={reset} className={buttonCls}>
-              Cancel
-            </button>
-          </div>
-        </form>
+        </ModalBackdrop>
       )}
-    </section>
+    </div>
   );
 }

@@ -514,8 +514,13 @@ tracker paths; the resume pages never hit it.
   through a ref handle (`GmailScanHandle`); a scan never starts by itself
   (Google needs a click). `UpcomingStrip` stays below it as the full
   due-this-week list with the done checkboxes (collapsible, open state in
-  localStorage as `tracker.upcoming.open`), above the paste-a-link add form. The page loads `useMoves()`
-  just for this.
+  localStorage as `tracker.upcoming.open`). The page loads `useMoves()`
+  just for this. Adding an application by hand (`AddApplication.tsx`) is a
+  header button that opens a dialog, kept out of the way since most adds come
+  from the Gmail scan; pasting a job link anywhere outside a text field opens
+  it already looking up (a "or paste a job link anywhere" line under the button
+  says so). The listener stands down while any `ModalBackdrop` (`data-modal`)
+  is open.
 - **Gmail scan** (`lib/tracker/email/`). Finds what Sunny applied to,
   rejections and OA/interview invites in their inbox, and *suggests* tracker
   updates (never auto-applied; status changes go through the trigger with

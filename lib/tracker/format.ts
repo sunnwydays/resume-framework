@@ -339,6 +339,12 @@ export function sameUrl(a: string, b: string): boolean {
   return norm(a) === norm(b);
 }
 
+// Pasted text that is just one web link (surrounding whitespace allowed), or null.
+export function pastedLink(text: string): string | null {
+  const t = text.trim();
+  return /^https?:\/\/\S+$/i.test(t) ? t : null;
+}
+
 export const inputCls =
   "w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-surface px-2.5 py-1.5 text-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-600 transition-colors focus:outline-none focus:border-neutral-500 dark:focus:border-neutral-500 disabled:opacity-50";
 

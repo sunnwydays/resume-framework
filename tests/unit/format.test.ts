@@ -14,6 +14,7 @@ import {
   kindLabel,
   parseDuration,
   relativeDue,
+  pastedLink,
   sameUrl,
   statusLabel,
   toDatetimeLocal,
@@ -172,6 +173,20 @@ describe("sameUrl", () => {
   it("falls back to trimmed text for non-URLs", () => {
     expect(sameUrl(" not a url ", "not a url")).toBe(true);
     expect(sameUrl("not a url", "another")).toBe(false);
+  });
+});
+
+describe("pastedLink", () => {
+  it("takes a lone http(s) link, trimmed", () => {
+    expect(pastedLink("  https://acme.com/jobs/1\n")).toBe("https://acme.com/jobs/1");
+    expect(pastedLink("HTTP://acme.com/jobs?id=2")).toBe("HTTP://acme.com/jobs?id=2");
+  });
+  it("ignores text that isn't only a link", () => {
+    expect(pastedLink("acme.com/jobs/1")).toBeNull();
+    expect(pastedLink("see https://acme.com/jobs/1")).toBeNull();
+    expect(pastedLink("https://acme.com/jobs/1 and more")).toBeNull();
+    expect(pastedLink("ftp://acme.com/file")).toBeNull();
+    expect(pastedLink("")).toBeNull();
   });
 });
 
