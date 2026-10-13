@@ -41,7 +41,8 @@ export const RULES = {
   // Senders that look job-ish to the text check but never are. Your own
   // (e.g. your school's) go in NEXT_PUBLIC_GMAIL_IGNORE_DOMAINS in .env.local,
   // comma-separated, so they stay out of the repo; .edu is always skipped.
-  notJobDomains: ["instructure.com", "strava.com", "porkbun.com"],
+  // Job-search advice newsletters talk about interviews without inviting you.
+  notJobDomains: ["instructure.com", "strava.com", "porkbun.com", "interndock.com"],
   notJobAddresses: ["noreply-accounts@google.com"],
   // Events read like applications ("Thanks for applying to the Hackathon…
   // pending approval") but aren't jobs.
@@ -178,6 +179,8 @@ export const RULES = {
     /\bif\s+your\s+(?:application|background|profile|experience|skills|qualifications|resume)\b/i,
     /\bshould\s+your\s+(?:application|background|profile|experience|skills|qualifications|resume)\b/i,
     /\bif\s+there(?:'s|\s+is)\s+a\s+(?:match|fit)\b/i,
+    // Advice: "Prepare before an interview invite arrives".
+    /\bbefore\s+(?:an?\s+|the\s+|your\s+)?(?:\w+\s+){0,2}(?:invite|invitation|request)s?\s+(?:arrives?|comes?)\b/i,
   ],
   // Also dropped before the rejection rules: "If you see the job moved to an
   // inactive state, that means ... you were not selected" explains the portal.

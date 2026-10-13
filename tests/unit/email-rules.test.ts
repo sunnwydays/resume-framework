@@ -207,6 +207,7 @@ describe("classify: things that are not job emails", () => {
     ["a fitness app", "no-reply@strava.com", "Your missing heart rate data", "Unfortunately, you haven't allowed access."],
     ["the university", "registrar@campus.example.edu", "Reminder: Response requested. Assessment of Prof. Smith", "Professor Smith is being considered for promotion. Your application of feedback is requested."],
     ["a newsletter", "news@somestore.com", "Big sale this weekend", "Save 30% on everything. Unsubscribe anytime."],
+    ["a job-search advice newsletter", "founder@mail.interndock.com", "Your internship plan", "Have stories ready for when we invite you to an interview with a mentor."],
     ["a Google account notice", "noreply-accounts@google.com", "You shared some Google Account data with CodeSignal", "You used Sign in with Google to sign in to CodeSignal."],
   ])("%s", (_name, from, subject, text) => {
     expect(classify(mail({ fromAddress: from, subject, text })).kind).toBeNull();
@@ -875,6 +876,51 @@ describe("fixes from the fourth inbox review", () => {
       "confirmation"
     );
     expect(f.durationMin).toBeNull();
+  });
+});
+
+describe("fixes from the fifth inbox review", () => {
+  // A job-search advice newsletter: talks about interviews, invites nothing.
+  const advice = mail({
+    fromAddress: "founder@mail.internharbor.example",
+    fromName: "Pat at Intern Harbor",
+    subject: "Your plan for the summer 2027 internship search!",
+    text: [
+      "Hey Sam! I'm looking for a summer 2027 internship too, so I wanted to share the strategy I'm using.",
+      "1. Apply consistently, with standards. Set a weekly goal you can sustain.",
+      "3. Start a few conversations. Would you be open to a 15-minute chat?",
+      "5. Track applications and follow-ups. Save the company, role, job link, application date and next step.",
+      "7. Prepare before an interview invite arrives. Have a few stories ready about a project.",
+      "Practice saying them out loud with a friend or in a mock interview.",
+      "Unsubscribe",
+    ].join("\n"),
+  });
+
+  it("'before an interview invite arrives' is advice, not an invite", () => {
+    expect(kindOf(advice)).toBeNull();
+  });
+
+  // A big company's confirmation that names a new role at a company already tracked.
+  const confirmation = mail({
+    fromAddress: "donotreply@email.careers.hooli.com",
+    fromName: "Hooli Careers",
+    subject: "Thank you for your application!",
+    text: [
+      "Hi Sam,",
+      "Thank you for taking the time to submit your application for Cloud Network Engineering Internship Oportunities (Job number: 200099999). We're glad you're interested in a career at Hooli, and we're here to help you find your next role.",
+      "You may not receive feedback from us on your application directly, but please know that it's being evaluated, and you'll hear from us as soon as the review process is complete. If you're selected for an interview, you'll be notified by the recruiting team.",
+      "If you see the job moved to an inactive state, that means the position is either no longer open, you withdrew from consideration, or you were not selected for the role.",
+      "Thank you,",
+      "Hooli Recruiting",
+    ].join("\n"),
+  });
+
+  it("'submit your application for <Role> (Job number: …)' names the role and id", () => {
+    expect(kindOf(confirmation)).toBe("confirmation");
+    const f = extractFields(confirmation, "confirmation");
+    expect(f.company).toBe("Hooli");
+    expect(f.role).toBe("Cloud Network Engineering Internship Oportunities");
+    expect(f.jobId).toBe("200099999");
   });
 });
 
