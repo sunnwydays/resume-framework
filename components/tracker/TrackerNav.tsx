@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { setGmailAccountHint } from "@/lib/tracker/email/gmail";
 import { supabase } from "@/lib/tracker/useTracker";
 
 const LINKS = [
@@ -21,7 +22,10 @@ export default function TrackerNav() {
   useEffect(() => {
     supabase()
       .auth.getUser()
-      .then(({ data }) => setEmail(data.user?.email ?? null));
+      .then(({ data }) => {
+        setEmail(data.user?.email ?? null);
+        setGmailAccountHint(data.user?.email);
+      });
   }, []);
 
   async function signOut() {

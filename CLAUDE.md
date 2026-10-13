@@ -590,7 +590,9 @@ tracker paths; the resume pages never hit it.
     reads.
   The browser gets a short-lived Google token (Google Identity Services,
   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; held in memory, nothing stored or
-  scheduled) and reads Gmail directly (`gmail.ts`). Pipeline, all pure
+  scheduled) and reads Gmail directly (`gmail.ts`). `TrackerNav` passes the
+  signed-in email as Google's `login_hint` (`setGmailAccountHint`), so the
+  account chooser is skipped when that Google account is signed in. Pipeline, all pure
   except `gmail.ts`: `parse.ts` (Gmail message -> `EmailFacts`: headers, text,
   links with anchor text; `expandDigest` splits Workday's multi-notification
   digests) -> `classify.ts` (`RULES` holds *every* phrase, sender list and

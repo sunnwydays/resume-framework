@@ -48,6 +48,7 @@ declare global {
           initTokenClient(config: {
             client_id: string;
             scope: string;
+            login_hint?: string;
             callback: (response: TokenResponse) => void;
             error_callback?: (error: { type?: string; message?: string }) => void;
           }): TokenClient;
@@ -66,6 +67,14 @@ export interface HeldToken {
 }
 
 let token: HeldToken | null = null;
+
+// The tracker's signed-in email, passed to Google as login_hint so it skips
+// the account chooser when that account is signed in to the browser. Only a
+// hint: a different Gmail account can still be picked from Google's screen.
+let loginHint: string | undefined;
+export function setGmailAccountHint(email: string | null | undefined): void {
+  loginHint = email ?? undefined;
+}
 
 // Whether the held token will do, or Google has to be asked again. A modify
 // request the user declined (Google's consent lets them untick it) isn't
@@ -101,6 +110,7 @@ export async function getToken(access: GmailAccess = "read"): Promise<string> {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: SCOPES[access],
+      login_hint: loginHint,
       callback: (response) => {
         if (response.error || !response.access_token) {
           reject(new GmailError("denied", response.error_description ?? `Google said: ${response.error ?? "no token"}.`));
