@@ -228,11 +228,12 @@ export default function AddApplication({ applications, onAdd }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    // Full-size button, pulled up with a negative margin so the row stays as
+    // tall as the tabs and the gap above them doesn't grow.
+    <div className="-mt-2.5 mb-1 flex items-center gap-3">
       <button type="button" onClick={() => setOpen(true)} className={buttonCls}>
         + Add application
       </button>
-      <span className="text-xs text-neutral-500">or paste a job link anywhere</span>
 
       {open && (
         <ModalBackdrop onDismiss={saving || extracting ? undefined : close}>
@@ -275,6 +276,7 @@ export default function AddApplication({ applications, onAdd }: Props) {
                 </button>
               </div>
             </form>
+            <p className="text-xs text-neutral-500">Or paste a job link anywhere on the page to open this with the lookup already running.</p>
 
             {duplicate && (
               <p className="text-sm text-amber-700 dark:text-amber-400">

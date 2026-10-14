@@ -253,7 +253,6 @@ function TrackerPageInner() {
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
-          <AddApplication applications={applications} onAdd={tracker.addApplication} />
           <GmailScan ref={scanRef} tracker={tracker} postings={postings} pending={review.groups.length} now={now} onScanned={() => setTab("gmail")} />
           <ImportExport
             applications={applications}
@@ -295,10 +294,13 @@ function TrackerPageInner() {
       />
 
       <section className="space-y-3">
-        <div role="tablist" className="flex gap-5 border-b border-neutral-200 dark:border-neutral-800">
-          {tabButton("applications", "Applications", applications.length)}
-          {tabButton("assessments", "Assessments & interviews", assessments.length)}
-          {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", review.groups.length)}
+        <div className="flex flex-wrap items-end justify-between gap-x-4 border-b border-neutral-200 dark:border-neutral-800">
+          <div role="tablist" className="flex gap-5">
+            {tabButton("applications", "Applications", applications.length)}
+            {tabButton("assessments", "Assessments & interviews", assessments.length)}
+            {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", review.groups.length)}
+          </div>
+          <AddApplication applications={applications} onAdd={tracker.addApplication} />
         </div>
 
         {tab === "gmail" &&
