@@ -16,7 +16,7 @@ const SCOPES: Record<GmailAccess, string> = {
   modify: "https://www.googleapis.com/auth/gmail.modify",
 };
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
-const READ_CONCURRENCY = 8;
+const READ_CONCURRENCY = 4; // each full read costs 5 quota units; 8 at once tripped the per-minute cap
 const MODIFY_BATCH = 1000; // batchModify's limit per call
 
 export type GmailErrorCode = "config" | "denied" | "expired" | "quota" | "api" | "network";
@@ -145,6 +145,17 @@ export function forgetToken(): void {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const QUOTA_RETRIES = 6;
+
+export function isQuotaMessage(message: string | undefined): boolean {
+  return /quota exceeded|rate limit/i.test(message ?? "");
+}
+
+// 1s, 2s, 4s ... capped at 20s: the quota is per minute, so a short wait often isn't enough.
+export function quotaBackoff(attempt: number): number {
+  return Math.min(1000 * 2 ** attempt, 20_000);
+}
+
 interface ApiOptions {
   signal?: AbortSignal;
   body?: unknown; // sent as a JSON POST
@@ -172,15 +183,20 @@ async function api<T>(path: string, options: ApiOptions = {}, attempt = 0): Prom
     if (attempt < 1) return api(path, options, attempt + 1);
     throw new GmailError("expired", "Google sign-in expired. Scan again to sign in.");
   }
-  if (res.status === 429 || res.status >= 500) {
-    if (attempt < 4) {
-      await sleep(500 * 2 ** attempt);
+  // Gmail's per-minute quota usually arrives as a 403, not a 429.
+  let detail: string | undefined;
+  if (!res.ok && res.status === 403) {
+    detail = await res.json().then((j: { error?: { message?: string } }) => j.error?.message).catch(() => undefined);
+  }
+  if (res.status === 429 || res.status >= 500 || isQuotaMessage(detail)) {
+    if (attempt < QUOTA_RETRIES) {
+      await sleep(quotaBackoff(attempt));
       return api(path, options, attempt + 1);
     }
     throw new GmailError("quota", "Gmail is rate-limiting requests. Wait a minute and scan again.");
   }
   if (!res.ok) {
-    const detail = await res.json().then((j: { error?: { message?: string } }) => j.error?.message).catch(() => undefined);
+    detail ??= await res.json().then((j: { error?: { message?: string } }) => j.error?.message).catch(() => undefined);
     throw new GmailError(
       "api",
       res.status === 403
