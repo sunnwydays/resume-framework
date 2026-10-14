@@ -17,7 +17,6 @@ import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 interface Props {
   tracker: Tracker;
   postings: PostingsStore;
-  pending: number; // cards waiting in the review tab
   now: number;
   onScanned: () => void; // e.g. switch to the review tab
   ref?: Ref<GmailScanHandle>;
@@ -34,7 +33,7 @@ export interface GmailScanHandle {
 // alert scan on the same token, which moves the alerts (not the job mail) to
 // Gmail's trash. Nothing is applied to the tracker from here. The trash box is
 // shared with the Postings page's scan.
-export default function GmailScan({ tracker, postings, pending, now, onScanned, ref }: Props) {
+export default function GmailScan({ tracker, postings, now, onScanned, ref }: Props) {
   const { gmail, applications } = tracker;
   const [open, setOpen] = useState(false);
   const [since, setSince] = useState("");
@@ -51,7 +50,7 @@ export default function GmailScan({ tracker, postings, pending, now, onScanned, 
   const [reading, setReading] = useState<{ done: number; total: number } | null>(null);
   const [alertsLine, setAlertsLine] = useState<{ text: string; failed: boolean } | null>(null);
   const abort = useRef<AbortController | null>(null);
-  const nudge = scanNudge(gmail.lastScan?.scanned_at ?? null, pending, now);
+  const nudge = scanNudge(gmail.lastScan?.scanned_at ?? null, 0, now, true);
   // Alerts keep their own start (a day before the newest posting): they arrive
   // ~7 a day, so sharing the mail's earlier date would flood the scan cap.
   const alertsStart = scanStart(defaultPostingScanFrom(postings.postings, now));

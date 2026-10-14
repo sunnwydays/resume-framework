@@ -48,6 +48,10 @@ describe("scanNudge", () => {
     expect(scanNudge(before(2 * HOUR), 12, now).text).toBe("Last scanned 2h ago (10:00 AM) · 12 to review");
   });
 
+  it("short drops the clock time and the review count", () => {
+    expect(scanNudge(before(3 * HOUR), 1, now, true).text).toBe("Last scanned 3h ago");
+  });
+
   it("never scanned isn't an alarm", () => {
     expect(scanNudge(null, 0, now)).toEqual({ text: "Gmail not scanned yet", stale: false });
   });

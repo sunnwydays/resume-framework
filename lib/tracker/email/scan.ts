@@ -45,12 +45,20 @@ function scannedAt(at: Date, now: number): string {
   return `${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`;
 }
 
-export function scanNudge(lastScanAt: string | null, pending: number, now: number = Date.now()): { text: string; stale: boolean } {
-  const review = pending > 0 ? ` · ${pending} to review` : "";
+// `short` is the header button's label: just "Last scanned 3h ago", without the
+// clock time or the review count (the Today card carries those).
+export function scanNudge(
+  lastScanAt: string | null,
+  pending: number,
+  now: number = Date.now(),
+  short = false
+): { text: string; stale: boolean } {
+  const review = pending > 0 && !short ? ` · ${pending} to review` : "";
   if (!lastScanAt) return { text: `Gmail not scanned yet${review}`, stale: false };
   const at = new Date(lastScanAt);
   const elapsed = Math.max(0, now - at.getTime());
-  return { text: `Last scanned ${ago(elapsed)} (${scannedAt(at, now)})${review}`, stale: elapsed >= STALE_DAYS * DAY };
+  const clock = short ? "" : ` (${scannedAt(at, now)})`;
+  return { text: `Last scanned ${ago(elapsed)}${clock}${review}`, stale: elapsed >= STALE_DAYS * DAY };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
