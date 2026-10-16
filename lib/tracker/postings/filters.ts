@@ -3,7 +3,7 @@ import type { PostingView } from "@/lib/tracker/postings/view";
 import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
-import { roleType, type RoleType } from "@/lib/tracker/roles";
+import type { RoleType } from "@/lib/tracker/roles";
 
 // Empty `regions` / `terms` / `lengths` / `levels` / `roleTypes` mean "all",
 // like the role-type chips on the other tabs. `terms` holds term keys
@@ -36,14 +36,14 @@ export const DEFAULT_POSTING_FILTERS: PostingFilters = {
   query: "",
 };
 
-export function matchesPostingFilters({ posting, region, eligibility, tracked, term, length, level }: PostingView, f: PostingFilters): boolean {
+export function matchesPostingFilters({ posting, region, eligibility, tracked, term, length, level, roleType }: PostingView, f: PostingFilters): boolean {
   if (f.state !== "all" && posting.state !== f.state) return false;
   if (f.regions.size > 0 && !f.regions.has(region.region)) return false;
   if (f.terms.size > 0 && !f.terms.has(term?.key ?? NO_TERM)) return false;
   if (f.lengths.size > 0 && !f.lengths.has(lengthBucket(length))) return false;
   if (f.levels.size > 0 && !f.levels.has(level.level)) return false;
   if (!f.showIneligible && eligibility.level === "no") return false;
-  if (f.roleTypes.size > 0 && !f.roleTypes.has(roleType(posting.role))) return false;
+  if (f.roleTypes.size > 0 && !f.roleTypes.has(roleType)) return false;
   // Applied postings are tracked by definition; hiding them would empty that chip.
   if (f.hideTracked && tracked && posting.state !== "applied") return false;
   const q = f.query.trim().toLowerCase();

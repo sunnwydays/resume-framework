@@ -12,6 +12,9 @@ export interface PostingUndo {
   // The application "Applied" added, as it was right after. Null when it
   // linked one that already existed (undo only unlinks that).
   created: { id: string; updated_at: string } | null;
+  // The feedback_events row recorded for this action, once it's written; lets
+  // Undo mark it undone and the reason chips label it.
+  feedbackId?: string | null;
 }
 
 const VERB: Record<PostingAction, string> = { saved: "Saved", dismissed: "Dismissed", applied: "Marked applied" };

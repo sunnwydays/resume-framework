@@ -356,6 +356,63 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_events: {
+        Row: {
+          action: string
+          app_version: string | null
+          changed: string[]
+          context: Json
+          created_at: string
+          final: Json
+          guess: Json
+          id: string
+          note: string | null
+          reason: string | null
+          review_ref: string | null
+          reviewed_at: string | null
+          subject_id: string | null
+          surface: string
+          undone_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          app_version?: string | null
+          changed?: string[]
+          context?: Json
+          created_at?: string
+          final?: Json
+          guess?: Json
+          id?: string
+          note?: string | null
+          reason?: string | null
+          review_ref?: string | null
+          reviewed_at?: string | null
+          subject_id?: string | null
+          surface: string
+          undone_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          action?: string
+          app_version?: string | null
+          changed?: string[]
+          context?: Json
+          created_at?: string
+          final?: Json
+          guess?: Json
+          id?: string
+          note?: string | null
+          reason?: string | null
+          review_ref?: string | null
+          reviewed_at?: string | null
+          subject_id?: string | null
+          surface?: string
+          undone_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       gmail_scans: {
         Row: {
           fetched: number
@@ -391,7 +448,9 @@ export type Database = {
           clearance_required: boolean | null
           company: string
           created_at: string
+          description: string | null
           details_read_at: string | null
+          edits: Json
           first_seen_at: string
           gmail_id: string
           id: string
@@ -418,7 +477,9 @@ export type Database = {
           clearance_required?: boolean | null
           company: string
           created_at?: string
+          description?: string | null
           details_read_at?: string | null
+          edits?: Json
           first_seen_at: string
           gmail_id: string
           id?: string
@@ -445,7 +506,9 @@ export type Database = {
           clearance_required?: boolean | null
           company?: string
           created_at?: string
+          description?: string | null
           details_read_at?: string | null
+          edits?: Json
           first_seen_at?: string
           gmail_id?: string
           id?: string

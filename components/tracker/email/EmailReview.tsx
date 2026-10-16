@@ -3,8 +3,13 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import Chip from "@/components/tracker/Chip";
 import DismissedEmails from "@/components/tracker/email/DismissedEmails";
+import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import EmailJobCard from "@/components/tracker/email/EmailJobCard";
+import type { JobGroup } from "@/lib/tracker/email/group";
 import { muteValue } from "@/lib/tracker/email/mute";
+import { EMAIL_DISMISS_REASONS, emailAcceptFeedback, emailDismissFeedback, emailMuteFeedback } from "@/lib/tracker/feedback/email";
+import { markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
+import type { FeedbackInsert } from "@/lib/tracker/feedback/events";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
 import {
   category,
@@ -41,7 +46,9 @@ export default function EmailReview({ tracker, review }: Props) {
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showMutes, setShowMutes] = useState(false);
-  const [last, setLast] = useState<{ applicationId: string; label: string } | null>(null);
+  const [last, setLast] = useState<{ applicationId: string; label: string; feedbackId?: string | null } | null>(null);
+  // The latest dismiss, for its "why?" chips.
+  const [dismissed, setDismissed] = useState<{ count: number; feedbackId: string | null } | null>(null);
   // How new cards tidy the role from the emails (same options as the add form).
   const [trimSetting, setTrimSetting] = useLocalSetting("tracker.gmail.trims", trimsToString(DEFAULT_TRIMS));
   const trims = trimsFromString(trimSetting);
@@ -65,12 +72,24 @@ export default function EmailReview({ tracker, review }: Props) {
   const ready = review.groups.filter((g) => g.ready && !g.nothingToDo);
   const nothing = review.groups.filter((g) => category(g) === "nothing");
 
-  async function accept(payload: EmailJobPayload, label: string): Promise<string | null> {
+  async function accept(payload: EmailJobPayload, label: string, feedback: FeedbackInsert): Promise<string | null> {
     const result = await tracker.applyEmailJob(payload);
     if ("error" in result) return result.error;
     setMessage(null);
+    setDismissed(null);
     setLast({ applicationId: result.applicationId, label });
+    const feedbackId = await recordFeedback(feedback);
+    setLast((cur) => (cur && cur.applicationId === result.applicationId ? { ...cur, feedbackId } : cur));
     return null;
+  }
+
+  // Dismisses cards' emails and records it, then offers the reason chips.
+  async function dismiss(groups: JobGroup[], bulk: boolean) {
+    tracker.dismissEmails(groups.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
+    setLast(null);
+    setDismissed({ count: groups.length, feedbackId: null });
+    const feedbackId = await recordFeedback(emailDismissFeedback(groups, bulk));
+    setDismissed((cur) => (cur ? { ...cur, feedbackId } : cur));
   }
 
   // Undo for the card just accepted, while it's still the newest change on
@@ -85,6 +104,7 @@ export default function EmailReview({ tracker, review }: Props) {
       : `Revert what this card changed on ${last.label}? Its emails go back to review.`;
     if (!window.confirm(what)) return;
     const error = await tracker.undoEmailJob(lastTrail.accept.id);
+    if (!error) markFeedbackUndone(last.feedbackId);
     setLast(null);
     setMessage(error ? `Couldn't undo: ${error}` : `Undid the change to ${last.label}.`);
   }
@@ -100,12 +120,16 @@ export default function EmailReview({ tracker, review }: Props) {
       const g = latest.current.groups.find((x) => x.key === key);
       if (!g || !g.ready || g.nothingToDo) continue;
       const rowId = (gmailId: string) => latest.current.rowIdOf.get(gmailId)!;
-      const result = await tracker.applyEmailJob(buildPayload(g, defaultTicks(g), rowId, g.target.type === "new" ? newAppDefaults(g, trims) : undefined));
+      const defaults = newAppDefaults(g, trims);
+      const ticks = defaultTicks(g);
+      const payload = buildPayload(g, ticks, rowId, g.target.type === "new" ? defaults : undefined);
+      const result = await tracker.applyEmailJob(payload);
       if ("error" in result) {
         setMessage(`Stopped after ${done}: ${result.error}`);
         setBulk(null);
         return;
       }
+      recordFeedback(emailAcceptFeedback({ group: g, card: g, defaultTicks: ticks, ticks, defaults, inputs: defaults, payload, bulk: true }));
       done++;
       // Let the reload render, so the next card is re-matched against it.
       await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
@@ -115,12 +139,12 @@ export default function EmailReview({ tracker, review }: Props) {
   }
 
   function dismissNothing() {
-    tracker.dismissEmails(nothing.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
+    dismiss(nothing, true);
   }
 
   function dismissAll() {
     if (!window.confirm(`Dismiss ${visible.length} card${visible.length === 1 ? "" : "s"}? Their emails won't come back on later scans.`)) return;
-    tracker.dismissEmails(visible.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
+    dismiss(visible, true);
   }
 
   return (
@@ -217,6 +241,16 @@ export default function EmailReview({ tracker, review }: Props) {
         </p>
       )}
 
+      {dismissed && (
+        <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+          Dismissed {dismissed.count} card{dismissed.count === 1 ? "" : "s"}.
+          <ReasonChips key={dismissed.feedbackId ?? "pending"} reasons={EMAIL_DISMISS_REASONS} feedbackId={dismissed.feedbackId} />
+          <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setDismissed(null)}>
+            Hide
+          </button>
+        </p>
+      )}
+
       {visible.length === 0 ? (
         <p className="py-8 text-center text-sm text-neutral-500">
           {review.groups.length === 0 ? "All caught up: nothing from Gmail is waiting for review." : "Nothing here."}
@@ -240,8 +274,11 @@ export default function EmailReview({ tracker, review }: Props) {
                 trims={trims}
                 rowIdOf={rowIdOf}
                 onAccept={accept}
-                onDismiss={tracker.dismissEmails}
-                onMute={(kind, value) => tracker.addMute(kind, muteValue(kind, value))}
+                onDismiss={(group) => dismiss([group], false)}
+                onMute={(kind, value, group) => {
+                  tracker.addMute(kind, muteValue(kind, value));
+                  recordFeedback(emailMuteFeedback(kind, value, group));
+                }}
               />
             </Fragment>
           ))}

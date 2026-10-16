@@ -67,6 +67,7 @@ async function world(tx: Tx): Promise<World> {
     await applyEmailJob(tx, { application_id: app, message_ids: [accepted] });
     await tx.query("insert into public.gmail_scans (since) values (now() - interval '7 days')");
     mute = await tx.scalar<string>("insert into public.email_mutes (kind, value) values ('company', 'Muted Co') returning id");
+    await tx.query("insert into public.feedback_events (surface, action) values ('posting', 'dismiss')");
   });
   return { a, b, app, asmt, question, move, posting, template, email, accepted, mute };
 }
@@ -84,6 +85,7 @@ const READ_AS_OWNER = [
   ["email_accepts", "select id from public.email_accepts"],
   ["gmail_scans", "select id from public.gmail_scans"],
   ["email_mutes", "select id from public.email_mutes"],
+  ["feedback_events", "select id from public.feedback_events"],
 ] as const;
 
 describe.skipIf(!dbReady)("row-level security", () => {
@@ -428,7 +430,7 @@ describe.skipIf(!dbReady)("row-level security", () => {
       await inTx(async (tx) => {
         const w = await world(tx);
         await tx.query("delete from auth.users where id = $1", [w.a]);
-        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log", "moves", "job_postings", "message_templates"]) {
+        for (const table of ["applications", "assessments", "assessment_questions", "status_changes", "time_log", "moves", "job_postings", "message_templates", "feedback_events"]) {
           expect(await tx.scalar<number>(`select count(*)::int from public.${table} where user_id = $1`, [w.a]), table).toBe(0);
         }
       });

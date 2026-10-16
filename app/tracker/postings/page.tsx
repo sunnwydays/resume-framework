@@ -3,17 +3,22 @@
 import { useMemo, useState } from "react";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
 import OverflowMenu, { dangerMenuItemCls } from "@/components/tracker/OverflowMenu";
+import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingsFilterBar, { type PostingCounts } from "@/components/tracker/postings/PostingsFilterBar";
 import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
+import { markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
+import { toJson } from "@/lib/tracker/feedback/events";
+import { POSTING_DISMISS_REASONS, postingEditFeedback, postingFeedback, type PostingFeedbackAction } from "@/lib/tracker/feedback/posting";
+import { planPostingEdit, type EditField, type PostingDraft, type PostingEdits } from "@/lib/tracker/postings/edits";
 import { POSTING_STATES } from "@/lib/tracker/format";
 import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
 import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
 import { removesCreatedApp, undoMessage, type PostingUndo } from "@/lib/tracker/postings/undo";
-import { buildPostingViews } from "@/lib/tracker/postings/view";
-import { ROLE_TYPES, roleType, type RoleType } from "@/lib/tracker/roles";
+import { buildPostingViews, postingView, ruleValues, type PostingView } from "@/lib/tracker/postings/view";
+import { ROLE_TYPES, type RoleType } from "@/lib/tracker/roles";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 import { usePostings } from "@/lib/tracker/usePostings";
@@ -42,7 +47,7 @@ export default function PostingsPage() {
 
     const typeCounts = new Map<RoleType, number>();
     for (const v of without({ roleTypes: new Set() })) {
-      const type = roleType(v.posting.role);
+      const type = v.roleType;
       typeCounts.set(type, (typeCounts.get(type) ?? 0) + 1);
     }
 
@@ -85,9 +90,42 @@ export default function PostingsPage() {
 
   // The last Save / Dismiss / Applied, for the undo banner; a new one replaces it.
   const [last, setLast] = useState<PostingUndo | null>(null);
+  // Every action is also recorded as feedback (what the rules said, and what
+  // was done); the id comes back later so Undo and the reason chips can find it.
+  const FEEDBACK_ACTION: Record<PostingUndo["action"], PostingFeedbackAction> = { saved: "save", dismissed: "dismiss", applied: "applied" };
+  const onAction = async (undo: PostingUndo, view: PostingView) => {
+    setLast(undo);
+    const feedbackId = await recordFeedback(postingFeedback(view, FEEDBACK_ACTION[undo.action]));
+    setLast((cur) => (cur && cur.postingId === undo.postingId && cur.action === undo.action && !cur.feedbackId ? { ...cur, feedbackId } : cur));
+  };
+  const onReopen = (view: PostingView) => {
+    if (view.posting.state === "dismissed") recordFeedback(postingFeedback(view, "restore"));
+  };
+  // A hand edit: store it over the parsed values and record the before/after
+  // (what the row showed against what Sunny made it show).
+  const saveEdits = async (view: PostingView, edits: PostingEdits, touched: EditField[], reset = false) => {
+    const after = postingView({ ...view.parsed, edits: toJson(edits) }, tracker.applications);
+    await store.setEdits(view.posting.id, edits);
+    const event = postingEditFeedback(view, after, touched, reset);
+    if (event) recordFeedback(event);
+  };
+  const onEdit = async (view: PostingView, initial: PostingDraft, draft: PostingDraft) => {
+    const plan = planPostingEdit(view.parsed, initial, draft, (p) => {
+      const r = ruleValues(p);
+      return { region: r.region.region, level: r.level.level, term: r.term, length: r.length, roleType: r.roleType };
+    });
+    if ("error" in plan) return plan.error;
+    await saveEdits(view, plan.edits, plan.touched);
+    return null;
+  };
+  const onResetEdits = async (view: PostingView) => {
+    await saveEdits(view, {}, [], true);
+    return null;
+  };
   const undoLast = async () => {
     if (!last) return;
     setLast(null);
+    markFeedbackUndone(last.feedbackId);
     const removeApp = removesCreatedApp(last, tracker.applications, tracker.assessments);
     await store.undo(last);
     if (removeApp) await tracker.deleteApplication(last.created!.id);
@@ -166,6 +204,9 @@ export default function PostingsPage() {
               <button type="button" className="underline" onClick={undoLast}>
                 Undo
               </button>
+              {last.action === "dismissed" && (
+                <ReasonChips key={last.feedbackId ?? last.postingId} reasons={POSTING_DISMISS_REASONS} feedbackId={last.feedbackId} />
+              )}
               <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
                 Hide
               </button>
@@ -180,7 +221,10 @@ export default function PostingsPage() {
               addApplication={tracker.addApplication}
               trims={trims}
               now={now}
-              onAction={setLast}
+              onAction={onAction}
+              onReopen={onReopen}
+              onEdit={onEdit}
+              onResetEdits={onResetEdits}
             />
           )}
         </>

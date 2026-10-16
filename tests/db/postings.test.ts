@@ -38,6 +38,18 @@ describe.skipIf(!dbReady)("job_postings", () => {
     });
   });
 
+  it("hand edits start empty, survive a re-scan, and must be an object", async () => {
+    await asNewUser(async (tx) => {
+      const id = await addPosting(tx, { source_id: "edited" });
+      expect(await tx.scalar("select edits from public.job_postings where id = $1", [id])).toEqual({});
+      await tx.query(`update public.job_postings set edits = '{"region": "us"}' where id = $1`, [id]);
+      expect(await tx.rows(UPSERT, ["edited"])).toEqual([]);
+      expect(await tx.scalar("select edits from public.job_postings where id = $1", [id])).toEqual({ region: "us" });
+      const e = await failure(tx, `update public.job_postings set edits = '[]' where id = '${id}'`);
+      expect(e.code).toBe("23514");
+    });
+  });
+
   it("a job not seen before is stored", async () => {
     await asNewUser(async (tx) => {
       await addPosting(tx, { source_id: "one" });

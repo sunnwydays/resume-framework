@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { DEFAULT_MOVE_MINUTES, type TemplateStat } from "@/lib/tracker/arbitrage";
+import { recordFeedback } from "@/lib/tracker/feedback/client";
+import { draftFeedback } from "@/lib/tracker/feedback/draft";
 import {
   MOVE_CHANNELS,
   buttonCls,
@@ -78,6 +80,9 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
   const [link, setLink] = useState("");
   const [notes, setNotes] = useState("");
   const [draft, setDraft] = useState<string | null>(null);
+  // Claude's draft as it came back, kept apart from `draft` (which typing edits)
+  // so what's logged as sent can be compared with it.
+  const [aiDraft, setAiDraft] = useState<string | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -102,6 +107,7 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
     setBody(t.body);
     setChannel(t.channel);
     setDraft(null);
+    setAiDraft(null);
   }
 
   function setField(key: Blank, value: string) {
@@ -119,8 +125,10 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
         body: JSON.stringify({ channel, fields: allFields, templateBody: body, notes }),
       });
       const json = (await res.json()) as { draft?: string; error?: string };
-      if (json.draft) setDraft(json.draft);
-      else setError(json.error ?? `Draft failed (${res.status})`);
+      if (json.draft) {
+        setDraft(json.draft);
+        setAiDraft(json.draft);
+      } else setError(json.error ?? `Draft failed (${res.status})`);
     } catch {
       setError("Couldn't reach the draft service.");
     } finally {
@@ -137,12 +145,19 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
     }
   }
 
+  // Records Claude's draft against what was logged as sent, when there was one.
+  function recordDraft(moveId: string | null, followUp: boolean) {
+    if (aiDraft === null || draft === null) return;
+    recordFeedback(draftFeedback(aiDraft, output, { moveId, followUp, channel, templateKey, fields: allFields, notes }));
+  }
+
   async function logAsSent() {
     setError(null);
     if (seed.move) {
       if (followUpLogged) return;
       setFollowUpLogged(true);
       await store.followUp(seed.move);
+      recordDraft(seed.move.id, true);
       if (output.trim()) {
         const note = `Follow-up: ${output.trim()}`;
         await store.updateMove(seed.move.id, { notes: seed.move.notes ? `${seed.move.notes}\n\n${note}` : note });
@@ -160,11 +175,13 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
       minutes: DEFAULT_MOVE_MINUTES[channel],
     });
     if (row) {
+      recordDraft(row.id, false);
       setNotice(`Logged a message to ${target}. Next person!`);
       setFields((f) => ({ ask: f.ask }));
       setLink("");
       setNotes("");
       setDraft(null);
+      setAiDraft(null);
     }
   }
 

@@ -207,8 +207,8 @@ tracker paths; the resume pages never hit it.
   expected/asked, with an answer), `status_changes` (history), `time_log`
   (unused, see "Time is estimated"), for the Arbitrage page `moves` and
   `message_templates` (below), for the Postings page `job_postings` (below),
-  and for the Gmail scan `email_messages`, `email_accepts`, `gmail_scans`,
-  `email_mutes` (below).
+  for the Gmail scan `email_messages`, `email_accepts`, `gmail_scans`,
+  `email_mutes` (below), and `feedback_events` (Feedback capture, below).
   Status, kind, outcome and question-source values are check constraints
   mirrored by `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` /
   `QUESTION_SOURCES` in `lib/tracker/format.ts` (and the move channel /
@@ -485,6 +485,18 @@ tracker paths; the resume pages never hit it.
     same for dismissed, new and applied), and "N+ referrals" is Jobright's list
     of outreach contacts at the company, not Sunny's network. Don't re-add the
     Match column, its filter or the referrals line.
+  - **Hand edits** (`lib/tracker/postings/edits.ts`, `job_postings.edits` jsonb,
+    check: an object): the row's ✎ turns it into a form (`PostingEditRow.tsx`)
+    for company, role, location, pay, level, region, term, length and type. The
+    parsed columns are never overwritten; edits sit on top, so the parse is
+    always there to diff against and "Reset to parsed" can drop them. Text edits
+    apply before the rules run (`withTextEdits`), derived ones override the rule
+    after (`postingView` in `view.ts`; "Set by you" as the why). Read the column
+    through `editsOf()`. `planPostingEdit` stores only what Sunny changed in the
+    form, and drops a value equal to the parse or to what the rules now say, so a
+    role edit doesn't freeze the level. Use `view.posting` (edited) for anything
+    shown or saved, `view.parsed` for the original, `view.roleType` rather than
+    `roleType(posting.role)`.
   - **Undo**: the last Save / Dismiss / Applied shows a green banner with
     Undo (`lib/tracker/postings/undo.ts`). Undo puts the posting's state and
     link back; for Applied it also deletes the application it added, unless
@@ -644,6 +656,35 @@ tracker paths; the resume pages never hit it.
   of real emails; never commit real names, addresses, requisition numbers or
   message text, and keep comment examples fictional too (the repo is public).
 
+- **Feedback capture** (`lib/tracker/feedback/`, `feedback_events`, full
+  write-up in `docs/feedback-loop.md`): every time Sunny corrects or confirms a
+  guess the app saves a labeled example (what it guessed, what Sunny chose, the
+  input, an optional reason) so the rules can be tuned in a batch with the
+  `/review-feedback` project skill instead of one pasted example at a time.
+  Captured: Postings Dismiss / Save / Applied / Restore (the derived region,
+  eligibility, term, length, level and role type, plus the posting row) and
+  Edit (what the row showed before vs after, `changed`, and `set_by_hand`), Gmail
+  Accept (plan vs accepted target / ticks / company / role, also when nothing
+  changed), Dismiss and Mute, the import's automatic column mapping vs the
+  overrides, and Claude's draft vs the text logged as sent. Dismisses get
+  optional reason chips (`ReasonChips.tsx`); each reason names the rule file it
+  implicates, or `taste`. Rules:
+  - The builders in `lib/tracker/feedback/{posting,email,import,draft}.ts` are
+    pure and unit-tested; `client.ts` writes and never throws (logging must not
+    block the action). Events copy their inputs at the click, because rules are
+    re-derived every render.
+  - No email bodies are stored: an event keeps `gmail_id`, and the review reads
+    the mail through the Gmail connector. Jobright pages don't last, so their
+    summary text is copied into `job_postings.description` (`details.ts`
+    `describeJob`; `""` = read, nothing to keep, `null` = not read yet, which
+    makes the next scan re-read it).
+  - No FK from `feedback_events` to postings / emails, on purpose: "Clear all"
+    keeps the labels. `surface` / `action` are check constraints mirrored by
+    `FEEDBACK_SURFACES` / `FEEDBACK_ACTIONS`; reasons are code constants.
+  - Add a new captured surface by adding a builder, a hook at the spot that
+    holds both the guess and the final value, and a unit test. The not-yet-built
+    ones are the "Later" checklist in `docs/feedback-loop.md`.
+
 ## Testing
 
 Vitest 3 (4+ needs a newer Node than the 20.15 here) plus fast-check for
@@ -674,7 +715,8 @@ trigger and `add_move_minutes`, `apply_email_job` / `undo_email_job`
 a re-scan never revives a dismissed posting), and a schema contract (the check constraints
 must equal `STATUSES` / `ASSESSMENT_KINDS` / `OUTCOMES` / `QUESTION_SOURCES` /
 `EXTRACT_SOURCES` / `MOVE_CHANNELS` / `MOVE_STAGES` / `WAITING_ON` /
-`EMAIL_KINDS` / `EMAIL_STATES` / `MUTE_KINDS` / `POSTING_STATES`, and
+`EMAIL_KINDS` / `EMAIL_STATES` / `MUTE_KINDS` / `POSTING_STATES` /
+`FEEDBACK_SURFACES` / `FEEDBACK_ACTIONS`, and
 `database.types.ts` must have the same columns and nullability as the
 database).
 

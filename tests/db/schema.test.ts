@@ -15,6 +15,7 @@ import {
   WAITING_ON,
 } from "@/lib/tracker/format";
 import { EXTRACT_SOURCES } from "@/lib/tracker/extract";
+import { FEEDBACK_ACTIONS, FEEDBACK_SURFACES } from "@/lib/tracker/feedback/events";
 import { closePool, createUser, dbReady, failure, inTx, addApplication, addAssessment, asUser } from "./helpers";
 
 afterAll(closePool);
@@ -26,6 +27,7 @@ const TABLES = [
   "email_accepts",
   "email_messages",
   "email_mutes",
+  "feedback_events",
   "gmail_scans",
   "job_postings",
   "message_templates",
@@ -83,6 +85,12 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
     it("email_mutes.kind = MUTE_KINDS", async () => {
       await check("email_mutes_kind_check");
       expect(current).toEqual(Object.keys(MUTE_KINDS).sort());
+    });
+    it("feedback_events.surface = FEEDBACK_SURFACES, action = FEEDBACK_ACTIONS", async () => {
+      await check("feedback_events_surface_check");
+      expect(current).toEqual([...FEEDBACK_SURFACES].sort());
+      await check("feedback_events_action_check");
+      expect(current).toEqual([...FEEDBACK_ACTIONS].sort());
     });
     it("status_changes.origin is manual, import or email", async () => {
       await check("status_changes_origin_check");
@@ -222,6 +230,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["email_accepts", "own email accepts", "ALL"],
           ["email_messages", "own email messages", "ALL"],
           ["email_mutes", "own email mutes", "ALL"],
+          ["feedback_events", "own feedback_events", "ALL"],
           ["gmail_scans", "own gmail scans", "ALL"],
           ["job_postings", "own job postings", "ALL"],
           ["message_templates", "own message templates", "ALL"],

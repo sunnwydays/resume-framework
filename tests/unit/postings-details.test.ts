@@ -25,12 +25,13 @@ describe("parseJobrightPage", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      description: expect.stringContaining("Skills\n- This is a hybrid position."),
     });
   });
 
   it("finds the length in a sentence of a longer text", () => {
     const html = page({ benefitsSummaries: ["Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym."] });
-    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null, citizenOnly: false, clearanceRequired: false });
+    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null, citizenOnly: false, clearanceRequired: false, description: "Benefits\n- Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym." });
   });
 
   it("is a read page with nothing stated when the job says neither", () => {
@@ -40,6 +41,7 @@ describe("parseJobrightPage", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      description: null,
     });
   });
 
@@ -54,6 +56,25 @@ describe("parseJobrightPage", () => {
     expect(parseJobrightPage(page({ jobSeniority: "New Grad, Mid Level", employmentType: "Full-time" }))?.levelText).toBe("New Grad, Mid Level · Full-time");
     expect(parseJobrightPage(page({ employmentType: "Internship" }))?.levelText).toBe("Internship");
     expect(parseJobrightPage(page({ jobSeniority: " ", employmentType: 3 }))?.levelText).toBeNull();
+  });
+
+  it("keeps the page's summary fields as labelled text, or null when it has none", () => {
+    const html = page({
+      jobSummary: "Globex is hiring an intern.",
+      coreResponsibilities: ["Build widgets", " ", "Test widgets"],
+      qualifications: { mustHave: ["Knows Python"], preferredHave: [] },
+      jdCoreSkills: [{ skill: "Python", score: 1, type: "hard" }],
+      benefitsSummaries: ["Free lunch"],
+    });
+    expect(parseJobrightPage(html)?.description).toBe(
+      "Summary\n- Globex is hiring an intern.\n\nResponsibilities\n- Build widgets\n- Test widgets\n\nMust have\n- Knows Python\n\nCore skills\n- Python\n\nBenefits\n- Free lunch"
+    );
+    expect(parseJobrightPage(page({ jobTitle: "Intern" }))?.description).toBeNull();
+  });
+
+  it("caps a very long description", () => {
+    const html = page({ jobSummary: "x".repeat(50_000) });
+    expect(parseJobrightPage(html)?.description?.length).toBe(20_000);
   });
 
   it("is null when it isn't a posting page, so the read is retried later", () => {
@@ -84,6 +105,7 @@ describe("fetchPostingDetails", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      description: null,
     });
   });
 

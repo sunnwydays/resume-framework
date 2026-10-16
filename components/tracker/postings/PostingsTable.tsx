@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
+import PostingEditRow from "@/components/tracker/postings/PostingEditRow";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
+import { EDIT_LABEL, type PostingDraft } from "@/lib/tracker/postings/edits";
 import { industryLabel } from "@/lib/tracker/postings/industry";
 import { levelLabel, type Level } from "@/lib/tracker/postings/level";
 import { formatLength } from "@/lib/tracker/postings/term";
@@ -11,7 +13,7 @@ import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
 import { postingSortValue, type PostingSortKey as SortKey } from "@/lib/tracker/postings/sorting";
 import { postingUndo, type PostingUndo } from "@/lib/tracker/postings/undo";
 import { splitTracked, trackedToMark, type PostingView } from "@/lib/tracker/postings/view";
-import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import { roleTypeLabel } from "@/lib/tracker/roles";
 import { trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import type { SortDir } from "@/lib/tracker/sorting";
 import type { PostingsStore } from "@/lib/tracker/usePostings";
@@ -23,8 +25,14 @@ interface Props {
   // Tidies the role shown here and the one "Applied" saves on a new application.
   trims: RoleTrimOptions;
   now: number;
-  // Save, Dismiss and Applied report here, for the page's undo banner.
-  onAction: (undo: PostingUndo) => void;
+  // Save, Dismiss and Applied report here, for the page's undo banner and the
+  // feedback record (the view is what the rules said at the time).
+  onAction: (undo: PostingUndo, view: PostingView) => void;
+  // Unsave and Restore (not undoable, but Restore says a dismiss was wrong).
+  onReopen: (view: PostingView) => void;
+  // Hand edits from the row's pencil; each returns an error message or null.
+  onEdit: (view: PostingView, initial: PostingDraft, draft: PostingDraft) => Promise<string | null>;
+  onResetEdits: (view: PostingView) => Promise<string | null>;
 }
 
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
@@ -65,7 +73,9 @@ function TrackedPill({ app }: { app: Application }) {
   );
 }
 
-export default function PostingsTable({ views, store, addApplication, trims, now, onAction }: Props) {
+export default function PostingsTable({ views, store, addApplication, trims, now, onAction, onReopen, onEdit, onResetEdits }: Props) {
+  // One row at a time is a form.
+  const [editing, setEditing] = useState<string | null>(null);
   const { sort, setSort, sorted } = useSortedRows<PostingView, SortKey>(views, postingSortValue, { key: "posted", dir: "desc" });
 
   const header = (key: SortKey, label: string) => (
@@ -122,117 +132,155 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                     </td>
                   </tr>
                 )}
-                <tr
-                  className={`border-b border-neutral-100 transition-colors hover:bg-neutral-50 dark:border-neutral-900 dark:hover:bg-neutral-900 ${
-                    dimmed ? "opacity-60" : ""
-                  }`}
-                >
-                  <td className={`${tdCls} whitespace-nowrap tabular-nums text-neutral-500`} title={posting.posted_at ?? undefined}>
-                    {formatAgo(posting.posted_at ?? posting.first_seen_at, now)}
-                  </td>
-                  <td className={tdCls}>
-                    <div className="font-medium">{posting.company}</div>
-                    {posting.categories && <div className="text-xs text-neutral-500">{industryLabel(posting.categories)}</div>}
-                  </td>
-                  <td className={tdCls}>
-                    <div title={posting.role}>{trimRole(posting.role, trims)}</div>
-                    <div className="text-xs text-neutral-500">
-                      {[roleTypeLabel(roleType(posting.role)), term?.label, length && formatLength(length)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                    {blocked && <div className="mt-1 text-xs text-red-700 dark:text-red-400">Not eligible: {eligibility.why}</div>}
-                    {eligibility.level === "check" && (
-                      <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">Check: {eligibility.why}</div>
-                    )}
-                    {tracked && (
-                      <div className="mt-1">
-                        <TrackedPill app={tracked} />
+                {editing === posting.id ? (
+                  <PostingEditRow
+                    view={view}
+                    now={now}
+                    onCancel={() => setEditing(null)}
+                    onSave={async (initial, draft) => {
+                      const err = await onEdit(view, initial, draft);
+                      if (!err) setEditing(null);
+                      return err;
+                    }}
+                    onReset={async () => {
+                      const err = await onResetEdits(view);
+                      if (!err) setEditing(null);
+                      return err;
+                    }}
+                  />
+                ) : (
+                  <tr
+                    className={`border-b border-neutral-100 transition-colors hover:bg-neutral-50 dark:border-neutral-900 dark:hover:bg-neutral-900 ${
+                      dimmed ? "opacity-60" : ""
+                    }`}
+                  >
+                    <td className={`${tdCls} whitespace-nowrap tabular-nums text-neutral-500`} title={posting.posted_at ?? undefined}>
+                      {formatAgo(posting.posted_at ?? posting.first_seen_at, now)}
+                    </td>
+                    <td className={tdCls}>
+                      <div className="font-medium">{posting.company}</div>
+                      {posting.categories && <div className="text-xs text-neutral-500">{industryLabel(posting.categories)}</div>}
+                    </td>
+                    <td className={tdCls}>
+                      <div title={posting.role}>{trimRole(posting.role, trims)}</div>
+                      <div className="text-xs text-neutral-500">
+                        {[roleTypeLabel(view.roleType), term?.label, length && formatLength(length)].filter(Boolean).join(" · ")}
+                        {view.edited.length > 0 && (
+                          <span title={`You set the ${view.edited.map((f) => EDIT_LABEL[f]).join(", ")}`} className="italic">
+                            {" "}
+                            · edited
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </td>
-                  <td className={`${tdCls} whitespace-nowrap`}>
-                    {level.level === "unstated" ? (
-                      <span title={level.why} className="text-neutral-400">
-                        —
-                      </span>
-                    ) : (
+                      {blocked && <div className="mt-1 text-xs text-red-700 dark:text-red-400">Not eligible: {eligibility.why}</div>}
+                      {eligibility.level === "check" && (
+                        <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">Check: {eligibility.why}</div>
+                      )}
+                      {tracked && (
+                        <div className="mt-1">
+                          <TrackedPill app={tracked} />
+                        </div>
+                      )}
+                    </td>
+                    <td className={`${tdCls} whitespace-nowrap`}>
+                      {level.level === "unstated" ? (
+                        <span title={level.why} className="text-neutral-400">
+                          —
+                        </span>
+                      ) : (
+                        <span
+                          title={level.why}
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_CLS[level.level]}`}
+                        >
+                          {levelLabel(level.level)}
+                        </span>
+                      )}
+                    </td>
+                    <td className={tdCls}>
                       <span
-                        title={level.why}
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_CLS[level.level]}`}
+                        title={region.why}
+                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${REGION_CLS[region.region]}`}
                       >
-                        {levelLabel(level.level)}
+                        {REGION_LABEL[region.region]}
                       </span>
-                    )}
-                  </td>
-                  <td className={tdCls}>
-                    <span
-                      title={region.why}
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${REGION_CLS[region.region]}`}
-                    >
-                      {REGION_LABEL[region.region]}
-                    </span>
-                  </td>
-                  <td className={tdCls}>{posting.location ?? <span className="text-neutral-400">—</span>}</td>
-                  <td className={`${tdCls} whitespace-nowrap`}>
-                    {posting.pay ?? <span className="text-neutral-400">—</span>}
-                  </td>
-                  <td className={`${tdCls} w-48 min-w-48`}>
-                    <div className="grid grid-cols-2 gap-2">
-                      <a href={posting.url} target="_blank" rel="noopener noreferrer" className={smallButtonCls}>
-                        Open
-                      </a>
-                      {posting.state !== "applied" && (
+                    </td>
+                    <td className={tdCls}>{posting.location ?? <span className="text-neutral-400">—</span>}</td>
+                    <td className={`${tdCls} whitespace-nowrap`}>{posting.pay ?? <span className="text-neutral-400">—</span>}</td>
+                    <td className={`${tdCls} w-56 min-w-56`}>
+                      <div className="flex items-start gap-2">
+                        <div className="grid flex-1 grid-cols-2 gap-2">
+                          <a href={posting.url} target="_blank" rel="noopener noreferrer" className={smallButtonCls}>
+                            Open
+                          </a>
+                          {posting.state !== "applied" && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const done = await store.markApplied(posting, addApplication, tracked, trims);
+                                if (done) onAction(postingUndo(posting, "applied", done.created), view);
+                              }}
+                              className={smallButtonCls}
+                              title={tracked ? "Link it to the application you already have" : "Add it to the tracker as applied today"}
+                            >
+                              Applied
+                            </button>
+                          )}
+                          {posting.state === "new" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onAction(postingUndo(posting, "saved"), view);
+                                store.setState(posting.id, "saved");
+                              }}
+                              className={smallButtonCls}
+                              title="Keep it on the Saved list to apply to later"
+                            >
+                              Save
+                            </button>
+                          )}
+                          {posting.state === "saved" && (
+                            <button type="button" onClick={() => store.setState(posting.id, "new")} className={smallButtonCls}>
+                              Unsave
+                            </button>
+                          )}
+                          {(posting.state === "new" || posting.state === "saved") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onAction(postingUndo(posting, "dismissed"), view);
+                                store.setState(posting.id, "dismissed");
+                              }}
+                              className={smallButtonCls}
+                            >
+                              Dismiss
+                            </button>
+                          )}
+                          {posting.state === "dismissed" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onReopen(view);
+                                store.setState(posting.id, "new");
+                              }}
+                              className={smallButtonCls}
+                            >
+                              Restore
+                            </button>
+                          )}
+                        </div>
                         <button
                           type="button"
-                          onClick={async () => {
-                            const done = await store.markApplied(posting, addApplication, tracked, trims);
-                            if (done) onAction(postingUndo(posting, "applied", done.created));
-                          }}
-                          className={smallButtonCls}
-                          title={tracked ? "Link it to the application you already have" : "Add it to the tracker as applied today"}
+                          onClick={() => setEditing(posting.id)}
+                          aria-label={`Edit ${posting.company} - ${posting.role}`}
+                          title="Fix anything on this row"
+                          className="px-1 py-1 text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
                         >
-                          Applied
+                          ✎
                         </button>
-                      )}
-                      {posting.state === "new" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onAction(postingUndo(posting, "saved"));
-                            store.setState(posting.id, "saved");
-                          }}
-                          className={smallButtonCls}
-                          title="Keep it on the Saved list to apply to later"
-                        >
-                          Save
-                        </button>
-                      )}
-                      {posting.state === "saved" && (
-                        <button type="button" onClick={() => store.setState(posting.id, "new")} className={smallButtonCls}>
-                          Unsave
-                        </button>
-                      )}
-                      {(posting.state === "new" || posting.state === "saved") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onAction(postingUndo(posting, "dismissed"));
-                            store.setState(posting.id, "dismissed");
-                          }}
-                          className={smallButtonCls}
-                        >
-                          Dismiss
-                        </button>
-                      )}
-                      {posting.state === "dismissed" && (
-                        <button type="button" onClick={() => store.setState(posting.id, "new")} className={smallButtonCls}>
-                          Restore
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </Fragment>
             );
           })}

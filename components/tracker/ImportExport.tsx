@@ -23,6 +23,8 @@ import ApplicationPicker from "@/components/tracker/ApplicationPicker";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
 import ModalBackdrop from "@/components/tracker/ModalBackdrop";
 import OverflowMenu, { dangerMenuItemCls, menuItemCls } from "@/components/tracker/OverflowMenu";
+import { recordFeedbackBatch } from "@/lib/tracker/feedback/client";
+import { importMappingFeedback } from "@/lib/tracker/feedback/import";
 import { supabase } from "@/lib/tracker/useTracker";
 import {
   buttonCls,
@@ -383,6 +385,8 @@ export default function ImportExport({
       return;
     }
     const counts = data as { applications: number; assessments: number };
+    // What the importer guessed (no overrides) against what was imported.
+    if (sheets) recordFeedbackBatch(importMappingFeedback(buildImportPlan(sheets, applications, assessments), plan, fileName));
     close();
     setMessage(
       `Imported ${counts.applications} applications and ${counts.assessments} assessments.`,

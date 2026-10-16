@@ -5,6 +5,8 @@ import ApplicationPicker from "@/components/tracker/ApplicationPicker";
 import { KIND_TONE } from "@/components/tracker/email/tone";
 import { retarget, type AssessmentAction, type DateFill, type JobGroup, type Target } from "@/lib/tracker/email/group";
 import { canMuteSender } from "@/lib/tracker/email/mute";
+import { emailAcceptFeedback } from "@/lib/tracker/feedback/email";
+import type { FeedbackInsert } from "@/lib/tracker/feedback/events";
 import {
   assessmentKey,
   buildPayload,
@@ -42,9 +44,10 @@ interface Props {
   statusChanges: StatusChange[];
   trims: RoleTrimOptions;
   rowIdOf: (gmailId: string) => string;
-  onAccept: (payload: EmailJobPayload, label: string) => Promise<string | null>;
-  onDismiss: (ids: string[]) => void;
-  onMute: (kind: MuteKind, value: string) => void;
+  // `feedback` is what the rules proposed against what was accepted, recorded by the caller once the accept worked.
+  onAccept: (payload: EmailJobPayload, label: string, feedback: FeedbackInsert) => Promise<string | null>;
+  onDismiss: (group: JobGroup) => void;
+  onMute: (kind: MuteKind, value: string, group: JobGroup) => void;
 }
 
 // What the card is aimed at, as chosen on it: the automatic match, another
@@ -133,7 +136,16 @@ export default function EmailJobCard({ group, applications, assessments, statusC
     }
     setBusy(true);
     const label = app ? `${app.company} · ${app.role}` : `${inputs.company.trim()} · ${inputs.role.trim()}`;
-    const err = await onAccept(payload, label);
+    const feedback = emailAcceptFeedback({
+      group,
+      card,
+      defaultTicks: defaultTicks(group),
+      ticks,
+      defaults: newAppDefaults(group, trims),
+      inputs,
+      payload,
+    });
+    const err = await onAccept(payload, label, feedback);
     setBusy(false);
     if (err) setError(err);
   }
@@ -299,19 +311,19 @@ export default function EmailJobCard({ group, applications, assessments, statusC
             {busy ? "Saving…" : isNew ? "Add application" : "Accept"}
           </button>
         )}
-        <button type="button" className={buttonCls} onClick={() => onDismiss(group.emails.map((e) => rowIdOf(e.facts.gmailId)))} disabled={busy}>
+        <button type="button" className={buttonCls} onClick={() => onDismiss(group)} disabled={busy}>
           Dismiss
         </button>
         <details className="relative">
           <summary className={`${buttonCls} cursor-pointer list-none`}>Mute ▾</summary>
           <div className="absolute z-10 mt-1 w-64 space-y-0.5 rounded-md border border-neutral-200 bg-surface p-1 shadow-lg dark:border-neutral-800">
             {company && (
-              <button type="button" className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900" onClick={() => onMute("company", company)}>
+              <button type="button" className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900" onClick={() => onMute("company", company, group)}>
                 Never suggest from <span className="font-medium">{company}</span>
               </button>
             )}
             {sender && (
-              <button type="button" className="block w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900" onClick={() => onMute("sender", sender)}>
+              <button type="button" className="block w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900" onClick={() => onMute("sender", sender, group)}>
                 Never suggest from <span className="font-medium">{sender}</span>
               </button>
             )}

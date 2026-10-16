@@ -6,7 +6,9 @@ import { todayISO, type Application, type JobPosting, type PostingState } from "
 import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { alertQuery, fetchMessages, trashNote, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
+import { toJson } from "@/lib/tracker/feedback/events";
 import type { PostingDetails } from "@/lib/tracker/postings/details";
+import type { PostingEdits } from "@/lib/tracker/postings/edits";
 import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
 import { dedupePostings, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
 import type { PostingUndo } from "@/lib/tracker/postings/undo";
@@ -69,15 +71,17 @@ export function usePostings() {
     return { saved: data?.length ?? 0, rows: data ?? [] };
   }, []);
 
-  // Reads the start line, length, seniority and the citizen-only / clearance
-  // flags off each posting's page (server-side) and stores them, so the Term,
-  // Length and Level chips and the eligibility check know more than the title
-  // says. Only postings not yet read are fetched (and ones read before the flags
-  // were stored); one whose page couldn't be read is left for next time.
+  // Reads the start line, length, seniority, the citizen-only / clearance
+  // flags and the description off each posting's page (server-side) and stores
+  // them, so the Term, Length and Level chips and the eligibility check know
+  // more than the title says, and feedback on a posting has its text. Only
+  // postings not yet read are fetched (and ones read before the flags or the
+  // description were stored; "" means read, nothing to keep); one whose page
+  // couldn't be read is left for next time.
   // Returns how many were read.
   const readDetails = useCallback(
     async (candidates: JobPosting[], onProgress?: (done: number, total: number) => void): Promise<{ read: number } | { error: string }> => {
-      const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null));
+      const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null || p.description === null));
       let read = 0;
       for (let i = 0; i < todo.length; i += DETAILS_BATCH) {
         onProgress?.(i, todo.length);
@@ -99,7 +103,7 @@ export function usePostings() {
         const updates = batch.flatMap((p, j) => {
           const d = results[j];
           return d
-            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, citizen_only: d.citizenOnly, clearance_required: d.clearanceRequired, details_read_at: stamp } }]
+            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, citizen_only: d.citizenOnly, clearance_required: d.clearanceRequired, description: d.description ?? "", details_read_at: stamp } }]
             : [];
         });
         const writes = await Promise.all(updates.map((u) => supabase().from("job_postings").update(u.changes).eq("id", u.id)));
@@ -179,6 +183,9 @@ export function usePostings() {
 
   const setState = useCallback((id: string, state: PostingState) => patch(id, { state }), [patch]);
 
+  // Hand edits sit in their own column, so the parsed values stay put.
+  const setEdits = useCallback((id: string, edits: PostingEdits) => patch(id, { edits: toJson(edits) }), [patch]);
+
   // "Applied": adds the application (or links the one it already matches),
   // then marks the posting applied. `trims` tidies the role on a new application.
   // Returns the application it added (null when it linked one, or failed), for undo.
@@ -246,6 +253,7 @@ export function usePostings() {
     readDetails,
     scanAlerts,
     setState,
+    setEdits,
     markApplied,
     markTrackedApplied,
     undo,
