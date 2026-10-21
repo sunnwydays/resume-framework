@@ -18,6 +18,7 @@ import {
   sameUrl,
   statusLabel,
   toDatetimeLocal,
+  titleIsKind,
   todayISO,
 } from "@/lib/tracker/format";
 import { local } from "../helpers/fixtures";
@@ -204,6 +205,13 @@ describe("labels", () => {
   it("kinds map to labels", () => {
     expect(kindLabel("video_interview")).toBe("Video interview");
     expect(Object.keys(ASSESSMENT_KINDS)).toEqual(["oa", "video_interview", "interview"]);
+  });
+  it("spots a title that only repeats the kind", () => {
+    expect(titleIsKind({ kind: "oa", title: "OA" })).toBe(true);
+    expect(titleIsKind({ kind: "video_interview", title: " video Interview " })).toBe(true);
+    expect(titleIsKind({ kind: "interview", title: "" })).toBe(true);
+    expect(titleIsKind({ kind: "oa", title: "Coding Challenge" })).toBe(false);
+    expect(titleIsKind({ kind: "oa", title: "Interview" })).toBe(false);
   });
   it("pins the enum values the database check constraints allow", () => {
     // The database tests compare these against the live constraints too.

@@ -65,6 +65,13 @@ export function kindLabel(kind: string): string {
   return ASSESSMENT_KINDS[kind as AssessmentKind] ?? kind;
 }
 
+// A generic assessment is often titled after its kind ("OA" titled "OA"), so
+// showing both just repeats it.
+export function titleIsKind(a: { kind: string; title: string }): boolean {
+  const title = a.title.trim().toLowerCase();
+  return title === "" || title === kindLabel(a.kind).toLowerCase() || title === a.kind.toLowerCase();
+}
+
 // Must match the check constraint on assessments.outcome. null = done
 // normally; pass or fail isn't stored, it follows from how far the
 // application got (assessmentResult in stats.ts).

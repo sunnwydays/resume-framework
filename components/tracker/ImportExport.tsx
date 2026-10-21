@@ -31,6 +31,7 @@ import {
   formatDate,
   formatDateTime,
   kindLabel,
+  titleIsKind,
   OUTCOMES,
   primaryButtonCls,
   statusLabel,
@@ -831,7 +832,8 @@ export default function ImportExport({
                             )}
                           </td>
                           <td className={tdCls}>
-                            {kindLabel(a.row.kind)} · {a.row.title}
+                            {kindLabel(a.row.kind)}
+                            {!titleIsKind(a.row) && ` · ${a.row.title}`}
                             <div className="text-xs text-neutral-500">
                               {a.row.status === "completed"
                                 ? "Completed"

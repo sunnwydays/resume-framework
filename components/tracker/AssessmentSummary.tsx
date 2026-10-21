@@ -1,5 +1,5 @@
 import { DifficultyDots } from "@/components/tracker/AssessmentDetail";
-import { OUTCOMES, formatDateTime, kindLabel, type Assessment, type Outcome } from "@/lib/tracker/format";
+import { OUTCOMES, formatDateTime, kindLabel, titleIsKind, type Assessment, type Outcome } from "@/lib/tracker/format";
 import { sectionsLabel } from "@/lib/tracker/sections";
 
 // One-line view of an OA / interview, for collapsed rows.
@@ -15,7 +15,8 @@ export default function AssessmentSummary({
     <span className="min-w-0 flex-1">
       <span className={a.status === "completed" ? "text-neutral-500" : ""}>
         {a.important && <span className="text-amber-500" title="Important">★ </span>}
-        <span className="font-medium">{kindLabel(a.kind)}</span> · {a.title}
+        <span className="font-medium">{kindLabel(a.kind)}</span>
+        {!titleIsKind(a) && ` · ${a.title}`}
         {a.status === "completed" && " ✓"}
       </span>
       <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-neutral-500">

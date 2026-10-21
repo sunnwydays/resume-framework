@@ -12,6 +12,7 @@ import {
   formatDateTime,
   inputCls,
   kindLabel,
+  titleIsKind,
   primaryButtonCls,
   type Assessment,
   type Outcome,
@@ -437,7 +438,8 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
           <section className="space-y-1 text-sm">
             <div className="flex items-start justify-between gap-3">
               <p>
-                <span className="font-medium">{kindLabel(a.kind)}</span> · {a.title}
+                <span className="font-medium">{kindLabel(a.kind)}</span>
+                {!titleIsKind(a) && ` · ${a.title}`}
               </p>
               <div className="flex shrink-0 gap-3 text-xs">
                 {onOpenApplication && (

@@ -13,6 +13,7 @@ import {
   formatDateTime,
   isOpen,
   kindLabel,
+  titleIsKind,
   relativeDue,
   type Application,
   type Assessment,
@@ -158,12 +159,16 @@ export default function AssessmentsTable({
                     <td className={tdCls}>
                       <span className={!open ? "text-neutral-500" : ""}>
                         {a.important && <span className="text-amber-500">★ </span>}
-                        {a.title}
+                        {titleIsKind(a) ? kindLabel(a.kind) : a.title}
                       </span>
                       <div className="text-xs text-neutral-500">
-                        {kindLabel(a.kind)}
-                        {a.duration_min != null && ` · ${a.duration_min} min`}
-                        {sectionsLabel(a.sections) && ` · ${sectionsLabel(a.sections)}`}
+                        {[
+                          !titleIsKind(a) && kindLabel(a.kind),
+                          a.duration_min != null && `${a.duration_min} min`,
+                          sectionsLabel(a.sections),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </div>
                     </td>
                     <td className={`${tdCls} tabular-nums`}>
@@ -287,7 +292,8 @@ function PreviewCard({
     >
       <div>
         <div className="font-medium">
-          {kindLabel(a.kind)} · {a.title}
+          {kindLabel(a.kind)}
+          {!titleIsKind(a) && ` · ${a.title}`}
         </div>
         {app && (
           <div className="text-xs text-neutral-500">
