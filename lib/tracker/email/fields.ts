@@ -125,7 +125,7 @@ const SPAN = `\\b(\\d+|${Object.keys(NUMBER_WORDS).join("|")})\\s+(?:calendar\\s
 
 // An interview invite carries the time it is scheduled for, not a deadline.
 // "1st Interview: Monday, October 19, 2026 at 1:00pm" is a coordinator's booking.
-const SCHEDULE_WORDS = /(?:scheduled\s+(?:for|on)|will\s+(?:be\s+)?(?:held\s+)?on|date(?:\s*(?:and|&)\s*time)?:|\binterview\s*:|\bon)\s*:?\s*/gi;
+const SCHEDULE_WORDS = /(?:scheduled\s+(?:for|on)|will\s+(?:be\s+)?(?:held\s+)?on|date(?:\s*(?:and|&)\s*time)?:|date\s*(?:and|&)\s*time\s*\([^)]*\)|\binterview\s*:|\bon)\s*:?\s*/gi;
 
 // "*All timings are listed in EDT." below the times it applies to.
 const EMAIL_ZONE = new RegExp(String.raw`\b[Tt]im(?:es?|ings?)\s+(?:are\s+)?(?:\w+\s+)?in\s+${TZ.source}`);
@@ -195,26 +195,33 @@ export function findDuration(text: string): { minutes: number; origin: string } 
 // "1:00pm - 1:45pm", "1:00 - 1:45 pm" (the first takes the second's am/pm).
 const TIME_RANGE = /\b(\d{1,2})(?::(\d\d))?\s*(?:([ap])\.?m\.?)?\s*(?:-|–|—|to)\s*(\d{1,2})(?::(\d\d))?\s*([ap])\.?m\.?(?![a-z])/i;
 
-function rangeMinutes(m: RegExpExecArray): number | null {
+function rangeOf(m: RegExpExecArray): { start: number; minutes: number } | null {
   const clock = (h: string, min: string | undefined, ap: string) => (+h % 12) * 60 + (ap.toLowerCase() === "p" ? 720 : 0) + (min ? +min : 0);
   const end = clock(m[4], m[5], m[6]);
   const start = clock(m[1], m[2], m[3] ?? m[6]);
   const minutes = end - start;
-  return minutes > 0 && minutes <= 480 ? minutes : null;
+  return minutes > 0 && minutes <= 480 ? { start, minutes } : null;
 }
 
 // A coordinator's booking, one slot per line: "1st Interview: Monday, October
 // 19, 2026 at 1:00pm - 1:45pm." Each line with a date and a time range is a
 // slot, titled by the label before its colon. Ids are fixed so a re-scan reads
-// the same value (and leaves a pending row alone).
+// the same value (and leaves a pending row alone). One time written twice (a
+// calendar invite repeats the body's "Date and time" in its own "When") is one slot.
 export function findSlots(text: string, receivedAt: string): Section[] {
   const ref = new Date(receivedAt);
+  const seen = new Set<string>();
   return text
     .split(/\n+/)
     .flatMap((line) => {
       const range = TIME_RANGE.exec(line);
-      const minutes = range && findDate(line, ref) ? rangeMinutes(range) : null;
-      if (!minutes) return [];
+      const date = range && findDate(line, ref);
+      const slot = range && date ? rangeOf(range) : null;
+      if (!slot || !date) return [];
+      const key = `${date.y}-${date.m}-${date.d} ${slot.start} ${slot.minutes}`;
+      if (seen.has(key)) return [];
+      seen.add(key);
+      const minutes = slot.minutes;
       // Not the "Monday, October 19 at 1" before the colon in "1:00".
       const found = /^\s*([^:]{2,40}?)\s*:\s*(.+)$/.exec(line);
       const label = found && !/\d$/.test(found[1]) && !findDate(found[1], ref) ? found : null;
@@ -451,6 +458,12 @@ function candidates(f: EmailFacts): Candidate[] {
   if ((m = /\bApplication (?:Confirmation|received)\s*[-–]\s*(.+)$/i.exec(subject))) add("company", m[1], "subject");
   if ((m = /^(?:Application Confirmation|Application received)\b.*\bfor (.+?) position$/i.exec(subject))) add("role", m[1], "subject");
   if ((m = /^Your application for (.+?) has been received/i.exec(subject))) add("role", m[1], "subject");
+  // A booked interview: "Interview with Globex", Google Calendar's "Invitation
+  // (from an unknown sender): Interview with Globex @ Tue 27 Oct 2026 10am …".
+  // Not "Interview with Pat Lee" when that is the person writing.
+  if ((m = /^(?:(?:updated )?invitation(?: from an unknown sender)?:\s*)?(?:\w+ ){0,2}interview with ([^@|(]+?)\s*(?:@|\||\(|!|$)/i.exec(subject))) {
+    if (!f.fromName.toLowerCase().includes(m[1].trim().toLowerCase())) add("company", m[1], "interview subject");
+  }
   // Job id in a subject: "... - 170003 - SW Developer Intern ...", "... - Summer 2027 - 3000009 ."
   if ((m = /\s[-–]\s(\d{5,8})(?=\s*[-–.]|\s*$)/.exec(subject))) add("jobId", m[1], "subject");
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classify } from "@/lib/tracker/email/classify";
 import { extractFields } from "@/lib/tracker/email/fields";
+import { displaySubject } from "@/lib/tracker/email/parse";
 import { mail } from "../helpers/email";
 
 const kindOf = (m: Parameters<typeof classify>[0]) => {
@@ -1096,5 +1097,89 @@ describe("extractFields: deadlines and completion", () => {
       "oa_invite"
     );
     expect(tracked.link).toBe("http://track.bigco.net/ltrk/abc");
+  });
+});
+
+describe("fixes from the seventh inbox review", () => {
+  // An ATS reminder for an interview that is already booked: no verb to
+  // schedule it, just the time.
+  const body = [
+    "Hi Sam,",
+    "We are looking forward to your interview with Globex!",
+    "Please prepare for your scheduled interview by checking your wifi connection and making sure your camera is working correctly.",
+    "Thank you,",
+    "Pat Example",
+    "Date and time (Candidate's timezone)",
+    "Tuesday, October 27, 2026 at 10:00 AM - 10:30 AM EDT",
+    "Schedule",
+    "10:00 AM - 10:30 AM EDT: Pat Example (Talent Partner, People)",
+    "Video Conference: GOOGLE",
+  ].join("\n");
+  const ats = mail({
+    fromAddress: "mail@ats.rippling.com",
+    fromName: "Pat Example",
+    subject: "Interview with Globex",
+    text: body,
+    receivedAt: "2026-10-21T09:11:00.000Z",
+  });
+  // The same text arrives again as a Google Calendar invitation from the recruiter.
+  const calendar = mail({
+    fromAddress: "pat.example@globex.com",
+    fromName: "Pat Example",
+    subject: "Invitation from an unknown sender: Interview with Globex @ Tue 27 Oct 2026 10am - 10:30am (EDT) (sam@example.com)",
+    text: [
+      "Join with Google Meet",
+      "meet.google.com/abc-defg-hij",
+      body,
+      "When",
+      "Tuesday 27 Oct 2026 ⋅ 10am – 10:30am (Eastern Time - Toronto)",
+      "Guests",
+      "sam@example.com",
+    ].join("\n"),
+    receivedAt: "2026-10-21T09:12:00.000Z",
+  });
+
+  it("'looking forward to your interview … your scheduled interview' is an interview", () => {
+    expect(kindOf(ats)).toBe("interview_invite");
+    expect(kindOf(calendar)).toBe("interview_invite");
+  });
+
+  it("reads the booked time", () => {
+    const f = extractFields(ats, "interview_invite");
+    expect(f.dueAt).toBe("2026-10-27T14:00:00.000Z");
+    expect(f.durationMin).toBe(30);
+  });
+
+  it("'Interview with <Company>' names the company, not the person who wrote", () => {
+    expect(extractFields(ats, "interview_invite").company).toBe("Globex");
+    expect(extractFields(calendar, "interview_invite").company).toBe("Globex");
+    // "Interview with <the sender>" isn't read as a company by the subject rule.
+    const person = mail({ fromAddress: "mail@ats.rippling.com", fromName: "Pat Example", subject: "Interview with Pat Example", text: body });
+    expect(extractFields(person, "interview_invite").origins.company).not.toBe("interview subject");
+  });
+
+  it("the same time written twice (body and calendar 'When') is one booking, not two parts", () => {
+    const f = extractFields(calendar, "interview_invite");
+    expect(f.sections).toEqual([]);
+    expect(f.durationMin).toBe(30);
+  });
+
+  it("a calendar invite's subject is shown without its date and address", () => {
+    expect(displaySubject(calendar.subject)).toBe("Interview with Globex");
+    expect(displaySubject("Invitation: Interview with Globex @ Tue 27 Oct 2026 10am (EDT) (sam@example.com)")).toBe("Interview with Globex");
+    expect(displaySubject("Interview with Globex")).toBe("Interview with Globex");
+    expect(displaySubject("Meet @ the office")).toBe("Meet @ the office");
+  });
+
+  it("an advice mail about 'looking forward to your questions' stays out", () => {
+    expect(
+      kindOf(
+        mail({
+          fromAddress: "careers@globex.com",
+          subject: "Your application",
+          text: "We are looking forward to your questions about the interview process.",
+        })
+      )
+    ).not.toBe("interview_invite");
   });
 });

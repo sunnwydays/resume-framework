@@ -16,6 +16,7 @@ import {
   stepKey,
   type EmailJobPayload,
 } from "@/lib/tracker/email/payload";
+import { displaySubject } from "@/lib/tracker/email/parse";
 import { gmailLink } from "@/lib/tracker/email/rows";
 import { sectionsOf } from "@/lib/tracker/sections";
 import {
@@ -257,7 +258,7 @@ export default function EmailJobCard({ group, applications, assessments, statusC
               <span className="text-xs text-neutral-500 tabular-nums">{formatDate(email.facts.receivedAt)}</span>
               {email.kind && tone && <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${tone.pill}`}>{EMAIL_KINDS[email.kind]}</span>}
               <span className="min-w-0 flex-1 truncate" title={email.facts.subject}>
-                {email.facts.subject || "(no subject)"}
+                {displaySubject(email.facts.subject) || "(no subject)"}
               </span>
               <a href={gmailLink(email.facts.gmailId)} target="_blank" rel="noreferrer" className="text-xs text-neutral-500 underline">
                 Open in Gmail

@@ -160,6 +160,10 @@ export const RULES = {
     /technical\s+screening\s+round/i,
     // "You will be scheduled for two 45 minute interviews" (a recruiter's intro)
     /\b(?:will|'ll)\s+be\s+scheduled\s+for\s+(?:\w+\s+){0,4}interviews?\b/i,
+    // A booked one, no verb to schedule it: "We are looking forward to your
+    // interview with Globex!", "prepare for your scheduled interview".
+    /\blooking\s+forward\s+to\s+(?:your|the|our)\s+(?:\w+\s+){0,2}interview\b/i,
+    /\b(?:your|upcoming)\s+scheduled\s+(?:\w+\s+){0,2}interview\b/i,
   ],
   // A booking link is an invite; the tool's name in the text isn't ("mail
   // will come from @databricks.com or @goodtime.io (our meeting tool)" is a

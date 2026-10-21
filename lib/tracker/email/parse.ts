@@ -160,6 +160,14 @@ export function messageHtml(msg: GmailMessage): string {
 const header = (msg: GmailMessage, name: string) =>
   msg.payload?.headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 
+// What a card shows for a subject. A Google Calendar invite carries its whole
+// time and the guest's address: "Invitation from an unknown sender: Interview
+// with Globex @ Tue 27 Oct 2026 10am - 10:30am (EDT) (sam@example.com)".
+export function displaySubject(subject: string): string {
+  const invite = /^(?:updated\s+)?invitation(?:\s+from\s+an\s+unknown\s+sender)?:\s*(.+?)\s+@\s+.*$/i.exec(subject);
+  return invite ? invite[1] : subject;
+}
+
 export function parseFrom(value: string): { name: string; address: string } {
   const match = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(value);
   if (match) return { name: cleanText(decodeEntities(match[1])), address: match[2].trim().toLowerCase() };
