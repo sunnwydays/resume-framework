@@ -31,7 +31,7 @@ export const ROLE_TYPES = [
   },
   {
     key: "swe",
-    label: "SWE (general)",
+    label: "SWE",
     pattern: /\b(swe|sde|swd|sd|sw|software|developer|dev|eng\w*|programmer)\b/,
   },
   { key: "other", label: "Other", pattern: null },
