@@ -406,6 +406,26 @@ describe("groupIntoJobs: tracked applications", () => {
     expect(g.assessments[0].sections.map((s) => s.title)).toEqual(["1st Interview", "2nd Interview"]);
   });
 
+  it("an interviewer is the one missing piece that still offers to fill an interview in", () => {
+    const app = makeApp({ company: "Hooli", role: "SWE Intern", status: "interview", status_changed_at: at(20) });
+    const booked = (interviewer: string | null) =>
+      makeAssessment({ application_id: app.id, kind: "interview", title: "Interview", due_at: at(30), duration_min: 30, link: "https://meet.example/x", interviewer });
+    const reminder = analyze(
+      mail({
+        gmailId: "i1",
+        fromAddress: "mail@ats.rippling.com",
+        subject: "Interview with Hooli",
+        text: "We are looking forward to your interview with Hooli!\nSchedule\n10:00 AM - 10:30 AM EDT: Pat Example (Talent Partner, People)",
+        receivedAt: at(25),
+      })
+    );
+    expect(reminder.fields.interviewer).toBe("Pat Example");
+    const [missing] = groupIntoJobs([reminder], [app], [booked(null)], []);
+    expect(missing.assessments[0]).toMatchObject({ interviewer: "Pat Example", apply: true });
+    const [known] = groupIntoJobs([reminder], [app], [booked("Sam Lee")], []);
+    expect(known.assessments[0]).toMatchObject({ apply: false, note: "already tracked" });
+  });
+
   it("a company's heads-up then the platform's invite: one OA, with the platform's link", () => {
     const app = makeApp({ company: "Vandelay & Company", role: "Associate Intern", status: "applied" });
     const headsUp = analyze(

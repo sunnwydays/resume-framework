@@ -1177,6 +1177,22 @@ describe("fixes from the seventh inbox review", () => {
     expect(withLinks([{ url: "https://globex.com/privacy", label: "Privacy" }]).link).toBeNull();
   });
 
+  it("the interviewer is the name on the schedule line, without the title", () => {
+    expect(extractFields(ats, "interview_invite")).toMatchObject({ interviewer: "Pat Example", origins: { interviewer: "interviewer line" } });
+    expect(extractFields(calendar, "interview_invite").interviewer).toBe("Pat Example");
+    // Only an interview has one.
+    expect(extractFields(ats, "confirmation").interviewer).toBeNull();
+  });
+
+  it("reads an 'Interviewer:' line, several names, and one name twice only once", () => {
+    const named = (text: string) => extractFields(mail({ fromAddress: "mail@ats.rippling.com", subject: "Interview", text }), "interview_invite").interviewer;
+    expect(named("Interviewer: Pat Example (Staff Engineer)")).toBe("Pat Example");
+    expect(named("Interviewers: Pat Example and Sam O'Neil-Lee; Ana Díaz")).toBe("Pat Example, Sam O'Neil-Lee, Ana Díaz");
+    expect(named("10:00 AM - 10:30 AM EDT: Pat Example (Engineer)\n11:00 AM - 11:30 AM EDT: Sam Lee (Engineer)\n1:00 PM - 1:30 PM EDT: Pat Example (Engineer)")).toBe("Pat Example, Sam Lee");
+    expect(named("Interviewer: TBD")).toBeNull();
+    expect(named("We will meet at 10:00 AM: bring your laptop (and charger)")).toBeNull();
+  });
+
   it("a calendar invite's subject is shown without its date and address", () => {
     expect(displaySubject(calendar.subject)).toBe("Interview with Globex");
     expect(displaySubject("Invitation: Interview with Globex @ Tue 27 Oct 2026 10am (EDT) (sam@example.com)")).toBe("Interview with Globex");

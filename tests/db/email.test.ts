@@ -178,7 +178,7 @@ describe.skipIf(!dbReady)("apply_email_job", () => {
         expect(row.status).toBe("completed");
         expect(iso(row.completed_at)).toBe(T3);
         expect((await acceptFor(tx, app)).assessments_before).toEqual([
-          { id: oa, link: "https://assess.example/t/3", due_at: null, duration_min: null, sections: [], status: "pending", completed_at: null },
+          { id: oa, link: "https://assess.example/t/3", due_at: null, duration_min: null, sections: [], interviewer: null, status: "pending", completed_at: null },
         ]);
       });
     });
@@ -518,6 +518,73 @@ describe.skipIf(!dbReady)("email_messages", () => {
     await asNewUser(async (tx) => {
       const e = await failure(tx, "insert into public.email_messages (gmail_id, thread_id, received_at, from_address, kind, snippet) values ('x', 'x', now(), 'a@b.example', 'confirmation', $1)", ["x".repeat(201)]);
       expect(e.constraint).toBe("email_messages_snippet_check");
+    });
+  });
+});
+
+describe.skipIf(!dbReady)("interviewer from a Gmail card", () => {
+  it("fills an empty interviewer, never replacing one set by hand", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      const empty = await addAssessment(tx, app, { kind: "interview", title: "Interview" });
+      const mine = await addAssessment(tx, app, { kind: "interview", title: "Mine" });
+      await tx.query("update public.assessments set interviewer = 'Sam Lee' where id = $1", [mine]);
+      await applyEmailJob(tx, {
+        application_id: app,
+        assessments: [
+          { id: empty, interviewer: "Pat Example" },
+          { id: mine, interviewer: "Pat Example" },
+        ],
+        message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+      });
+      const who = (id: string) => tx.one<{ interviewer: string | null }>("select interviewer from public.assessments where id = $1", [id]);
+      expect(await who(empty)).toEqual({ interviewer: "Pat Example" });
+      expect(await who(mine)).toEqual({ interviewer: "Sam Lee" });
+    });
+  });
+
+  it("a new assessment gets the interviewer (null when the payload has none)", async () => {
+    await asNewUser(async (tx) => {
+      const id = await applyEmailJob(tx, {
+        new_application: { company: "Hooli", role: "SWE Intern", status_changed_at: T2 },
+        assessments: [
+          { kind: "interview", title: "Interview", interviewer: "Pat Example", completed_at: null },
+          { kind: "oa", title: "OA", completed_at: null },
+        ],
+        message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+      });
+      expect(await tx.rows("select title, interviewer from public.assessments where application_id = $1 order by title", [id])).toEqual([
+        { title: "Interview", interviewer: "Pat Example" },
+        { title: "OA", interviewer: null },
+      ]);
+    });
+  });
+
+  it("undo empties an interviewer the card filled in, and leaves one set by hand since", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      const interview = await addAssessment(tx, app, { kind: "interview", title: "Interview" });
+      await applyEmailJob(tx, {
+        application_id: app,
+        assessments: [{ id: interview, interviewer: "Pat Example" }],
+        message_ids: [await addEmail(tx, { kind: "interview_invite" })],
+      });
+      const accept = await tx.one<{ id: string }>("select id from public.email_accepts where application_id = $1", [app]);
+      await tx.query("select public.undo_email_job($1)", [accept.id]);
+      expect(await tx.one("select interviewer from public.assessments where id = $1", [interview])).toEqual({ interviewer: null });
+    });
+  });
+
+  it("an accept recorded before interviewers were tracked leaves the interviewer as it is", async () => {
+    await asNewUser(async (tx) => {
+      const app = await addApplication(tx);
+      const interview = await addAssessment(tx, app, { kind: "interview", title: "Interview" });
+      await applyEmailJob(tx, { application_id: app, assessments: [{ id: interview, link: "https://meet.example/abc" }], message_ids: [await addEmail(tx, { kind: "interview_invite" })] });
+      const accept = await tx.one<{ id: string }>("select id from public.email_accepts where application_id = $1", [app]);
+      await tx.query("update public.email_accepts set assessments_before = jsonb_build_array((assessments_before->0) - 'interviewer') where id = $1", [accept.id]);
+      await tx.query("update public.assessments set interviewer = 'Typed Later' where id = $1", [interview]);
+      await tx.query("select public.undo_email_job($1)", [accept.id]);
+      expect(await tx.one("select interviewer from public.assessments where id = $1", [interview])).toEqual({ interviewer: "Typed Later" });
     });
   });
 });

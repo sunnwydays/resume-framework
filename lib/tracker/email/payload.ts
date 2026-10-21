@@ -46,6 +46,7 @@ export interface EmailJobPayload {
     due_at: string | null;
     duration_min: number | null;
     sections: Section[];
+    interviewer: string | null;
     completed_at: string | null;
   }[];
   fill: { status_changed_at?: string; applied_on?: { from: string; to: string } };
@@ -53,7 +54,7 @@ export interface EmailJobPayload {
 }
 
 function assessmentPayload(a: AssessmentAction): EmailJobPayload["assessments"][number] {
-  const common = { link: a.link, due_at: a.dueAt, duration_min: a.durationMin, sections: a.sections, completed_at: a.completedAt };
+  const common = { link: a.link, due_at: a.dueAt, duration_min: a.durationMin, sections: a.sections, interviewer: a.interviewer, completed_at: a.completedAt };
   return a.existing ? { id: a.existing.id, ...common } : { kind: a.kind, title: a.title, ...common };
 }
 

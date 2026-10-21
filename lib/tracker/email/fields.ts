@@ -9,7 +9,7 @@ import type { EmailKind } from "@/lib/tracker/format";
 import type { EmailFacts } from "@/lib/tracker/email/parse";
 import { totalMinutes, type Section } from "@/lib/tracker/sections";
 
-export type FieldName = "company" | "role" | "jobId" | "link" | "dueAt" | "durationMin" | "sections" | "completedAt";
+export type FieldName = "company" | "role" | "jobId" | "link" | "dueAt" | "durationMin" | "sections" | "completedAt" | "interviewer";
 
 export interface EmailFields {
   company: string | null;
@@ -19,6 +19,7 @@ export interface EmailFields {
   dueAt: string | null;
   durationMin: number | null; // how long the assessment or interview takes
   sections: Section[]; // an interview booked as several back-to-back slots
+  interviewer: string | null; // name only, "Pat Lee" not "Pat Lee (Talent Partner)"
   completedAt: string | null;
   // "Globex Frontend Challenge Assessment": CodeSignal names the test, not the company.
   assessmentTitle: string | null;
@@ -235,6 +236,35 @@ export function findSlots(text: string, receivedAt: string): Section[] {
       notes: null,
       parts: [],
     }));
+}
+
+// Who runs an interview. A booking lists them after each slot, "10:00 AM - 10:30
+// AM EDT: Pat Lee (Talent Partner, People)"; some mails say "Interviewer: Pat
+// Lee". The name only, several joined with ", ".
+const PERSON = String.raw`\p{Lu}[\p{L}'.-]+(?: \p{Lu}[\p{L}'.-]+){1,3}`;
+const SLOT_PERSON = new RegExp(String.raw`\b[AaPp][Mm]\b[^:\n]{0,12}:\s*(${PERSON})\s*\(`, "u");
+const INTERVIEWER_LINE = /^\s*interviewers?\s*:\s*(.+)$/i;
+
+export function findInterviewer(text: string): string | null {
+  const names: string[] = [];
+  const add = (name: string) => {
+    const tidy = name.trim();
+    if (!names.includes(tidy)) names.push(tidy);
+  };
+  for (const line of text.split(/\n+/)) {
+    const slot = SLOT_PERSON.exec(line);
+    if (slot) {
+      add(slot[1]);
+      continue;
+    }
+    const labelled = INTERVIEWER_LINE.exec(line);
+    if (labelled && labelled[1].length <= 80) {
+      for (const name of labelled[1].replace(/\([^)]*\)/g, "").split(/\s*(?:,|;|&|\band\b)\s*/)) {
+        if (new RegExp(`^${PERSON}$`, "u").test(name.trim())) add(name);
+      }
+    }
+  }
+  return names.length ? names.join(", ") : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -657,6 +687,7 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
       ? findDuration(flatAll)
       : null;
   const sections = slots.length > 1 ? slots : [];
+  const interviewer = kind === "interview_invite" ? findInterviewer(f.text) : null;
   const completed = kind === "assessment_done" ? findCompletion(flatAll, f.receivedAt) : null;
 
   return {
@@ -667,6 +698,7 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
     dueAt: deadline?.at ?? null,
     durationMin: duration?.minutes ?? null,
     sections,
+    interviewer,
     completedAt: completed,
     assessmentTitle: assessmentTitleOf(f),
     origins: {
@@ -677,6 +709,7 @@ export function extractFields(f: EmailFacts, kind: EmailKind | null = null): Ema
       ...(deadline && { dueAt: deadline.origin }),
       ...(duration && { durationMin: duration.origin }),
       ...(sections.length > 0 && { sections: "booked slots" }),
+      ...(interviewer && { interviewer: "interviewer line" }),
       ...(completed && { completedAt: "completion time" }),
     },
   };

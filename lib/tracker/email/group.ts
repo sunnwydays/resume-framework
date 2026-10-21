@@ -149,6 +149,7 @@ export interface AssessmentAction {
   dueAt: string | null;
   durationMin: number | null;
   sections: Section[];
+  interviewer: string | null;
   existing: Assessment | null; // fill this one in instead of adding another
   completedAt: string | null; // set when a "you completed it" mail was seen
   apply: boolean;
@@ -211,13 +212,14 @@ function linkRank(e: Analyzed): number {
 // only ever fills empty values, so anything else would be a no-op.
 function fillsIn(
   a: Assessment,
-  f: Pick<EmailFields, "link" | "dueAt" | "durationMin" | "sections">
+  f: Pick<EmailFields, "link" | "dueAt" | "durationMin" | "sections" | "interviewer">
 ): boolean {
   return Boolean(
     (!a.link && f.link) ||
       (!a.due_at && f.dueAt) ||
       (a.duration_min == null && f.durationMin) ||
-      (!sectionsOf(a.sections).length && f.sections.length)
+      (!sectionsOf(a.sections).length && f.sections.length) ||
+      (!a.interviewer && f.interviewer)
   );
 }
 
@@ -317,6 +319,7 @@ function planGroup(
         have.dueAt = email.fields.dueAt ?? have.dueAt;
         have.durationMin ??= email.fields.durationMin;
         if (!have.sections.length) have.sections = email.fields.sections;
+        have.interviewer ??= email.fields.interviewer;
         continue;
       }
       const existing = pending(invite).length === 1 ? pending(invite)[0] : null;
@@ -328,6 +331,7 @@ function planGroup(
         dueAt: email.fields.dueAt,
         durationMin: email.fields.durationMin,
         sections: email.fields.sections,
+        interviewer: email.fields.interviewer,
         existing,
         completedAt: null,
         apply: true,
@@ -353,6 +357,7 @@ function planGroup(
           dueAt: email.fields.dueAt,
           durationMin: email.fields.durationMin,
           sections: email.fields.sections,
+          interviewer: email.fields.interviewer,
           existing: only,
           completedAt: null,
           apply: true,
@@ -380,6 +385,7 @@ function planGroup(
           dueAt: null,
           durationMin: null,
           sections: [],
+          interviewer: null,
           existing: only,
           completedAt: at,
           apply: true,
@@ -393,6 +399,7 @@ function planGroup(
           dueAt: null,
           durationMin: null,
           sections: [],
+          interviewer: null,
           existing: null,
           completedAt: at,
           apply: true,

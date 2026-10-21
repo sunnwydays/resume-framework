@@ -374,7 +374,7 @@ describe("buildPayload", () => {
     const oa = makeAssessment({ application_id: app.id, kind: "oa", status: "pending", link: null });
     const [g] = groupIntoJobs([oaInvite("Globex", "Backend Intern", 22)], [app], [oa], []);
     expect(buildPayload(g, defaultTicks(g), rowIdOf).assessments).toEqual([
-      { id: oa.id, link: "https://www.hackerrank.com/test/abc", due_at: null, duration_min: null, sections: [], completed_at: null },
+      { id: oa.id, link: "https://www.hackerrank.com/test/abc", due_at: null, duration_min: null, sections: [], interviewer: null, completed_at: null },
     ]);
   });
 

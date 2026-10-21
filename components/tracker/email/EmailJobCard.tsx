@@ -66,6 +66,7 @@ function assessmentText(a: AssessmentAction): string {
       a.dueAt && !a.existing.due_at && `due ${formatDateTime(a.dueAt)}`,
       a.durationMin && a.existing.duration_min == null && `${a.durationMin} min`,
       a.sections.length > 0 && !sectionsOf(a.existing.sections).length && `${a.sections.length} parts`,
+      a.interviewer && !a.existing.interviewer && `interviewer ${a.interviewer}`,
     ].filter(Boolean);
     return `Fill in “${a.existing.title}”: ${parts.join(", ") || "nothing new"}`;
   }
@@ -75,6 +76,7 @@ function assessmentText(a: AssessmentAction): string {
     a.dueAt && `due ${formatDateTime(a.dueAt)}`,
     a.durationMin && `${a.durationMin} min`,
     a.sections.length > 0 && `${a.sections.length} parts (${a.sections.map((s) => s.title).join(", ")})`,
+    a.interviewer && `with ${a.interviewer}`,
     a.link && "with link",
   ]
     .filter(Boolean)

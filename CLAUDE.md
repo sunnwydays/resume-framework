@@ -626,7 +626,12 @@ tracker paths; the resume pages never hit it.
   deadline or completion time, length; an interview booked as two or more
   "1st Interview: <date> at 1:00pm - 1:45pm" lines becomes one interview whose
   sections are the slots, stored in `email_messages.sections` and filled into an
-  assessment only while its own are empty; sender-specific templates first, then generic
+  assessment only while its own are empty; the interview's video-call link (Meet / Zoom /
+  Teams, a link labelled "Meeting Link", or a Meet address printed as text) and the
+  interviewer's name only, from a "10:00 AM - 10:30 AM EDT: Pat Lee (Title)" schedule line
+  or an "Interviewer:" line, stored in `email_messages.interviewer` and filled into
+  `assessments.interviewer` only while empty (`apply_email_job` / `undo_email_job` handle it
+  like the link); sender-specific templates first, then generic
   ones, then sender-domain guesses, and each value records its origin) ->
   `group.ts` (`matchApplications`: job id in a posting URL, then company, then
   role; `groupIntoJobs`: one `JobGroup` per job with forward-only status

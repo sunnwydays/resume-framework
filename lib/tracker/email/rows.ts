@@ -39,6 +39,7 @@ export function toRow(a: Analyzed): TablesInsert<"email_messages"> | null {
     due_at: fields.dueAt,
     duration_min: fields.durationMin,
     sections: fields.sections as unknown as Json,
+    interviewer: fields.interviewer,
     completed_at: fields.completedAt,
     assessment_title: fields.assessmentTitle,
     field_origins: fields.origins as Json,
@@ -58,6 +59,7 @@ export function fromRow(row: EmailMessage): Analyzed {
     dueAt: isoOrNull(row.due_at),
     durationMin: row.duration_min,
     sections: sectionsOf(row.sections),
+    interviewer: row.interviewer,
     completedAt: isoOrNull(row.completed_at),
     assessmentTitle: row.assessment_title,
     origins: (row.field_origins ?? {}) as Partial<Record<FieldName, string>>,
@@ -84,7 +86,7 @@ export function fromRow(row: EmailMessage): Analyzed {
 // so a rule fix reaches emails saved before it. Accepted rows are history and
 // dismissed ones stay dismissed: neither is touched.
 const RULE_COLUMNS = [
-  "kind", "matched_phrase", "company", "role", "job_id", "link", "due_at", "duration_min", "sections", "completed_at",
+  "kind", "matched_phrase", "company", "role", "job_id", "link", "due_at", "duration_min", "sections", "interviewer", "completed_at",
   "assessment_title", "field_origins",
 ] as const;
 type RuleColumn = (typeof RULE_COLUMNS)[number];

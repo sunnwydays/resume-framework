@@ -248,6 +248,7 @@ export type Database = {
           from_name: string
           gmail_id: string
           id: string
+          interviewer: string | null
           job_id: string | null
           kind: string
           link: string | null
@@ -275,6 +276,7 @@ export type Database = {
           from_name?: string
           gmail_id: string
           id?: string
+          interviewer?: string | null
           job_id?: string | null
           kind: string
           link?: string | null
@@ -302,6 +304,7 @@ export type Database = {
           from_name?: string
           gmail_id?: string
           id?: string
+          interviewer?: string | null
           job_id?: string | null
           kind?: string
           link?: string | null
