@@ -1,5 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { isQuotaMessage, quotaBackoff, reusable, type HeldToken } from "@/lib/tracker/email/gmail";
+import { abortable, isQuotaMessage, quotaBackoff, reusable, type HeldToken } from "@/lib/tracker/email/gmail";
+
+describe("abortable (Stop during waits that can't cancel themselves, like Google's popup)", () => {
+  const never = () => new Promise<string>(() => {});
+
+  it("gives up on a pending wait the moment the signal fires", async () => {
+    const controller = new AbortController();
+    const wait = abortable(never(), controller.signal);
+    controller.abort();
+    await expect(wait).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects at once when the signal already fired", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(abortable(never(), controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("passes the result (or the failure) through when nothing aborts", async () => {
+    const controller = new AbortController();
+    await expect(abortable(Promise.resolve("token"), controller.signal)).resolves.toBe("token");
+    await expect(abortable(Promise.reject(new Error("denied")), controller.signal)).rejects.toThrow("denied");
+    await expect(abortable(Promise.resolve("token"))).resolves.toBe("token");
+  });
+});
 
 describe("quota handling", () => {
   it("reads Gmail's per-minute quota 403 as retryable, not as a setup problem", () => {

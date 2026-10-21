@@ -78,12 +78,18 @@ export function usePostings() {
   // postings not yet read are fetched (and ones read before the flags or the
   // description were stored; "" means read, nothing to keep); one whose page
   // couldn't be read is left for next time.
-  // Returns how many were read.
+  // Returns how many were read; `stopped` when `signal` cut it short (what was
+  // read is already stored, the rest is picked up by the next scan).
   const readDetails = useCallback(
-    async (candidates: JobPosting[], onProgress?: (done: number, total: number) => void): Promise<{ read: number } | { error: string }> => {
+    async (
+      candidates: JobPosting[],
+      onProgress?: (done: number, total: number) => void,
+      signal?: AbortSignal
+    ): Promise<{ read: number; stopped?: true } | { error: string }> => {
       const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null || p.description === null));
       let read = 0;
       for (let i = 0; i < todo.length; i += DETAILS_BATCH) {
+        if (signal?.aborted) return { read, stopped: true };
         onProgress?.(i, todo.length);
         const batch = todo.slice(i, i + DETAILS_BATCH);
         let results: (PostingDetails | null)[];
@@ -92,11 +98,13 @@ export function usePostings() {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ urls: batch.map((p) => p.url) }),
+            signal,
           });
           const body = (await res.json()) as { results?: (PostingDetails | null)[]; error?: string };
           if (!res.ok || !body.results) return { error: body.error ?? `Couldn't read posting pages (${res.status})` };
           results = body.results;
         } catch (e) {
+          if ((e as Error).name === "AbortError") return { read, stopped: true };
           return { error: (e as Error).message };
         }
         const stamp = new Date().toISOString();
@@ -161,9 +169,15 @@ export function usePostings() {
       const trashed = trash ? await trashNote(alertIds, "alert", signal) : "";
       // The title seldom names the term or length (or the level); the posting
       // page does. Covers older postings that were never read, too.
-      const details = await readDetails([...postings, ...saved.rows], onReading);
+      const details = await readDetails([...postings, ...saved.rows], onReading, signal);
       const detailsNote =
-        "error" in details ? ` · couldn't read posting pages: ${details.error}` : details.read ? ` · read ${details.read} posting pages for term, length and level` : "";
+        "error" in details
+          ? ` · couldn't read posting pages: ${details.error}`
+          : details.stopped
+            ? ` · stopped after reading ${details.read} posting pages; the next scan reads the rest`
+            : details.read
+              ? ` · read ${details.read} posting pages for term, length and level`
+              : "";
       const capped = result.capped ? ` · stopped at ${result.listed}; scan again from a later date for the rest` : "";
       const failed = unreadable ? ` · ${unreadable} couldn't be read` : "";
       return { summary: `${summarizePostingScan({ alerts, postings: unique.length, saved: saved.saved })}${failed}${trashed}${detailsNote}${capped}` };

@@ -102,11 +102,29 @@ function loadGoogleScript(): Promise<void> {
   }));
 }
 
-export async function getToken(access: GmailAccess = "read"): Promise<string> {
+// Settles like `promise`, but rejects with an AbortError the moment `signal`
+// fires. For waits that can't be cancelled themselves: Google's popup, a timer.
+export function abortable<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+    if (signal.aborted) return onAbort();
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
+// Stop works while the Google popup is open: the scan gives up waiting (a token
+// granted afterwards is still kept for the next scan).
+export async function getToken(access: GmailAccess = "read", signal?: AbortSignal): Promise<string> {
   if (reusable(token, access, Date.now())) return token.value;
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   if (!clientId) throw new GmailError("config", "NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set (it is inlined at build time).");
-  await loadGoogleScript();
+  await abortable(loadGoogleScript(), signal);
+  return abortable(requestToken(clientId, access), signal);
+}
+
+function requestToken(clientId: string, access: GmailAccess): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: clientId,
@@ -144,7 +162,7 @@ export function forgetToken(): void {
   token = null;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number, signal?: AbortSignal) => abortable(new Promise((resolve) => setTimeout(resolve, ms)), signal);
 
 const QUOTA_RETRIES = 6;
 
@@ -167,7 +185,7 @@ async function api<T>(path: string, options: ApiOptions = {}, attempt = 0): Prom
   const { signal, body, access } = options;
   let res: Response;
   try {
-    const headers: Record<string, string> = { Authorization: `Bearer ${await getToken(access)}` };
+    const headers: Record<string, string> = { Authorization: `Bearer ${await getToken(access, signal)}` };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     res = await fetch(`${API}${path}`, {
       method: body === undefined ? "GET" : "POST",
@@ -191,7 +209,7 @@ async function api<T>(path: string, options: ApiOptions = {}, attempt = 0): Prom
   }
   if (res.status === 429 || res.status >= 500 || isQuotaMessage(detail)) {
     if (attempt < QUOTA_RETRIES) {
-      await sleep(quotaBackoff(attempt));
+      await sleep(quotaBackoff(attempt), signal);
       return api(path, options, attempt + 1);
     }
     throw new GmailError("quota", "Gmail is rate-limiting requests. Wait a minute and scan again.");
@@ -304,7 +322,7 @@ async function modifyLabels(
   signal?: AbortSignal
 ): Promise<number> {
   if (ids.length === 0) return 0;
-  await getToken("modify");
+  await getToken("modify", signal);
   if (!token?.modify) {
     throw new GmailError("denied", `Google didn't allow changing mail. Allow it when Google asks, or untick "${boxLabel}".`);
   }
