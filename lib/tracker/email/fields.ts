@@ -611,6 +611,9 @@ const LINK_COMES_LATER = /\bseparate\s+email\b[^.]{0,120}?\blink\b|\blink\b[^.]{
 
 export const PLATFORM_LINK = "assessment platform link";
 
+const MEETING_HOST = /(?:^|\.)(?:meet\.google\.com|zoom\.us|zoomgov\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com|whereby\.com)$/i;
+const MEETING_URL_IN_TEXT = /\b((?:meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}|(?:[\w-]+\.)?zoom\.us\/j\/\d+|teams\.microsoft\.com\/l\/meetup-join\/\S+))/i;
+
 function pickLink(f: EmailFacts): { url: string; origin: string } | null {
   if (LINK_COMES_LATER.test(f.text)) return null;
   // Help-center articles live on the platform's domain too (…/hc/en-us/articles/…).
@@ -620,9 +623,17 @@ function pickLink(f: EmailFacts): { url: string; origin: string } | null {
   );
   const platform = usable.find((l) => RULES.assessmentDomains.some((d) => hostOf(l.url).endsWith(d)));
   if (platform) return { url: platform.url, origin: PLATFORM_LINK };
+  // An interview's video call: Google Meet, Zoom, Teams, Webex.
+  const call = usable.find((l) => MEETING_HOST.test(hostOf(l.url)));
+  if (call) return { url: call.url, origin: "meeting link" };
   // BigCo-style tracking redirects: the anchor text says what the link is.
-  const labelled = usable.find((l) => /start|begin|take|access|launch|this url|assessment|test link|schedule|book/i.test(l.label));
-  return labelled ? { url: labelled.url, origin: `link "${labelled.label.slice(0, 30)}"` } : null;
+  const labelled = usable.find((l) =>
+    /start|begin|take|access|launch|this url|assessment|test link|schedule|book|meeting link|join (?:the )?(?:meeting|call|interview)/i.test(l.label)
+  );
+  if (labelled) return { url: labelled.url, origin: `link "${labelled.label.slice(0, 30)}"` };
+  // Calendar invites print the Meet address as plain text, not a link.
+  const typed = MEETING_URL_IN_TEXT.exec(f.text);
+  return typed ? { url: `https://${typed[1]}`, origin: "meeting link in text" } : null;
 }
 
 const DEADLINE_KINDS: EmailKind[] = ["oa_invite", "video_invite", "interview_invite", "reminder"];

@@ -1164,6 +1164,19 @@ describe("fixes from the seventh inbox review", () => {
     expect(f.durationMin).toBe(30);
   });
 
+  it("attaches the meeting link: a Meet/Zoom link, a labelled 'Meeting Link', or a Meet address typed in the text", () => {
+    const withLinks = (links: { url: string; label: string }[]) => extractFields({ ...ats, links }, "interview_invite");
+    expect(withLinks([{ url: "https://meet.google.com/abc-defg-hij", label: "Join" }])).toMatchObject({
+      link: "https://meet.google.com/abc-defg-hij",
+      origins: { link: "meeting link" },
+    });
+    expect(withLinks([{ url: "https://globex.zoom.us/j/123456789?pwd=x", label: "Zoom" }]).link).toBe("https://globex.zoom.us/j/123456789?pwd=x");
+    expect(withLinks([{ url: "https://track.example.net/r/abc", label: "Meeting Link" }]).link).toBe("https://track.example.net/r/abc");
+    // The calendar invite's body only prints the address.
+    expect(extractFields(calendar, "interview_invite").link).toBe("https://meet.google.com/abc-defg-hij");
+    expect(withLinks([{ url: "https://globex.com/privacy", label: "Privacy" }]).link).toBeNull();
+  });
+
   it("a calendar invite's subject is shown without its date and address", () => {
     expect(displaySubject(calendar.subject)).toBe("Interview with Globex");
     expect(displaySubject("Invitation: Interview with Globex @ Tue 27 Oct 2026 10am (EDT) (sam@example.com)")).toBe("Interview with Globex");
