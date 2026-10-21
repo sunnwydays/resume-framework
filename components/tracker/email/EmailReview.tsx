@@ -36,6 +36,8 @@ interface Props {
 }
 
 const PAGE = 40;
+const bannerCls =
+  "flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 shadow-lg ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800";
 
 // The "Gmail Updates" tab: one card per job, newest activity first.
 export default function EmailReview({ tracker, review }: Props) {
@@ -48,7 +50,7 @@ export default function EmailReview({ tracker, review }: Props) {
   const [showMutes, setShowMutes] = useState(false);
   const [last, setLast] = useState<{ applicationId: string; label: string; feedbackId?: string | null } | null>(null);
   // The latest dismiss, for its "why?" chips.
-  const [dismissed, setDismissed] = useState<{ count: number; feedbackId: string | null } | null>(null);
+  const [dismissed, setDismissed] = useState<{ count: number; feedbackId?: string | null } | null>(null);
   // How new cards tidy the role from the emails (same options as the add form).
   const [trimSetting, setTrimSetting] = useLocalSetting("tracker.gmail.trims", trimsToString(DEFAULT_TRIMS));
   const trims = trimsFromString(trimSetting);
@@ -87,7 +89,7 @@ export default function EmailReview({ tracker, review }: Props) {
   async function dismiss(groups: JobGroup[], bulk: boolean) {
     tracker.dismissEmails(groups.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
     setLast(null);
-    setDismissed({ count: groups.length, feedbackId: null });
+    setDismissed({ count: groups.length });
     const feedbackId = await recordFeedback(emailDismissFeedback(groups, bulk));
     setDismissed((cur) => (cur ? { ...cur, feedbackId } : cur));
   }
@@ -227,30 +229,6 @@ export default function EmailReview({ tracker, review }: Props) {
       </div>
 
       {message && <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>}
-      {last && lastTrail && (
-        <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-          Saved {last.label}.
-          {lastTrail.undoable && (
-            <button type="button" className="underline" onClick={undoLast}>
-              Undo
-            </button>
-          )}
-          <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
-            Hide
-          </button>
-        </p>
-      )}
-
-      {dismissed && (
-        <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-          Dismissed {dismissed.count} card{dismissed.count === 1 ? "" : "s"}.
-          <ReasonChips key={dismissed.feedbackId ?? "pending"} reasons={EMAIL_DISMISS_REASONS} feedbackId={dismissed.feedbackId} />
-          <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setDismissed(null)}>
-            Hide
-          </button>
-        </p>
-      )}
-
       {visible.length === 0 ? (
         <p className="py-8 text-center text-sm text-neutral-500">
           {review.groups.length === 0 ? "All caught up: nothing from Gmail is waiting for review." : "Nothing here."}
@@ -290,6 +268,36 @@ export default function EmailReview({ tracker, review }: Props) {
         </div>
       )}
       <DismissedEmails emails={dismissedEmails(gmail.emails)} onRestore={tracker.restoreEmails} />
+
+      {/* Last in the page and sticky to the bottom of the screen, so they're in
+          reach wherever in a long list the card was accepted or dismissed. One
+          wrapper so the two don't pile on top of each other. */}
+      {((last && lastTrail) || dismissed) && (
+        <div className="sticky bottom-4 z-30 mx-4 space-y-2">
+          {last && lastTrail && (
+            <p className={bannerCls}>
+              Saved {last.label}.
+              {lastTrail.undoable && (
+                <button type="button" className="underline" onClick={undoLast}>
+                  Undo
+                </button>
+              )}
+              <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
+                Hide
+              </button>
+            </p>
+          )}
+          {dismissed && (
+            <p className={bannerCls}>
+              Dismissed {dismissed.count} card{dismissed.count === 1 ? "" : "s"}.
+              <ReasonChips key={dismissed.feedbackId ?? "pending"} reasons={EMAIL_DISMISS_REASONS} feedbackId={dismissed.feedbackId} />
+              <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setDismissed(null)}>
+                Hide
+              </button>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

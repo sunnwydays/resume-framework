@@ -6,8 +6,9 @@ import type { FeedbackReason } from "@/lib/tracker/feedback/events";
 
 interface Props {
   reasons: FeedbackReason[];
-  // The feedback_events row to label; null while it's still being written (or
-  // if that failed), when the chips wait.
+  // The feedback_events row to label. undefined while it's still being written:
+  // the chips show but are disabled, so the banner doesn't change height when the
+  // id arrives. null if the write failed, when there's nothing to label.
   feedbackId: string | null | undefined;
 }
 
@@ -30,7 +31,8 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
   const [showTaste, setShowTaste] = useState(false);
   const listId = useId();
 
-  if (!feedbackId) return null;
+  if (feedbackId === null) return null;
+  const pending = feedbackId === undefined;
 
   const wrong = reasons.filter((r) => r.rule !== "taste");
   const taste = reasons.filter((r) => r.rule === "taste");
@@ -49,6 +51,7 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
       key={r.key}
       type="button"
       aria-pressed={picked === r.key}
+      disabled={pending}
       onClick={() => {
         setPicked(r.key);
         setFix("");
@@ -61,7 +64,7 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
   );
 
   return (
-    <span className="flex basis-full flex-col gap-1.5 text-xs">
+    <span className={`flex basis-full flex-col gap-1.5 text-xs ${pending ? "opacity-60" : ""}`}>
       <span className="flex flex-wrap items-center gap-1.5">
         <span className="opacity-70">The app got it wrong:</span>
         {wrong.map(chip)}
@@ -99,6 +102,7 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
         )}
         <input
           value={note}
+          disabled={pending}
           onChange={(e) => setNote(e.target.value)}
           onBlur={() => note.trim() && save({ reason: picked ?? "other", note })}
           onKeyDown={(e) => e.key === "Enter" && note.trim() && save({ reason: picked ?? "other", note })}

@@ -198,20 +198,6 @@ export default function PostingsPage() {
               </label>
             ))}
           </div>
-          {last && (
-            <p className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-              {undoMessage(last)}
-              <button type="button" className="underline" onClick={undoLast}>
-                Undo
-              </button>
-              {last.action === "dismissed" && (
-                <ReasonChips key={last.feedbackId ?? last.postingId} reasons={POSTING_DISMISS_REASONS} feedbackId={last.feedbackId} />
-              )}
-              <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
-                Hide
-              </button>
-            </p>
-          )}
           {shown.length === 0 ? (
             <p className="py-8 text-center text-sm text-neutral-500">No postings match these filters.</p>
           ) : (
@@ -226,6 +212,22 @@ export default function PostingsPage() {
               onEdit={onEdit}
               onResetEdits={onResetEdits}
             />
+          )}
+          {/* Last in the page and sticky to the bottom of the screen, so it's in
+              reach wherever in a long list the row was dismissed. */}
+          {last && (
+            <p className="sticky bottom-4 z-30 mx-4 flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 shadow-lg ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
+              {undoMessage(last)}
+              <button type="button" className="underline" onClick={undoLast}>
+                Undo
+              </button>
+              {last.action === "dismissed" && (
+                <ReasonChips key={last.feedbackId ?? last.postingId} reasons={POSTING_DISMISS_REASONS} feedbackId={last.feedbackId} />
+              )}
+              <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
+                Hide
+              </button>
+            </p>
           )}
         </>
       )}
