@@ -80,6 +80,15 @@ export const RULES = {
     /you (?:haven't|have not) (?:finished|completed|submitted)/i,
   ],
 
+  // The receipt after you pick interview times ("Thank you for providing us
+  // with your interview availability! We will follow up with a final scheduled
+  // interview time soon"). The invite already came; the scheduled-time mail is
+  // the one that should make an interview card.
+  availabilityReceipt: [
+    /thank(?:s|\s+you)\s+for\s+(?:providing|sharing|submitting|sending)\b[^.]{0,40}?\bavailability/i,
+    /^[^\n]*\bavailability\s+confirmation\b/i,
+  ],
+
   rejection: [
     // "aren't moving forward", "will not be moving forward", "not proceeding further with your"
     new RegExp(`${N}\\s+(?:be\\s+)?(?:moving|going|proceeding|advancing|continuing)\\s+(?:forward|further|ahead|with your)`, "i"),
@@ -282,6 +291,9 @@ export function classify(facts: EmailFacts): Classification {
 
   const notYet = firstMatch(RULES.notYet, body);
   if (notYet) return { kind: null, reason: `application not finished ("${notYet}")` };
+
+  const receipt = firstMatch(RULES.availabilityReceipt, body);
+  if (receipt) return { kind: null, reason: `availability receipt ("${receipt}")` };
 
   const rejection = firstMatch(RULES.rejection, `${without(real, RULES.conditional)}\n${urls}`);
   if (rejection) return { kind: "rejection", phrase: rejection };

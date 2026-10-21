@@ -924,6 +924,43 @@ describe("fixes from the fifth inbox review", () => {
   });
 });
 
+describe("fixes from the sixth inbox review", () => {
+  const invite = mail({
+    fromAddress: "scheduling@ats.rippling.com",
+    fromName: "Pat Example",
+    subject: "Interview at Globex!",
+    text: [
+      "Hi Sam,",
+      "Thank you for your interest in the Engineering Internship position at Globex! We're excited to move forward with the interview process and invite you to a video interview in the coming business days.",
+      "Please select a time that best fits your availability.",
+      "Enter your availability here >>",
+    ].join("\n"),
+  });
+
+  // Sent after you pick times: nothing to act on until the scheduled-time mail.
+  const receipt = mail({
+    fromAddress: "no-reply@ats.rippling.com",
+    fromName: "Globex",
+    subject: "Interview availability confirmation - Globex",
+    text: [
+      "Hi Sam,",
+      "Thank you for providing us with your interview availability! We will follow up with a final scheduled interview time soon.",
+      "Your availability (MM/DD/YY format)",
+      "10/22/26: 10:00 AM-10:30 AM, 10:30 AM-11:00 AM",
+      "If you need to update your availability, enter your updated availability here >>",
+    ].join("\n"),
+  });
+
+  it("the invite to pick a time is still a video invite", () => {
+    expect(kindOf(invite)).toBe("video_invite");
+  });
+
+  it("the receipt for the times you picked is not an interview invite", () => {
+    expect(kindOf(receipt)).toBeNull();
+    expect(classify(receipt)).toMatchObject({ kind: null, reason: expect.stringContaining("availability receipt") });
+  });
+});
+
 describe("extractFields: deadlines and completion", () => {
   it("platform 'End Login Date/Time' with a zone", () => {
     const f = extractFields(
