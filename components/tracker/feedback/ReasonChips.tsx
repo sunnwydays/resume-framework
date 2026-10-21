@@ -21,7 +21,7 @@ const inputClass = "rounded border border-emerald-300 bg-transparent px-1.5 py-0
 // After a dismiss: optional chips, then (for a chip that names a derived value)
 // a box for what it should have been, plus a free note, all written onto the
 // event. Chips are in two groups: the app got something wrong (rules to tune),
-// or it's just not for me (taste, tucked behind a toggle). Skipping all of it is
+// or it's just not for me (taste, behind a toggle that reveals them beside it). Skipping all of it is
 // fine, the event is already saved without a reason.
 export default function ReasonChips({ reasons, feedbackId }: Props) {
   const [picked, setPicked] = useState<string | null>(null);
@@ -72,9 +72,12 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
       {taste.length > 0 && (
         <span className="flex flex-wrap items-center gap-1.5">
           <button type="button" aria-expanded={tasteOpen} onClick={() => setShowTaste((v) => !v)} className="underline opacity-70">
-            Not for me {tasteOpen ? "▴" : "▾"}
+            Not for me {tasteOpen ? "◂" : "▸"}
           </button>
-          {tasteOpen && taste.map(chip)}
+          {/* Always laid out, hidden until opened, so the row is as tall as it
+              will be and opening it doesn't push the page above it. `invisible`
+              also takes the chips out of the tab order. */}
+          <span className={`contents ${tasteOpen ? "" : "invisible"}`}>{taste.map(chip)}</span>
         </span>
       )}
       <span className="flex flex-wrap items-center gap-1.5">
