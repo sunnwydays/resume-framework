@@ -79,6 +79,9 @@ describe("roleCloseness", () => {
     ["Database Engineering Intern Test", "Software Engineer Intern (Database Engineering) - Spring 2027", 100],
     ["[Spring 2027] AI/ML SWE Intern Coding Test", "Software Engineer Intern (Database Engineering) - Spring 2027", 0],
     ["Software Engineer Intern", "Software Engineering Intern 2027", 50],
+    // A short year ("Summer '27") is a term, not which job it is.
+    ["Software Engineering Intern - Summer '27", "SWE", 50],
+    ["Software Engineering Intern - Summer '27", "Software Engineer Intern (Spring 2029)", 50],
     // HackerRank's "(Clone)" on a copied test says nothing about the job.
     ["Software Engineer Intern (Core Engineering/Security) (Clone)", "swe - (Core, Infrastructure & Security)", 80],
   ])("%s ~ %s = %i", (a, b, expected) => {
@@ -184,6 +187,13 @@ describe("matchApplications", () => {
     const tracked = [makeApp({ company: "vandelay", role: "swe" }), makeApp({ company: "vandelay", role: "swe ml" })];
     const r = matchApplications({ company: "Vandelay", role: "Software Engineer Intern, Test Automation", jobId: null, assessmentTitle: null }, tracked);
     expect(r.matches.length).toBeGreaterThan(1);
+  });
+
+  it("a confirmation naming the term as \"Summer '27\" still meets a tracked plain 'SWE'", () => {
+    const tracked = [makeApp({ company: "Globex", role: "SWE", applied_on: "2026-10-22" })];
+    const f = { company: "Globex", role: "Software Engineering Intern - Summer '27", jobId: null, assessmentTitle: null };
+    const r = matchApplications(f, tracked, { kind: "confirmation", receivedAt: new Date(2026, 9, 22, 14, 45).toISOString() });
+    expect(r.matches.map((a) => a.role)).toEqual(["SWE"]);
   });
 
   it("a role-less confirmation picks the application made that day", () => {

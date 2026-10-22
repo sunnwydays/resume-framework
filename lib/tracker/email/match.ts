@@ -55,8 +55,11 @@ const ROLE_NOISE = new Set([
   "intern", "interns", "internship", "internships", "coop", "co", "op", "summer", "spring", "fall", "winter",
   "software", "engineer", "engineering", "developer", "development", "swe", "sde", "swd", "test", "coding", "the",
   "a", "an", "and", "of", "for", "in", "at", "new", "grad", "student", "students", "university", "program",
-  "role", "position", "opportunity", "opportunities", "clone", "toronto", "canada", "remote", "us", "usa", "2025", "2026", "2027", "2028",
+  "role", "position", "opportunity", "opportunities", "clone", "toronto", "canada", "remote", "us", "usa",
 ]);
+
+// A year, full or short ("Summer '27" splits to "27"): the term, not the job.
+const isYear = (t: string) => /^(20)?\d\d$/.test(t);
 
 // Spelled-out and shorthand forms of the same thing, so a posting's "Machine
 // Learning" meets a tracked "swe ml" and "Database Engineering" meets "swe - db".
@@ -75,7 +78,7 @@ const ROLE_SYNONYMS: [RegExp, string][] = [
 function roleTokens(role: string): string[] {
   let text = key(role);
   for (const [pattern, word] of ROLE_SYNONYMS) text = text.replace(pattern, word);
-  return text.split(/[^a-z0-9]+/).filter((t) => t && !ROLE_NOISE.has(t));
+  return text.split(/[^a-z0-9]+/).filter((t) => t && !ROLE_NOISE.has(t) && !isYear(t));
 }
 
 // Does this title say *which* job it is ("SWE, ML"), or only that it's a job ("swe")?
