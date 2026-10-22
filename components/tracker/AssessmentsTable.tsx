@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import AssessmentDetail, { DifficultyDots, SourceTag } from "@/components/tracker/AssessmentDetail";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
 import { assessmentSortValue, type AssessmentSortKey as SortKey, type SortDir } from "@/lib/tracker/sorting";
-import { roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import { roleWithType } from "@/lib/tracker/roles";
 import { sectionsLabel, sectionsOf } from "@/lib/tracker/sections";
 import type { Tracker } from "@/lib/tracker/useTracker";
 import {
@@ -152,7 +152,7 @@ export default function AssessmentsTable({
                       {app?.company ?? "?"}
                       {app && (
                         <div className="pl-[1.125rem] text-xs font-normal text-neutral-500">
-                          {app.role} · {roleTypeLabel(roleType(app.role))}
+                          {roleWithType(app.role)}
                         </div>
                       )}
                     </td>

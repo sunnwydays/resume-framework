@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { ROLE_TYPES, ROLE_TYPE_ORDER, normalizeRole, roleType, roleTypeLabel } from "@/lib/tracker/roles";
+import { ROLE_TYPES, ROLE_TYPE_ORDER, normalizeRole, roleType, roleTypeLabel, roleWithType } from "@/lib/tracker/roles";
 
 describe("normalizeRole", () => {
   it.each([
@@ -86,6 +86,33 @@ describe("roleType", () => {
     const keys = new Set(ROLE_TYPES.map((t) => t.key));
     fc.assert(fc.property(fc.string(), (role) => keys.has(roleType(role))));
   });
+});
+
+describe("roleWithType", () => {
+  // Just the type when the role says nothing more than the type does.
+  it.each([
+    ["swe", "SWE"],
+    ["SDE", "SWE"],
+    ["swd", "SWE"],
+    ["Software Engineer", "SWE"],
+    ["software dev", "SWE"],
+    ["SWE Intern", "SWE"],
+    ["Software Engineer Co-op", "SWE"],
+    ["SDE Internship", "SWE"],
+    ["MLE Intern", "ML / AI"],
+    ["MLE", "ML / AI"],
+    ["Machine Learning", "ML / AI"],
+    ["Front-End", "Frontend & web"],
+    ["", "Other"],
+  ])("%j -> %j", (role, expected) => expect(roleWithType(role)).toBe(expected));
+
+  it.each([
+    ["swe - ai/ml", "swe - ai/ml · ML / AI"],
+    ["swe - db", "swe - db · Infra & security"],
+    ["Product Manager Intern", "Product Manager Intern · Other"],
+    ["SW Developer Intern | AI Center of Excellence", "SW Developer Intern | AI Center of Excellence · ML / AI"],
+    ["Product Manager", "Product Manager · Other"],
+  ])("%j keeps the role", (role, expected) => expect(roleWithType(role)).toBe(expected));
 });
 
 describe("role type tables", () => {

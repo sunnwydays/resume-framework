@@ -65,5 +65,22 @@ export function roleTypeLabel(key: RoleType): string {
   return LABELS[key];
 }
 
+// Words that say nothing about the kind of role.
+const FILLER = /\b(intern(ship)?|co op|coop)\b/g;
+
+// "role · type" for a subtitle, or just the type when the role is nothing but
+// that type's own words plus filler ("swe", "Software Engineer", "SDE Intern"
+// all read "SWE").
+export function roleWithType(role: string): string {
+  const type = ROLE_TYPES.find((t) => t.key === roleType(role))!;
+  const label = type.label;
+  if (!type.pattern) return role.trim() ? `${role} · ${label}` : label;
+  const rest = normalizeRole(role)
+    .replace(new RegExp(type.pattern.source, "g"), "")
+    .replace(FILLER, "")
+    .trim();
+  return rest ? `${role} · ${label}` : label;
+}
+
 // Position in ROLE_TYPES, so sorting by type keeps related types together.
 export const ROLE_TYPE_ORDER = Object.fromEntries(ROLE_TYPES.map((t, i) => [t.key, i])) as Record<RoleType, number>;
