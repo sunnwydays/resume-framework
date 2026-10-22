@@ -25,6 +25,8 @@ Each event is a triple: **what the app guessed, what Sunny chose, and the input 
 
 Dismisses show optional **reason chips** under the undo banner (`components/tracker/feedback/ReasonChips.tsx`; reasons in `lib/tracker/feedback/posting.ts` and `email.ts`). Each reason names the rule file it implicates, or `taste` when it's a preference rather than a rule miss. The two kinds are shown apart: "The app got it wrong" chips on one row, the `taste` ones on a "Not for me" row below it. A chip that names a derived value (`field`: region, term, length, level, role type) opens a "Should be:" box; what Sunny types is saved in `final` (`{"region": "US"}`) and `changed`, next to the `guess` it corrects (`labelUpdate` in `events.ts`). Undoing an action stamps `undone_at` (a correction signal, not a label).
 
+A dismissed posting's row also shows its reason ("Dismissed: Posting closed", or "no reason given") with a link that opens the same chips under the row, so a reason can be added or changed later. The page loads every posting dismiss event and keeps each posting's newest one that wasn't undone (`latestDismissals` in `posting.ts`); changing it rewrites that event's label. A posting dismissed with no event (before capture existed, or the write failed) gets one when the chips are first opened, built from what the rules say *now* and marked `context.recorded_later = true`.
+
 Table: `feedback_events` (RLS: own rows only). `surface` and `action` are check constraints mirrored by `FEEDBACK_SURFACES` / `FEEDBACK_ACTIONS` in `lib/tracker/feedback/events.ts`; reasons are plain code constants, no migration to add one. There's no FK to postings or emails on purpose, so "Clear all" doesn't erase the labels.
 
 ## Reviewing in a batch

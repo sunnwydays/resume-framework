@@ -1,15 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ClearAllDialog from "@/components/tracker/ClearAllDialog";
 import OverflowMenu, { dangerMenuItemCls } from "@/components/tracker/OverflowMenu";
 import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingsFilterBar, { type PostingCounts } from "@/components/tracker/postings/PostingsFilterBar";
 import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
-import { markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
+import { loadPostingDismissals, markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
 import { toJson } from "@/lib/tracker/feedback/events";
-import { POSTING_DISMISS_REASONS, postingEditFeedback, postingFeedback, type PostingFeedbackAction } from "@/lib/tracker/feedback/posting";
+import {
+  POSTING_DISMISS_REASONS,
+  lateDismissFeedback,
+  latestDismissals,
+  postingEditFeedback,
+  postingFeedback,
+  type DismissLabel,
+  type PostingFeedbackAction,
+} from "@/lib/tracker/feedback/posting";
 import { planPostingEdit, type EditField, type PostingDraft, type PostingEdits } from "@/lib/tracker/postings/edits";
 import { POSTING_STATES } from "@/lib/tracker/format";
 import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
@@ -94,10 +102,38 @@ export default function PostingsPage() {
   // Every action is also recorded as feedback (what the rules said, and what
   // was done); the id comes back later so Undo and the reason chips can find it.
   const FEEDBACK_ACTION: Record<PostingUndo["action"], PostingFeedbackAction> = { saved: "save", dismissed: "dismiss", applied: "applied" };
+  // Each dismissed posting's reason, shown on its row (and changeable there);
+  // null until loaded.
+  const [dismissals, setDismissals] = useState<Map<string, DismissLabel> | null>(null);
+  useEffect(() => {
+    loadPostingDismissals().then((rows) => rows && setDismissals(latestDismissals(rows)));
+  }, []);
+  const setDismissal = (postingId: string, label: DismissLabel | null) =>
+    setDismissals((cur) => {
+      if (!cur) return cur;
+      const next = new Map(cur);
+      if (label) next.set(postingId, label);
+      else next.delete(postingId);
+      return next;
+    });
+  const labelDismissal = (postingId: string, feedbackId: string, label: Omit<DismissLabel, "id">) =>
+    setDismissal(postingId, { id: feedbackId, ...label });
+  // A dismissed row with no event to label gets one now (once, however often
+  // the chips are opened while it's being written).
+  const lateRecording = useRef(new Set<string>());
+  const recordLateDismissal = async (view: PostingView) => {
+    if (lateRecording.current.has(view.posting.id)) return;
+    lateRecording.current.add(view.posting.id);
+    const id = await recordFeedback(lateDismissFeedback(view));
+    lateRecording.current.delete(view.posting.id);
+    if (id) setDismissal(view.posting.id, { id, reason: null, note: null, fix: "" });
+  };
+
   const onAction = async (undo: PostingUndo, view: PostingView) => {
     setLast(undo);
     const feedbackId = await recordFeedback(postingFeedback(view, FEEDBACK_ACTION[undo.action]));
     setLast((cur) => (cur && cur.postingId === undo.postingId && cur.action === undo.action && !cur.feedbackId ? { ...cur, feedbackId } : cur));
+    if (undo.action === "dismissed" && feedbackId) setDismissal(undo.postingId, { id: feedbackId, reason: null, note: null, fix: "" });
   };
   const onReopen = (view: PostingView) => {
     if (view.posting.state === "dismissed") recordFeedback(postingFeedback(view, "restore"));
@@ -127,6 +163,7 @@ export default function PostingsPage() {
     if (!last) return;
     setLast(null);
     markFeedbackUndone(last.feedbackId);
+    if (last.action === "dismissed") setDismissal(last.postingId, null);
     const removeApp = removesCreatedApp(last, tracker.applications, tracker.assessments);
     await store.undo(last);
     if (removeApp) await tracker.deleteApplication(last.created!.id);
@@ -212,6 +249,9 @@ export default function PostingsPage() {
               onReopen={onReopen}
               onEdit={onEdit}
               onResetEdits={onResetEdits}
+              dismissals={dismissals}
+              onLabelDismissal={labelDismissal}
+              onRecordLateDismissal={recordLateDismissal}
             />
           )}
           {/* Last in the page and sticky to the bottom of the screen, so it's in
@@ -223,7 +263,12 @@ export default function PostingsPage() {
                 Undo
               </button>
               {last.action === "dismissed" && (
-                <ReasonChips key={last.feedbackId ?? last.postingId} reasons={POSTING_DISMISS_REASONS} feedbackId={last.feedbackId} />
+                <ReasonChips
+                  key={last.feedbackId ?? last.postingId}
+                  reasons={POSTING_DISMISS_REASONS}
+                  feedbackId={last.feedbackId}
+                  onSaved={(label) => last.feedbackId && labelDismissal(last.postingId, last.feedbackId, label)}
+                />
               )}
               <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
                 Hide

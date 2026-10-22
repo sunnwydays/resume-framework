@@ -1,3 +1,4 @@
+import type { Tables } from "@/lib/tracker/database.types";
 import { changedKeys, toJson, type FeedbackInsert, type FeedbackReason } from "@/lib/tracker/feedback/events";
 import type { EditField } from "@/lib/tracker/postings/edits";
 import { formatLength } from "@/lib/tracker/postings/term";
@@ -74,6 +75,52 @@ export function postingFeedback(view: PostingView, action: PostingFeedbackAction
     }),
     context: toJson({ posting: parsedRow(view), edited: view.edited, tracked_application_id: tracked?.id ?? null }),
   };
+}
+
+// A reason added to a dismissed posting that has no dismiss event (dismissed
+// before feedback capture, or the write failed). The guess is what the rules say
+// now, not at the dismiss, so it's flagged for the review.
+export function lateDismissFeedback(view: PostingView): FeedbackInsert {
+  const event = postingFeedback(view, "dismiss");
+  return { ...event, context: toJson({ ...(event.context as object), recorded_later: true }) };
+}
+
+// The label a dismissed posting carries, as the reason chips edit it.
+export interface DismissLabel {
+  id: string;
+  reason: string | null;
+  note: string | null;
+  // The "Should be:" value, for a reason that names a field.
+  fix: string;
+}
+
+export type DismissEventRow = Pick<Tables<"feedback_events">, "id" | "subject_id" | "reason" | "note" | "final" | "created_at" | "undone_at">;
+
+// Each posting's newest dismiss that wasn't undone (a posting restored and
+// dismissed again has several), keyed by posting id.
+export function latestDismissals(rows: DismissEventRow[]): Map<string, DismissLabel> {
+  const out = new Map<string, DismissLabel>();
+  const newestFirst = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  for (const row of newestFirst) {
+    if (!row.subject_id || row.undone_at || out.has(row.subject_id)) continue;
+    const field = POSTING_DISMISS_REASONS.find((r) => r.key === row.reason)?.field;
+    const final = row.final && typeof row.final === "object" && !Array.isArray(row.final) ? row.final : {};
+    const fix = field && typeof final[field] === "string" ? (final[field] as string) : "";
+    out.set(row.subject_id, { id: row.id, reason: row.reason, note: row.note, fix });
+  }
+  return out;
+}
+
+// "Region (should be US) · "remote, but US only"", or null when there's no reason yet.
+export function dismissLabelText(label: DismissLabel | undefined): string | null {
+  if (!label) return null;
+  const reason = POSTING_DISMISS_REASONS.find((r) => r.key === label.reason);
+  const parts = [
+    // "Other" says nothing a note doesn't.
+    reason && !(reason.key === "other" && label.note) ? reason.label + (label.fix ? ` (should be ${label.fix})` : "") : null,
+    label.note ? `“${label.note}”` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 // The values the edit form shows, in the form Sunny typed them.

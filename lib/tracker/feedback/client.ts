@@ -1,6 +1,7 @@
 "use client";
 
 import { appVersion, labelUpdate, type FeedbackInsert } from "@/lib/tracker/feedback/events";
+import type { DismissEventRow } from "@/lib/tracker/feedback/posting";
 import { supabase } from "@/lib/tracker/useTracker";
 
 // Writes to feedback_events. Logging must never get in the way of the action it
@@ -44,6 +45,23 @@ export async function markFeedbackUndone(id: string | null | undefined): Promise
     if (error) throw error;
   } catch (e) {
     console.warn("feedback not updated:", e);
+  }
+}
+
+// Every posting dismiss, so dismissed rows can show (and change) their reason.
+// null when the read failed (not "none yet", which would invite duplicate events).
+export async function loadPostingDismissals(): Promise<DismissEventRow[] | null> {
+  try {
+    const { data, error } = await supabase()
+      .from("feedback_events")
+      .select("id, subject_id, reason, note, final, created_at, undone_at")
+      .eq("surface", "posting")
+      .eq("action", "dismiss");
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    console.warn("dismiss reasons not loaded:", e);
+    return null;
   }
 }
 

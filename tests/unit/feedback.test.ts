@@ -5,7 +5,14 @@ import { emailAcceptFeedback, emailDismissFeedback, emailMuteFeedback } from "@/
 import { changedKeys, labelUpdate, toJson } from "@/lib/tracker/feedback/events";
 import { draftFeedback, editRatio } from "@/lib/tracker/feedback/draft";
 import { importMappingFeedback } from "@/lib/tracker/feedback/import";
-import { POSTING_DISMISS_REASONS, postingFeedback } from "@/lib/tracker/feedback/posting";
+import {
+  POSTING_DISMISS_REASONS,
+  dismissLabelText,
+  lateDismissFeedback,
+  latestDismissals,
+  postingFeedback,
+  type DismissEventRow,
+} from "@/lib/tracker/feedback/posting";
 import { buildImportPlan, type RawSheet } from "@/lib/tracker/io";
 import { buildPostingViews } from "@/lib/tracker/postings/view";
 import { mail } from "../helpers/email";
@@ -18,6 +25,58 @@ describe("changedKeys", () => {
     expect(changedKeys({ a: 1, b: [1, 2], c: null }, { a: 1, b: [1, 3], d: "x" })).toEqual(["b", "d"]);
     expect(changedKeys({ a: undefined }, { a: null })).toEqual([]);
     expect(changedKeys({}, {})).toEqual([]);
+  });
+});
+
+describe("dismissed posting labels", () => {
+  const row = (over: Partial<DismissEventRow>): DismissEventRow => ({
+    id: "ev-1",
+    subject_id: "p-1",
+    reason: null,
+    note: null,
+    final: {},
+    created_at: "2026-10-20T12:00:00Z",
+    undone_at: null,
+    ...over,
+  });
+
+  it("keeps each posting's newest dismiss that wasn't undone", () => {
+    const map = latestDismissals([
+      row({ id: "old", reason: "pay", created_at: "2026-10-01T12:00:00Z" }),
+      row({ id: "undone", reason: "company", created_at: "2026-10-21T12:00:00Z", undone_at: "2026-10-21T12:01:00Z" }),
+      row({ id: "new", reason: "closed", created_at: "2026-10-10T12:00:00Z" }),
+      row({ id: "other-posting", subject_id: "p-2" }),
+      row({ id: "no-subject", subject_id: null }),
+    ]);
+    expect(map.get("p-1")).toEqual({ id: "new", reason: "closed", note: null, fix: "" });
+    expect(map.get("p-2")?.id).toBe("other-posting");
+    expect(map.size).toBe(2);
+  });
+
+  it("reads the correction back only for a reason that names a field", () => {
+    const map = latestDismissals([
+      row({ reason: "wrong-region", final: { region: "US" } }),
+      row({ subject_id: "p-2", reason: "pay", final: { region: "US" } }),
+    ]);
+    expect(map.get("p-1")?.fix).toBe("US");
+    expect(map.get("p-2")?.fix).toBe("");
+  });
+
+  it("describes the label, leaving out a bare Other when there's a note", () => {
+    expect(dismissLabelText(undefined)).toBeNull();
+    expect(dismissLabelText({ id: "e", reason: null, note: null, fix: "" })).toBeNull();
+    expect(dismissLabelText({ id: "e", reason: "closed", note: null, fix: "" })).toBe("Posting closed");
+    expect(dismissLabelText({ id: "e", reason: "wrong-region", note: "remote", fix: "US" })).toBe("Region (should be US) · “remote”");
+    expect(dismissLabelText({ id: "e", reason: "other", note: "already applied there", fix: "" })).toBe("“already applied there”");
+    expect(dismissLabelText({ id: "e", reason: "other", note: null, fix: "" })).toBe("Other");
+  });
+
+  it("flags a dismiss recorded after the fact", () => {
+    const [view] = buildPostingViews([makePosting()], []);
+    const event = lateDismissFeedback(view);
+    expect(event).toMatchObject({ surface: "posting", action: "dismiss", subject_id: view.posting.id });
+    expect(event.context).toMatchObject({ recorded_later: true });
+    expect((event.context as { posting: unknown }).posting).toBeDefined();
   });
 });
 

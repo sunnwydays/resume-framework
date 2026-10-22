@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { Fragment, useState } from "react";
+import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingEditRow from "@/components/tracker/postings/PostingEditRow";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
+import { POSTING_DISMISS_REASONS, dismissLabelText, type DismissLabel } from "@/lib/tracker/feedback/posting";
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
 import { EDIT_LABEL, type PostingDraft } from "@/lib/tracker/postings/edits";
 import { industryLabel } from "@/lib/tracker/postings/industry";
@@ -33,6 +35,12 @@ interface Props {
   // Hand edits from the row's pencil; each returns an error message or null.
   onEdit: (view: PostingView, initial: PostingDraft, draft: PostingDraft) => Promise<string | null>;
   onResetEdits: (view: PostingView) => Promise<string | null>;
+  // Why each dismissed posting was dismissed, by posting id; a dismissed row
+  // shows it and opens the reason chips to change it. null until loaded.
+  dismissals: Map<string, DismissLabel> | null;
+  onLabelDismissal: (postingId: string, feedbackId: string, label: Omit<DismissLabel, "id">) => void;
+  // For a dismissed row with no dismiss event to label.
+  onRecordLateDismissal: (view: PostingView) => Promise<void>;
 }
 
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
@@ -73,9 +81,24 @@ function TrackedPill({ app }: { app: Application }) {
   );
 }
 
-export default function PostingsTable({ views, store, addApplication, trims, now, onAction, onReopen, onEdit, onResetEdits }: Props) {
+export default function PostingsTable({
+  views,
+  store,
+  addApplication,
+  trims,
+  now,
+  onAction,
+  onReopen,
+  onEdit,
+  onResetEdits,
+  dismissals,
+  onLabelDismissal,
+  onRecordLateDismissal,
+}: Props) {
   // One row at a time is a form.
   const [editing, setEditing] = useState<string | null>(null);
+  // The dismissed row whose reason chips are open.
+  const [labelling, setLabelling] = useState<string | null>(null);
   const { sort, setSort, sorted } = useSortedRows<PostingView, SortKey>(views, postingSortValue, { key: "posted", dir: "desc" });
 
   const header = (key: SortKey, label: string) => (
@@ -109,6 +132,9 @@ export default function PostingsTable({ views, store, addApplication, trims, now
             // Grey the tracked rows only when they sit under a separator; the
             // Applied chip is all tracked rows and shouldn't look disabled.
             const dimmed = blocked || (tracked !== null && open.length > 0);
+            const dismissal = posting.state === "dismissed" ? dismissals?.get(posting.id) : undefined;
+            const why = dismissLabelText(dismissal);
+            const labelOpen = labelling === posting.id && posting.state === "dismissed";
             return (
               <Fragment key={posting.id}>
                 {i === open.length && (i > 0 || toMark.length > 0) && (
@@ -184,6 +210,23 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                       {tracked && (
                         <div className="mt-1">
                           <TrackedPill app={tracked} />
+                        </div>
+                      )}
+                      {posting.state === "dismissed" && dismissals && (
+                        <div className="mt-1 text-xs text-neutral-500">
+                          {why ? <>Dismissed: {why}</> : "Dismissed, no reason given"}{" "}
+                          <button
+                            type="button"
+                            aria-expanded={labelOpen}
+                            onClick={() => {
+                              if (labelOpen) return setLabelling(null);
+                              setLabelling(posting.id);
+                              if (!dismissal) onRecordLateDismissal(view);
+                            }}
+                            className="underline hover:text-neutral-800 dark:hover:text-neutral-200"
+                          >
+                            {labelOpen ? "done" : why ? "change" : "add one"}
+                          </button>
                         </div>
                       )}
                     </td>
@@ -283,6 +326,20 @@ export default function PostingsTable({ views, store, addApplication, trims, now
                           ✎
                         </button>
                       </div>
+                    </td>
+                  </tr>
+                )}
+                {labelOpen && editing !== posting.id && (
+                  <tr className="border-b border-neutral-100 bg-emerald-50 text-emerald-900 dark:border-neutral-900 dark:bg-emerald-950 dark:text-emerald-200">
+                    <td colSpan={8} className="px-3 py-2">
+                      {/* Keyed on the event so the chips start from its label once it's loaded. */}
+                      <ReasonChips
+                        key={dismissal?.id ?? "pending"}
+                        reasons={POSTING_DISMISS_REASONS}
+                        feedbackId={dismissal?.id}
+                        initial={dismissal}
+                        onSaved={(label) => dismissal && onLabelDismissal(posting.id, dismissal.id, label)}
+                      />
                     </td>
                   </tr>
                 )}

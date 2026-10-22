@@ -10,6 +10,16 @@ interface Props {
   // the chips show but are disabled, so the banner doesn't change height when the
   // id arrives. null if the write failed, when there's nothing to label.
   feedbackId: string | null | undefined;
+  // A label already on the event, when changing an earlier dismiss's reason.
+  initial?: Label;
+  // Each save, so the page can show the new reason without reloading.
+  onSaved?: (label: Label) => void;
+}
+
+interface Label {
+  reason: string | null;
+  note: string | null;
+  fix: string;
 }
 
 const chipClass = (on: boolean) =>
@@ -23,11 +33,13 @@ const inputClass = "rounded border border-emerald-300 bg-transparent px-1.5 py-0
 // event. Chips are in two groups: the app got something wrong (rules to tune),
 // or it's just not for me (taste). Skipping all of it is
 // fine, the event is already saved without a reason.
-export default function ReasonChips({ reasons, feedbackId }: Props) {
-  const [picked, setPicked] = useState<string | null>(null);
-  const [fix, setFix] = useState("");
-  const [note, setNote] = useState("");
+export default function ReasonChips({ reasons, feedbackId, initial, onSaved }: Props) {
+  const [picked, setPicked] = useState<string | null>(initial?.reason ?? null);
+  const [fix, setFix] = useState(initial?.fix ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
   const [saved, setSaved] = useState(false);
+  // The note as last saved, so emptying the box clears an earlier note.
+  const [savedNote, setSavedNote] = useState(initial?.note ?? "");
   const listId = useId();
 
   if (feedbackId === null) return null;
@@ -40,8 +52,13 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
   const save = (next: { reason?: string | null; fix?: string; note?: string }) => {
     const reason = next.reason === undefined ? picked : next.reason;
     const field = reasons.find((r) => r.key === reason)?.field;
+    const label = { reason, note: (next.note ?? note).trim() || null, fix: field ? (next.fix ?? fix).trim() : "" };
     setSaved(false);
-    setFeedbackLabel(feedbackId, { reason, note: next.note ?? note, field, correction: next.fix ?? fix }).then(() => setSaved(true));
+    setSavedNote(label.note ?? "");
+    setFeedbackLabel(feedbackId, { reason, note: label.note, field, correction: label.fix }).then(() => {
+      setSaved(true);
+      onSaved?.(label);
+    });
   };
 
   const chip = (r: FeedbackReason) => (
@@ -100,8 +117,8 @@ export default function ReasonChips({ reasons, feedbackId }: Props) {
           value={note}
           disabled={pending}
           onChange={(e) => setNote(e.target.value)}
-          onBlur={() => note.trim() && save({ reason: picked ?? "other", note })}
-          onKeyDown={(e) => e.key === "Enter" && note.trim() && save({ reason: picked ?? "other", note })}
+          onBlur={() => note.trim() !== savedNote && save({ reason: picked ?? (note.trim() ? "other" : null), note })}
+          onKeyDown={(e) => e.key === "Enter" && note.trim() !== savedNote && save({ reason: picked ?? (note.trim() ? "other" : null), note })}
           placeholder="or say why"
           aria-label="Why, in your own words"
           className={`w-48 ${inputClass}`}

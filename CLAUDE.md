@@ -683,7 +683,8 @@ tracker paths; the resume pages never hit it.
   changed), Dismiss and Mute, the import's automatic column mapping vs the
   overrides, and Claude's draft vs the text logged as sent. Dismisses get
   optional reason chips (`ReasonChips.tsx`); each reason names the rule file it
-  implicates, or `taste`. Rules:
+  implicates, or `taste`. A dismissed posting's row shows its reason and can
+  reopen the chips to change it (`latestDismissals`). Rules:
   - The builders in `lib/tracker/feedback/{posting,email,import,draft}.ts` are
     pure and unit-tested; `client.ts` writes and never throws (logging must not
     block the action). Events copy their inputs at the click, because rules are
