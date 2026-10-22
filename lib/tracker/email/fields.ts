@@ -420,6 +420,10 @@ function candidates(f: EmailFacts): Candidate[] {
   if (/ashbyhq\.com$/.test(sender) && (m = /^(.+?) \| (?:Confirmation|Next steps|Update)/i.exec(subject))) {
     add("company", m[1], "Ashby subject");
   }
+  // Greenhouse does it too: "Globex | Thank you for applying, Sam!"
+  if ((m = /^([^|]+?) \| Thank(?:s| you) for (?:applying|your (?:application|interest))\b/i.exec(subject))) {
+    add("company", m[1], "subject");
+  }
   // CodeSignal: "Globex invited you to take Globex Frontend Challenge Assessment on CodeSignal"
   if ((m = /^(.+?) invited you to take (.+?) on (?:CodeSignal|HackerRank)/i.exec(subject))) add("company", m[1], "assessment subject");
   // CodeSignal: "Reminder: Globex is waiting for your Globex Frontend Challenge Assessment result on CodeSignal"
@@ -429,8 +433,12 @@ function candidates(f: EmailFacts): Candidate[] {
   if ((m = /^Thank(?:s| you)(?: so much)? for applying (?:to|at|with) (.+?)!?$/i.exec(subject))) {
     add(titleWords.test(m[1]) ? "role" : "company", m[1], "subject");
   }
+  // "Thank You for Your Application - Gringotts"
+  if ((m = /^Thank(?:s| you) for (?:your )?(?:application|applying)\s*[-–]\s*(.+)$/i.exec(subject))) {
+    add("company", m[1], "subject");
+  }
   // "Gringotts Application", "Hooli Application- Sam Lee"
-  if ((m = /^(?!(?:Update|An update|Your|Status|New)\b)([A-Z][\w&.' ]{1,40}?) Application(?:\s*[-–].*)?$/.exec(subject))) {
+  if ((m = /^(?!(?:Update|An update|Your|Status|New|Thank)\b)([A-Z][\w&.' ]{1,40}?) Application(?:\s*[-–].*)?$/.exec(subject))) {
     add("company", m[1], "subject");
   }
   if ((m = /^You(?:'|’)?re In!?\s*Thanks For Applying To (.+?)$/i.exec(subject))) add("company", m[1], "subject");
@@ -524,7 +532,9 @@ function candidates(f: EmailFacts): Candidate[] {
     add("role", m[1], "body: role of …");
     if (m[2]) add("company", m[2], "body: role of …");
   }
-  if ((m = new RegExp(String.raw`\b(?:received|submitted)\s+(?:your\s+)?application\s+for\s+(?:the\s+|our\s+)?${RO}(?=\s+has\s+been\s+received|,\s+and\b|,\s+we\b|\.\s|\.$|!|$)`, "i").exec(flat))) {
+  // "…received your application for Backend Intern - Summer 2027 and will review it promptly."
+  const ROLE_ENDS = String.raw`\s+and\s+(?:will|we)\b`;
+  if ((m = new RegExp(String.raw`\b(?:received|submitted)\s+(?:your\s+)?application\s+for\s+(?:the\s+|our\s+)?${RO}(?=\s+has\s+been\s+received|,\s+and\b|,\s+we\b|${ROLE_ENDS}|\.\s|\.$|!|$)`, "i").exec(flat))) {
     add("role", m[1], "body: received your application for …");
   }
   // "apply for Engineering Internship at Hooli.com." ("for", not "to": "applying to X" names the company)
@@ -538,12 +548,17 @@ function candidates(f: EmailFacts): Candidate[] {
     add("role", m[1], "body: reviewing you for …");
   }
   // "your application for Software Development Engineer Internships at this time."
-  if ((m = new RegExp(String.raw`\byour\s+application\s+for\s+(?:the\s+|our\s+)?${RO}(?=\s+at\s+this\s+time|\s+has\s+been\b|,|\.(?:\s|$)|!|$)`, "i").exec(flat))) {
+  if ((m = new RegExp(String.raw`\byour\s+application\s+for\s+(?:the\s+|our\s+)?${RO}(?=\s+at\s+this\s+time|\s+has\s+been\b|,|${ROLE_ENDS}|\.(?:\s|$)|!|$)`, "i").exec(flat))) {
     add("role", m[1], "body: your application for …");
   }
   // Oscorp: "…for the position Software Engineering Internship - Summer 2027 - 3000009 ."
   if ((m = new RegExp(String.raw`\bthe\s+(?:position|role)\s+(?!of\b)${RO}(?=\s+[-–]\s+\d{5,8}\b)`, "i").exec(flat))) {
     add("role", m[1], "body: the position …");
+  }
+  // "Thank you for your interest in Software Engineering Internship, Summer 2027
+  // at Globex!" Only a title: "interest in working at Globex" isn't a role.
+  if ((m = new RegExp(String.raw`\binterest\s+in\s+(?:the\s+|our\s+)?${RO}\s+at\s+${CO}`, "i").exec(flat)) && titleWords.test(m[1])) {
+    add("role", m[1], "body: interest in … at");
   }
   // Company from the body.
   for (const [pattern, origin] of [

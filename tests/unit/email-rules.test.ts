@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classify } from "@/lib/tracker/email/classify";
 import { extractFields } from "@/lib/tracker/email/fields";
-import { displaySubject } from "@/lib/tracker/email/parse";
+import { displaySubject, htmlToText } from "@/lib/tracker/email/parse";
 import { mail } from "../helpers/email";
 
 const kindOf = (m: Parameters<typeof classify>[0]) => {
@@ -1210,5 +1210,59 @@ describe("fixes from the seventh inbox review", () => {
         })
       )
     ).not.toBe("interview_invite");
+  });
+});
+
+describe("fixes from the eighth inbox review (confirmations after applying from Postings)", () => {
+  it("Workday's HTML wraps 'you may receive an invitation / to take a coding assessment': still a confirmation", () => {
+    const { text } = htmlToText(
+      "<div>Dear Sam ,<br><br>Thanks for applying to Initech, where we build things.<br><br>" +
+        "If you are applying to a role that requires coding skills, you may receive an invitation\r\n      to take a coding assessment. " +
+        "You will receive a separate email within 24 hours (make\r\n      sure to check your SPAM folder) providing further instructions to complete the coding\r\n      assessment.<br><br>Sincerely,<br><br>Initech Global Talent Acquisition Team</div>"
+    );
+    const m = mail({ fromAddress: "initech@myworkday.com", subject: "Your application to 2027 Intern - Robotics Engineer is in!", text });
+    expect(kindOf(m)).toBe("confirmation");
+  });
+
+  it("Greenhouse's 'Globex | Thank you for applying, Sam!' names the company; 'interest in <Role> at <Company>' the role", () => {
+    const m = mail({
+      fromAddress: "no-reply@us.greenhouse-mail.io",
+      subject: "Globex | Thank you for applying, Sam!",
+      text: "Hi Sam,\n\nThank you for your interest in Software Engineering Internship, Summer 2027 at Globex! We received your application and are delighted that you are interested in joining our team.\n\nThe Globex Hiring Team",
+    });
+    expect(kindOf(m)).toBe("confirmation");
+    expect(extractFields(m, "confirmation")).toMatchObject({ company: "Globex", role: "Software Engineering Internship, Summer 2027" });
+    // "interest in working at <Company>" names no role.
+    const plain = mail({ fromAddress: "no-reply@us.greenhouse-mail.io", subject: "Thank you for applying to Globex", text: "Thank you for your interest in working at Globex. We will reach out if you are a fit." });
+    expect(extractFields(plain, "confirmation").role).toBeNull();
+  });
+
+  it("'Thank You for Your Application - <Company>' names the company, not 'Thank You for Your'", () => {
+    const m = mail({
+      fromAddress: "no-reply@vandelay.com",
+      subject: "Thank You for Your Application - Vandelay Industries",
+      text: "Dear Sam,\n\nThank you for taking the time to apply for the Technology Analyst - Summer 2027 position. If you are selected to move forward in our process, a member of our recruiting team will contact you.\n\nVandelay Industries Recruiting",
+    });
+    expect(extractFields(m, "confirmation")).toMatchObject({ company: "Vandelay Industries", role: "Technology Analyst - Summer 2027" });
+  });
+
+  it("the role stops at '… and will review it promptly'", () => {
+    const m = mail({
+      fromAddress: "no-reply@ats.rippling.com",
+      subject: "Thank you for applying to Hooli",
+      text: "Hi Sam,\n\nThank you for applying to Hooli! We have received your application for Full Stack Software Engineer Intern - Summer 2027 and will review it promptly. If we think there is a good fit, we will reach out to you at this email address.",
+    });
+    expect(extractFields(m, "confirmation")).toMatchObject({ company: "Hooli", role: "Full Stack Software Engineer Intern - Summer 2027" });
+  });
+
+  it("'we may not be able to get back if you are not selected' is a confirmation, not a rejection", () => {
+    const m = mail({
+      fromAddress: "no-reply@us.greenhouse-mail.io",
+      subject: "Thank you for applying to Initrode",
+      text: "Sam,\n\nThank you for your interest in working at Initrode. Our recruiting team is hard at work regularly reviewing resumes, and we will reach out if you are a fit for the position.\n\nDue to the high volume of applicants we may not be able to get back if you are not selected. In the meantime, please do keep an eye out on our jobs page.",
+    });
+    expect(kindOf(m)).toBe("confirmation");
+    // A real one still is.
+    expect(kindOf({ ...m, text: "Sam, unfortunately you were not selected for this role. Even if you are not selected now, we hope you apply again." })).toBe("rejection");
   });
 });

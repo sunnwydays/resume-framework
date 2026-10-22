@@ -199,7 +199,9 @@ export const RULES = {
   // inactive state, that means ... you were not selected" explains the portal.
   // Not before invites, since "If you'd like to proceed, complete the
   // assessment" is a real one.
-  conditional: [/^\s*if\b/i],
+  // Mid-sentence too: "Due to the high volume of applicants we may not be able
+  // to get back if you are not selected" is a confirmation's boilerplate.
+  conditional: [/^\s*if\b/i, /\bif\s+you(?:'re|\s+are|\s+were)\s+not\s+(?:selected|chosen|successful|shortlisted)\b/i],
   // Dropped before the completed-assessment rules: "Once you've completed all
   // assessments, our team will review your results" is in the invite.
   // "You will know you've completed the entire assessment when you see the

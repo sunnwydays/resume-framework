@@ -37,6 +37,15 @@ export function companyCloseness(a: string, b: string): number {
   if (short.length >= 3 && long.startsWith(short)) return 85;
   if (short.length >= 4 && long.includes(short)) return 70;
   if (short.length >= 4 && editDistance(x, y) <= (short.length >= 7 ? 2 : 1)) return 60;
+  // "GM" for "General Motors": a short name that is the other's initials.
+  const initials = (s: string) =>
+    key(s)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w && !COMPANY_NOISE.has(w))
+      .map((w) => w[0]);
+  const [shortName, longName] = x.length <= y.length ? [a, b] : [b, a];
+  const letters = initials(longName);
+  if (short.length >= 2 && short.length <= 4 && letters.length >= 2 && letters.join("") === short && initials(shortName).length === 1) return 70;
   return 0;
 }
 

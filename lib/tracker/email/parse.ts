@@ -98,9 +98,13 @@ export function htmlToText(html: string): { text: string; links: EmailLink[] } {
     if (/^https?:\/\//i.test(url)) links.push({ url, label: cleanText(decodeEntities(stripTags(inner))) });
     return "";
   });
+  // Line breaks in the source are only wrapping (Workday breaks "you may
+  // receive an invitation\r\n to take a coding assessment" mid-sentence); a
+  // browser shows them as spaces, and only tags break lines.
   const text = decodeEntities(
     stripTags(
       cleaned
+        .replace(/\s+/g, " ")
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<\/(p|div|tr|li|h[1-6]|table|section|article|blockquote)>/gi, "\n")
         .replace(/<\/t[dh]>/gi, " ")

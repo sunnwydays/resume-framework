@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { analyze, groupIntoJobs, matchApplications, type Analyzed } from "@/lib/tracker/email/group";
-import { roleCloseness } from "@/lib/tracker/email/match";
+import { companyCloseness, roleCloseness } from "@/lib/tracker/email/match";
 import { local, makeApp, makeAssessment, makeChange, resetFixtureIds } from "../helpers/fixtures";
 import { mail } from "../helpers/email";
 
@@ -231,6 +231,33 @@ describe("matchApplications", () => {
   it("a requisition number inside a posting URL matches", () => {
     const tracked = [makeApp({ company: "stark", role: "swe", url: "https://careers.stark.com/job/STARKGLOBAL09999999EXTERNAL/Software-Engineer" }), makeApp({ company: "stark", role: "swe" })];
     expect(matchApplications({ company: "Stark", role: "Software Engineering Intern", jobId: "09999999", assessmentTitle: null }, tracked).how).toBe("job id");
+  });
+
+  it("an initialism meets the full name ('SI' is 'Stark Industries')", () => {
+    expect(companyCloseness("SI", "Stark Industries Inc.")).toBe(70);
+    expect(companyCloseness("Stark Industries", "si")).toBe(70);
+    expect(companyCloseness("SI", "Stark")).toBe(0);
+    expect(companyCloseness("SIX", "Stark Industries")).toBe(0);
+  });
+
+  it("a confirmation for a role weeks after the matched application was made is a new application", () => {
+    const tracked = [
+      makeApp({ company: "Stark Industries", role: "AI/ML Engineer - Capacity Planning, Robotics", applied_on: "2026-09-27" }),
+      makeApp({ company: "SI", role: "AI/ML Engineer, Robotics: Simulation", applied_on: "2026-09-02" }),
+    ];
+    const ctx = { kind: "confirmation" as const, receivedAt: new Date(2026, 8, 27, 21).toISOString() };
+    const f = (role: string) => ({ company: "SI", role, jobId: null, assessmentTitle: null });
+    // The one applied to today, under its full name.
+    expect(matchApplications(f("2027 Intern - AI/ML Engineer - Capacity Planning, Robotics"), tracked, ctx).matches.map((a) => a.role)).toEqual([
+      "AI/ML Engineer - Capacity Planning, Robotics",
+    ]);
+    // Close to the old one, but not it.
+    const infra = matchApplications(f("2027 Intern - AI/ML Engineer, Robotics ML Infrastructure"), tracked, ctx);
+    expect(infra.matches).toEqual([]);
+    expect(infra.how).toMatch(/older/);
+    // The same role still matches, and a rejection can come any time.
+    expect(matchApplications(f("AI/ML Engineer, Robotics: Simulation"), tracked, ctx).matches).toHaveLength(1);
+    expect(matchApplications(f("2027 Intern - AI/ML Engineer, Robotics ML Infrastructure"), tracked, { ...ctx, kind: "rejection" }).matches).toHaveLength(1);
   });
 
   it("nothing tracked at the company", () => {

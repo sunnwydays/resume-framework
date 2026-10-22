@@ -89,8 +89,24 @@ export function matchApplications(
   ) {
     return { matches: [], how: "company tracked, but not this role" };
   }
+  // A confirmation comes the day you apply. One naming a role that isn't quite
+  // the tracked one, for an application made weeks earlier, is a second job
+  // there ("…ML Infrastructure" read as the "…Simulation" from three weeks before).
+  if (
+    context?.kind === "confirmation" &&
+    f.role &&
+    hasDistinctRole(f.role) &&
+    result.matches.length > 0 &&
+    result.matches.every((a) => appliedLongBefore(a, context.receivedAt) && roleCloseness(f.role!, a.role) < 100)
+  ) {
+    return { matches: [], how: "company tracked, but that application is older than this confirmation" };
+  }
   return result;
 }
+
+const CONFIRMATION_LAG_DAYS = 7;
+const appliedLongBefore = (a: Application, receivedAt: string) =>
+  a.applied_on < todayISO(new Date(receivedAt).getTime() - CONFIRMATION_LAG_DAYS * 86_400_000);
 
 function matchByName(f: Pick<EmailFields, "company" | "role" | "jobId" | "assessmentTitle">, apps: Application[]): AppMatch {
   // Which applications are at this company? CodeSignal names the test, not the

@@ -51,6 +51,13 @@ describe("htmlToText", () => {
     expect(text).toBe("Hi Sam, we're glad & ready.\nClick Start Test");
     expect(links).toEqual([{ url: "https://app.codesignal.com/t/1?a=1&b=2", label: "Start Test" }]);
   });
+
+  it("a line break in the source is wrapping, not a new line (Workday wraps mid-sentence)", () => {
+    const { text } = htmlToText(
+      "<div>If you are applying to a role that requires coding skills, you may receive an invitation\r\n      to take a coding assessment.<br><br>Sincerely,<br>Initech</div>"
+    );
+    expect(text).toBe("If you are applying to a role that requires coding skills, you may receive an invitation to take a coding assessment.\n\nSincerely,\nInitech");
+  });
 });
 
 describe("parseGmailMessage", () => {
