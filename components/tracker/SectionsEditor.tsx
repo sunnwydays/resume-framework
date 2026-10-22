@@ -199,7 +199,7 @@ export default function SectionsEditor({
             rows={5}
             autoFocus
             placeholder={
-              "Paste the breakdown from the invite, e.g.\nCoding Challenge – this timed section takes 100 minutes…\nWork Simulation – typically takes 45 minutes…\n\nOne part per line. Check what it fills in; anything it misreads, fix by hand."
+              "Paste the breakdown from the invite, e.g.\nCoding Challenge – this timed section takes 100 minutes…\nWork Simulation – typically takes 45 minutes…\n\nOne part per line, or copy a HackerRank test page's whole Test Format. Check what it fills in; anything it misreads, fix by hand."
             }
             className={inputCls}
           />

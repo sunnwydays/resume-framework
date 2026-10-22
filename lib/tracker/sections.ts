@@ -247,15 +247,150 @@ export function proseParts(details: string, makeId = newSectionId): Section[] {
   return [cleanPart(m[1]), cleanPart(m[2])].filter(Boolean).map((t) => newSection(t, makeId));
 }
 
+// ------------------------------------------------------------ HackerRank
+
+// A HackerRank test page copied from the browser. Its two tables come out one
+// cell per line (or a row per line, tab-separated), between other page text:
+//   No.	Section	Questions
+//   1
+//   Multiple Choice
+//   4
+//   2
+//   Challenges
+//   4
+//   Question No.	Question Type
+//   Q1 - Q4
+//   Multiple Choice Questions
+//   Q5 - Q8
+//   Coding Questions
+//   18 languages allowed: go, java, python3, …
+// Each section becomes one, its details the questions it covers, their type
+// when the name doesn't already say it, and the languages allowed. With only
+// the question table, each row is a section.
+
+interface HrSection {
+  title: string;
+  questions: number | null;
+  minutes: number | null;
+}
+
+interface HrQuestions {
+  from: number;
+  to: number;
+  type: string;
+  languages: string | null;
+}
+
+const cellsOf = (input: string) =>
+  input
+    .split(/\r?\n/)
+    .flatMap((l) => l.split("\t"))
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+const SECTION_COLUMN = /^(?:no\.?|section|questions?|duration|time(?: limit)?)$/i;
+
+function hrSections(cells: string[]): HrSection[] {
+  const start = cells.findIndex((c, i) => /^no\.?$/i.test(c) && /^section$/i.test(cells[i + 1] ?? ""));
+  if (start < 0) return [];
+  let end = start;
+  while (end < cells.length && SECTION_COLUMN.test(cells[end])) end++;
+  const columns = cells.slice(start, end).map((c) => c.toLowerCase());
+  const out: HrSection[] = [];
+  for (let i = end; /^\d+$/.test(cells[i] ?? "") && i + columns.length <= cells.length; i += columns.length) {
+    const row = new Map(columns.map((c, j) => [c, cells[i + j]]));
+    const questions = row.get("questions") ?? row.get("question");
+    const time = row.get("duration") ?? row.get("time") ?? row.get("time limit");
+    out.push({
+      title: row.get("section")!,
+      questions: questions && /^\d+$/.test(questions) ? parseInt(questions, 10) : null,
+      minutes: time ? (/^\d+$/.test(time) ? parseInt(time, 10) : findMinutes(time)) : null,
+    });
+  }
+  return out;
+}
+
+const QUESTION_RANGE = /^Q(\d+)(?:\s*[-–—]\s*Q?(\d+))?$/i;
+const LANGUAGES = /^\d+\s+languages?\s+allowed:\s*(.+)$/i;
+
+function hrQuestions(cells: string[]): HrQuestions[] {
+  const start = cells.findIndex((c, i) => /^question no\.?$/i.test(c) && /^question type$/i.test(cells[i + 1] ?? ""));
+  if (start < 0) return [];
+  const out: HrQuestions[] = [];
+  for (let i = start + 2; i + 1 < cells.length; ) {
+    const range = QUESTION_RANGE.exec(cells[i]);
+    if (!range) break;
+    const from = parseInt(range[1], 10);
+    const languages = LANGUAGES.exec(cells[i + 2] ?? "");
+    out.push({ from, to: range[2] ? parseInt(range[2], 10) : from, type: cells[i + 1], languages: languages?.[1] ?? null });
+    i += languages ? 3 : 2;
+  }
+  return out;
+}
+
+const qRange = (from: number, to: number) => (from === to ? `Q${from}` : `Q${from}–Q${to}`);
+const countLabel = (n: number) => `${n} question${n === 1 ? "" : "s"}`;
+// "Coding Questions" -> "Coding".
+const questionType = (type: string) => type.replace(/\s+questions?$/i, "").trim() || type;
+
+function hrDetails(count: number | null, range: string | null, types: string[], languages: string[]): string | null {
+  const head = [count != null ? countLabel(count) : null, range && count != null ? `(${range})` : range]
+    .filter(Boolean)
+    .join(" ");
+  const first = [head, types.join(", ")].filter(Boolean).join(": ");
+  const all = [first, ...[...new Set(languages)].map((l) => `Languages: ${l}`)].filter(Boolean);
+  return all.length ? all.join(". ") : null;
+}
+
+export function parseHackerRank(input: string, makeId = newSectionId): Section[] {
+  const cells = cellsOf(input);
+  const sections = hrSections(cells);
+  const questions = hrQuestions(cells);
+
+  if (!sections.length) {
+    return questions.map((q) => ({
+      ...newSection(q.type, makeId),
+      details: hrDetails(q.to - q.from + 1, qRange(q.from, q.to), [], q.languages ? [q.languages] : []),
+    }));
+  }
+
+  // Sections number their questions in order, so the counts give each one its
+  // range, and a question row inside that range belongs to it.
+  let next: number | null = 1;
+  return sections.map((s) => {
+    const from = next;
+    const to = from != null && s.questions != null ? from + s.questions - 1 : null;
+    next = to != null ? to + 1 : null;
+    const rows = from != null && to != null ? questions.filter((q) => q.from >= from && q.to <= to) : [];
+    const types = [...new Set(rows.map((q) => questionType(q.type)))].filter(
+      (t) => t.toLowerCase() !== s.title.toLowerCase()
+    );
+    const range = from != null && to != null && s.questions ? qRange(from, to) : null;
+    return {
+      ...newSection(s.title, makeId),
+      minutes: s.minutes,
+      details: hrDetails(
+        s.questions,
+        range,
+        types,
+        rows.flatMap((q) => (q.languages ? [q.languages] : []))
+      ),
+    };
+  });
+}
+
 const BULLET = /^(?:[-*•·◦▪‣–—]|\d{1,2}[.)]|\(?[a-z][.)])\s+/i;
 
-// Pasted text (an invite email's breakdown) or the export's Sections column,
-// into sections. A line is a section when it reads like "Title – what it is",
-// is a bullet, or is short enough to be a name; other lines add to the
-// previous one's details. The first bullet/indent style seen is the top
-// level; a different one under it is a sub-part. A section with no sub-parts
-// whose details say "one will be…, and the other…" gets those two as parts.
+// Pasted text (an invite email's breakdown, a HackerRank test page) or the
+// export's Sections column, into sections. A line is a section when it reads
+// like "Title – what it is", is a bullet, or is short enough to be a name;
+// other lines add to the previous one's details. The first bullet/indent style
+// seen is the top level; a different one under it is a sub-part. A section
+// with no sub-parts whose details say "one will be…, and the other…" gets those
+// two as parts.
 export function parseSections(input: string, makeId = newSectionId): Section[] {
+  const hackerRank = parseHackerRank(input, makeId);
+  if (hackerRank.length) return hackerRank;
   const out: Section[] = [];
   let topStyle: string | null = null;
   let last: Section | null = null;

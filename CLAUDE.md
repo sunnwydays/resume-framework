@@ -281,9 +281,12 @@ tracker paths; the resume pages never hit it.
   Notes belong to the panel's outline (`keepNotes` merges by id on save, same rule as
   the assessment's own notes). Minutes follow the sections' total until typed by
   hand (`nextDuration`).
-  `parseSections` reads both a pasted invite breakdown ("Title – this section takes
-  N minutes, …", bullets, "one will be…, and the other…" → two sub-parts) and the
-  export's Sections column (`formatSections`); `import_rows` stores them.
+  `parseSections` reads a pasted invite breakdown ("Title – this section takes
+  N minutes, …", bullets, "one will be…, and the other…" → two sub-parts), a
+  HackerRank test page copied from the browser (`parseHackerRank`: its Section
+  Details / Question Details tables, one section per row, question range, type
+  and languages as details; tried first) and the export's Sections column
+  (`formatSections`); `import_rows` stores them.
   Always read the column through `sectionsOf()` (it's `Json`, possibly malformed).
 - **Role types** (`lib/tracker/roles.ts`): derived from `applications.role`
   every time, never stored (no DB column). One type per role, first match

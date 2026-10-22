@@ -125,6 +125,79 @@ describe("parseSections", () => {
   });
 });
 
+// A HackerRank test page as the browser copies it: page text around the two
+// tables, one cell per line, header rows tab-separated.
+const HACKERRANK = [
+  "Instructions",
+  "This is a timed test. Please make sure you are not interrupted during the test, as the timer cannot be paused once started.",
+  "Try a sample test to get familiar with the format and environment",
+  "",
+  "Test Format",
+  "Section Details",
+  "No.\tSection\tQuestions",
+  "1",
+  "Multiple Choice",
+  "4",
+  "2",
+  "Challenges",
+  "4",
+  "3",
+  "SQL",
+  "1",
+  "Questions",
+  "Some questions require that you use specific languages. You will be able to change your selected language from the editor.",
+  "This test contains 9 Questions",
+  "Question Details",
+  "Question No.\tQuestion Type",
+  "Q1 - Q4",
+  "Multiple Choice Questions",
+  "Q5 - Q8",
+  "Coding Questions",
+  "3 languages allowed: java, python3, typescript",
+  "Q9",
+  "Database Question",
+  "1 languages allowed: mysql",
+].join("\n");
+
+describe("parseSections on a HackerRank test page", () => {
+  it("makes one section per HackerRank section, with its questions, type and languages", () => {
+    expect(shape(parse(HACKERRANK))).toEqual([
+      { title: "Multiple Choice", minutes: null, details: "4 questions (Q1–Q4)", notes: null, parts: [] },
+      {
+        title: "Challenges",
+        minutes: null,
+        details: "4 questions (Q5–Q8): Coding. Languages: java, python3, typescript",
+        notes: null,
+        parts: [],
+      },
+      { title: "SQL", minutes: null, details: "1 question (Q9): Database. Languages: mysql", notes: null, parts: [] },
+    ]);
+  });
+
+  it("reads rows copied tab-separated, and a duration column", () => {
+    const s = parse(["No.\tSection\tQuestions\tDuration", "1\tCoding\t2\t60 mins", "2\tSQL\t1\t20 mins"].join("\n"));
+    expect(shape(s)).toEqual([
+      { title: "Coding", minutes: 60, details: "2 questions (Q1–Q2)", notes: null, parts: [] },
+      { title: "SQL", minutes: 20, details: "1 question (Q3)", notes: null, parts: [] },
+    ]);
+  });
+
+  it("uses the question rows as sections when only that table was copied", () => {
+    const only = HACKERRANK.slice(HACKERRANK.indexOf("Question Details"));
+    expect(shape(parse(only))).toEqual([
+      { title: "Multiple Choice Questions", minutes: null, details: "4 questions (Q1–Q4)", notes: null, parts: [] },
+      {
+        title: "Coding Questions",
+        minutes: null,
+        details: "4 questions (Q5–Q8). Languages: java, python3, typescript",
+        notes: null,
+        parts: [],
+      },
+      { title: "Database Question", minutes: null, details: "1 question (Q9). Languages: mysql", notes: null, parts: [] },
+    ]);
+  });
+});
+
 describe("findMinutes", () => {
   it.each([
     ["takes 100 minutes", 100],
