@@ -63,12 +63,13 @@ export function buildToday({ applications, assessments, moves, postings, allPost
 
   const people = nextSteps(moves, applications, now).filter((s) => PEOPLE_STEPS.includes(s.kind));
 
-  // A posting you can't take (defense, clearance) or already track isn't news.
+  // A posting you can't take (defense, clearance, no visa sponsorship) or
+  // already track isn't news.
   // By default only the ones the Postings page shows on load count (its default
   // filters: summer 2027 or no term, internship or no level, up to 4 months or
   // no length), so tuning those defaults tunes this number too.
   const fresh = buildPostingViews(postings, applications).filter(
-    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no"
+    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no" && !v.noSponsorship
   );
   const matching = fresh.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).length;
   const newPostings = allPostings ? fresh.length : matching;

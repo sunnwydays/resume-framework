@@ -63,6 +63,7 @@ export function postingFeedback(view: PostingView, action: PostingFeedbackAction
       region_why: region.why,
       eligibility: eligibility.level,
       eligibility_why: eligibility.why ?? null,
+      no_sponsorship: view.noSponsorship,
       term: term?.label ?? null,
       length,
       level: level.level,

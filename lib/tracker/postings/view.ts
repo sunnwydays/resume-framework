@@ -1,4 +1,4 @@
-// A posting plus everything derived from it: region, eligibility, term,
+// A posting plus everything derived from it: region, eligibility, sponsorship, term,
 // length, level, role type, and the application it already matches. Computed
 // once per render and shared by the filters, the sort and the table. Sunny's
 // hand edits (edits.ts) are applied here: text edits before the rules run,
@@ -6,7 +6,7 @@
 
 import type { Application, JobPosting } from "@/lib/tracker/format";
 import { editsOf, readLengthInput, readTermInput, withTextEdits, type EditField } from "@/lib/tracker/postings/edits";
-import { postingEligibility, type Eligibility } from "@/lib/tracker/postings/eligibility";
+import { postingEligibility, postingSponsorship, type Eligibility } from "@/lib/tracker/postings/eligibility";
 import { postingLevel, type LevelResult } from "@/lib/tracker/postings/level";
 import { matchPosting } from "@/lib/tracker/postings/match";
 import { postingRegion, type RegionResult } from "@/lib/tracker/postings/region";
@@ -19,6 +19,7 @@ export interface PostingView {
   edited: EditField[]; // fields Sunny set by hand
   region: RegionResult;
   eligibility: Eligibility;
+  noSponsorship: string | null; // why it won't sponsor a visa, when the description says so
   term: Term | null; // "Summer 2027", when the title or the posting page says
   length: Length | null; // in months, when the title or the posting page says
   level: LevelResult; // intern, new grad, experienced, or not stated, and why
@@ -52,6 +53,7 @@ export function postingView(parsed: JobPosting, applications: Application[], byI
     edited: Object.keys(edits) as EditField[],
     region,
     eligibility: postingEligibility(posting, region.region),
+    noSponsorship: postingSponsorship(posting, region.region),
     term: edits.term !== undefined ? (readTermInput(edits.term ?? "", posting.first_seen_at) ?? null) : rules.term,
     length: edits.length !== undefined ? (readLengthInput(edits.length ?? "") ?? null) : rules.length,
     level: edits.level ? { level: edits.level, why: BY_HAND } : rules.level,

@@ -83,6 +83,7 @@ export default function PostingsPage() {
       ineligible: views.filter(
         (v) => v.eligibility.level === "no" && matchesPostingFilters(v, { ...filters, showIneligible: true })
       ).length,
+      noSponsorship: views.filter((v) => v.noSponsorship && matchesPostingFilters(v, { ...filters, showNoSponsorship: true })).length,
       // Keep the chips in ROLE_TYPES order whatever order they were counted in.
       roleTypes: new Map(ROLE_TYPES.filter((t) => typeCounts.has(t.key)).map((t) => [t.key, typeCounts.get(t.key)!])),
     };

@@ -412,8 +412,9 @@ tracker paths; the resume pages never hit it.
   deduped row per posting. Sunny is a Canadian citizen, so **US roles are
   wanted** (they'd need a J-1): US vs Canada vs elsewhere is a category to sort and filter
   by, never hidden. What *is* hidden by default is US postings Sunny can't take
-  at all (defense, clearance, ITAR, or a description saying there's no visa
-  sponsorship), no AI.
+  at all (defense, clearance, ITAR, citizens / green card only) and, behind
+  its own chip, US postings whose description says there's no visa
+  sponsorship. No AI.
   - **Flow**: "Scan alerts" (`components/tracker/postings/PostingsScan.tsx`;
     the same scan also runs as the second leg of "Scan Gmail" on `/tracker`,
     see the Gmail scan below) calls `scanAlerts` (`usePostings.ts`), which
@@ -471,11 +472,16 @@ tracker paths; the resume pages never hit it.
     defense-employer list, the title phrases, the "no" industries (aerospace,
     space, defense, military: nearly all carry an ITAR citizenship line) and the
     "check" industry (government); the page's citizen-only / clearance flags are
-    a "no" too, and so is a `description` sentence with "sponsor" plus a negation
+    a "no" too, and so is a `description` sentence requiring US citizenship, a
+    green card or "US person" status (`citizenshipLine`); only US postings can be
+    flagged, except that description rules also run on an unclear-region posting
+    whose description names the US, since remote ones are mostly US). Sponsorship
+    is separate (`postingSponsorship`, `view.noSponsorship`, the "Show no
+    sponsorship" chip, off by default): a sentence with "sponsor" plus a negation
     ("not eligible for visa sponsorship", "without current or future
-    sponsorship"; `noSponsorshipLine`, quoted as the why); only US postings can be
-    flagged, except that the sponsorship line also counts on an unclear-region
-    posting whose description names the US, since remote ones are mostly US), `match.ts` (an existing application with the
+    sponsorship"), or a citizenship rule that lets some visa holders in ("…or an
+    MS student on F1 CPT"), since that's a policy rather than the law. Both quote
+    the sentence as the why. `match.ts` (an existing application with the
     same company and role: the "In tracker" pill), `view.ts` (all of that per
     posting, once per render), `filters.ts`, `sorting.ts`. "Applied" adds an
     application (`source: 'alert'`, role trimmed with the default trims,

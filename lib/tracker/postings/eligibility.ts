@@ -1,9 +1,11 @@
 // Can Sunny take this job at all? Only US postings can fail: defense work and
 // clearance-gated roles need US citizenship, which a Canadian on a J-1 isn't.
 // The posting page's own flags ("U.S. Citizen Only", clearance required) count
-// too, and so does a description that says the employer won't sponsor a visa:
-// Sunny would need one. Derived on every render, and every list and phrase
-// lives in ELIGIBILITY_RULES so tuning is one place.
+// too, and so does a description that requires US citizenship or a green card.
+// Separately, `postingSponsorship` reads a description that says the employer
+// won't sponsor a visa: Sunny would need one, but that's a policy, not the law,
+// so it has its own filter chip. Derived on every render, and every list and
+// phrase lives in ELIGIBILITY_RULES so tuning is one place.
 
 import { companyCloseness } from "@/lib/tracker/email/match";
 import type { Region } from "@/lib/tracker/postings/region";
@@ -30,6 +32,15 @@ export const ELIGIBILITY_RULES = {
   // Industries worth a second look ("check"), not a "no".
   checkCategories: /government/i,
 
+  // A description sentence that requires US citizenship, a green card or "US
+  // person" status (ITAR, export control, federal contracts). No visa gets
+  // Sunny in, so it's a "no". If the same sentence lets some visa holders in
+  // ("…or an MS student on F1 CPT"), it's a visa policy: sponsorship instead.
+  citizenship: /\b(?:U\.?S\.?|United States)\s+(?:citizen(?:ship|s)?|persons?|nationals?)\b|\bpermanent residents?\b|\bgreen card\b|\bITAR\b|\bexport control/i,
+  citizenshipRequired: /\b(?:must|requires?|required|only)\b/i,
+  citizenshipWaived: /\bnot\s+(?:required|necessary|needed)\b/i,
+  visa: /\bvisas?\b|\b[FJ]-?1\b|\bCPT\b|\bOPT\b|\bH-?1B\b/i,
+
   // A description sentence that mentions sponsorship and a negation is a "no
   // sponsorship" line ("not eligible for visa sponsorship", "without current or
   // future sponsorship", "unable to sponsor"). A positive one ("supportive of
@@ -38,27 +49,56 @@ export const ELIGIBILITY_RULES = {
   sponsorship: /(?<![-\w])sponsor(?:s|ed|ing|ship)?\b/i,
   sponsorshipNegation: /\b(?:not|no|unable|without|cannot|nor)\b|n['’]t\b/i,
   sponsorshipIgnore: /\b(?:the|a) sponsor\b/i,
-  // A remote posting's region is often unclear; its sponsorship line still
-  // counts when the description names the US.
+  // A remote posting's region is often unclear; its description still counts
+  // when it names the US.
   mentionsUs: /United States|\bU\.S\.|\bUSA?\b/,
 };
 
-// The first sentence of the description that says there's no sponsorship.
+// The description's sentences, bullets stripped. A sentence ends after a
+// lowercase word, so "the U.S. without…" stays whole.
+function sentences(description: string): string[] {
+  return description
+    .split(/\n|(?<=[a-z]{2}[.!?])\s+(?=[A-Z])/)
+    .map((s) => s.replace(/^[\s\-•*+]+/, "").trim())
+    .filter(Boolean);
+}
+
+function citizenshipSentence(s: string): boolean {
+  const rules = ELIGIBILITY_RULES;
+  return rules.citizenship.test(s) && rules.citizenshipRequired.test(s) && !rules.citizenshipWaived.test(s);
+}
+
+// The first sentence that requires US citizenship or a green card, with no
+// visa route.
+export function citizenshipLine(description: string | null | undefined): string | null {
+  if (!description) return null;
+  return sentences(description).find((s) => citizenshipSentence(s) && !ELIGIBILITY_RULES.visa.test(s)) ?? null;
+}
+
+// The first sentence that says there's no sponsorship, or a citizenship rule
+// that only some visa holders get past.
 export function noSponsorshipLine(description: string | null | undefined): string | null {
   if (!description) return null;
   const rules = ELIGIBILITY_RULES;
-  // A sentence ends after a lowercase word, so "the U.S. without…" stays whole.
-  for (const raw of description.split(/\n|(?<=[a-z]{2}[.!?])\s+(?=[A-Z])/)) {
-    const sentence = raw.replace(/^[\s\-•*+]+/, "").trim();
-    if (rules.sponsorship.test(sentence) && rules.sponsorshipNegation.test(sentence) && !rules.sponsorshipIgnore.test(sentence)) {
-      return sentence;
-    }
-  }
-  return null;
+  return (
+    sentences(description).find(
+      (s) =>
+        (rules.sponsorship.test(s) && rules.sponsorshipNegation.test(s) && !rules.sponsorshipIgnore.test(s)) ||
+        (citizenshipSentence(s) && rules.visa.test(s))
+    ) ?? null
+  );
 }
 
 function clip(text: string, max = 140): string {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+const quoted = (line: string) => `The description says "${clip(line)}"`;
+
+// The description is read for US postings, and for unclear-region (mostly
+// remote) ones that name the US.
+function readsDescription(p: { description?: string | null }, region: Region): boolean {
+  return region === "us" || (region === "unknown" && !!p.description && ELIGIBILITY_RULES.mentionsUs.test(p.description));
 }
 
 export type EligibilityLevel = "ok" | "check" | "no";
@@ -79,9 +119,9 @@ interface Eligible {
 
 export function postingEligibility(p: Eligible, region: Region): Eligibility {
   const rules = ELIGIBILITY_RULES;
-  if (region === "unknown" && p.description && rules.mentionsUs.test(p.description)) {
-    const line = noSponsorshipLine(p.description);
-    if (line) return { level: "no", why: `The description says "${clip(line)}"` };
+  if (region === "unknown" && readsDescription(p, region)) {
+    const line = citizenshipLine(p.description);
+    if (line) return { level: "no", why: quoted(line) };
   }
   if (region !== "us") return { level: "ok" };
 
@@ -94,8 +134,8 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
   if (p.citizen_only) return { level: "no", why: "The posting page says U.S. citizens only" };
   if (p.clearance_required) return { level: "no", why: "The posting page says a security clearance is required" };
 
-  const sponsorship = noSponsorshipLine(p.description);
-  if (sponsorship) return { level: "no", why: `The description says "${clip(sponsorship)}"` };
+  const citizenship = citizenshipLine(p.description);
+  if (citizenship) return { level: "no", why: quoted(citizenship) };
 
   if (p.categories && rules.ineligibleCategories.test(p.categories)) {
     return { level: "no", why: `The company's industry is listed as "${p.categories}": US aerospace and defense roles need US citizenship (ITAR)` };
@@ -105,4 +145,11 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
   if (category) return { level: "check", why: `The company's industry is listed as "${p.categories}": check it doesn't need a clearance` };
 
   return { level: "ok" };
+}
+
+// Why the posting won't sponsor Sunny's visa (the quoted sentence), or null.
+export function postingSponsorship(p: { description?: string | null }, region: Region): string | null {
+  if (!readsDescription(p, region)) return null;
+  const line = noSponsorshipLine(p.description);
+  return line ? quoted(line) : null;
 }

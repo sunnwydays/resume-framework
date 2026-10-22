@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { noSponsorshipLine, postingEligibility } from "@/lib/tracker/postings/eligibility";
+import { noSponsorshipLine, postingEligibility, postingSponsorship } from "@/lib/tracker/postings/eligibility";
 import { postingRegion, type Region } from "@/lib/tracker/postings/region";
 
 const region = (location: string | null, extra: { role?: string; pay?: string | null } = {}) =>
@@ -125,55 +125,97 @@ describe("postingEligibility", () => {
     expect(flagged({ citizen_only: false, clearance_required: false }).level).toBe("ok");
   });
 
-  describe("no visa sponsorship in the description", () => {
+
+  describe("citizenship or a green card in the description", () => {
     const described = (description: string | null, where: Region = "us") =>
       postingEligibility({ company: "Vandelay Industries", role: "Software Engineer Intern", categories: null, description }, where);
-    const body = (line: string) => `Summary\n- Vandelay builds latex.\n\nMust have\n- Python\n- ${line}\n\nBenefits\n- Hybrid work`;
 
-    it("the ways postings say it are out", () => {
+    it("a US citizen, permanent resident or US person requirement is out", () => {
       for (const line of [
-        "This position is not eligible for visa sponsorship. We do not sponsor visas for this position or internship conversions",
-        "Applicants must be authorized to work for any employer in the U.S. Vandelay is unable to sponsor an employment Visa at this time",
-        "Applicants must be authorized to work in the United States on a full-time basis without the need for employer support or sponsorship now or in the future",
-        "Applicants must be legally authorized to work in the United States, and should not require, now or in the future, sponsorship for employment visa status",
-        "Legally authorized to work for any company in the United States without current or future sponsorship",
-        "Immigration Sponsorship is not available for this role",
-        "Employment eligibility is required as the company will not pursue visa sponsorship for these positions",
-        "You will not require Vandelay to sponsor you for any work visa, such as an H-1B, either immediately or at any time in the future",
-        "This position is not eligible for F1 and J1 students. It is not available for any work sponsorship",
-        "We don't offer any type of employment-based immigration sponsorship for this program",
+        "All applicants must be U.S. persons within the meaning of ITAR",
+        "Due to applicable export control laws and regulations, candidates must be a U.S. citizen or national, U.S. permanent resident (i.e., current Green Card holder), or lawfully admitted into the U.S. as a refugee or granted asylum",
+        "All Vandelay opportunities require U.S. Citizenship",
+        "This opportunity is available to U.S. citizens only",
+        "Must be a US Person (US Citizen or Legal Permanent Resident)",
       ]) {
-        expect(described(body(line)).level, line).toBe("no");
+        expect(described(sponsorBody(line)), line).toMatchObject({ level: "no", why: expect.stringContaining("The description says") });
       }
     });
 
-    it("quotes the sentence, minus the bullet", () => {
-      expect(described(body("Visa sponsorship is not available for this position")).why).toBe(
-        'The description says "Visa sponsorship is not available for this position"',
-      );
-      // "U.S." doesn't end the sentence.
-      expect(noSponsorshipLine("- Authorized to work in the U.S. without current or future sponsorship. Python a plus")).toBe(
-        "Authorized to work in the U.S. without current or future sponsorship.",
-      );
-    });
-
-    it("sponsorship offered, sponsored benefits or plain work authorization are fine", () => {
+    it("EEO wording, a waived requirement or one with a visa route isn't", () => {
       for (const line of [
-        "Vandelay is supportive of US immigration sponsorship for this role",
-        "Eligible employees may participate in Company-sponsored medical, dental and vision plans",
-        "The summer program expects interns in the office 3-4 days a week, as determined by the sponsor. No exceptions",
-        "Interns must be legally authorized to work in the United States",
+        "We do not discriminate on the basis of race, religion, citizenship status or national origin",
+        "U.S. citizenship is not required for this role",
+        "Must be a US Citizen, permanent resident or be an MS student with work authorization (F1 Visa on CPT accepted only for masters-level students)",
       ]) {
-        expect(described(body(line)).level, line).toBe("ok");
+        expect(described(sponsorBody(line)).level, line).toBe("ok");
       }
-      expect(described(null).level).toBe("ok");
     });
 
-    it("counts for an unclear region only when the description names the US", () => {
-      const line = "This position is not eligible for visa sponsorship";
-      expect(described(body(`${line}. Candidates must be authorized to work in the United States`), "unknown").level).toBe("no");
-      expect(described(body(line), "unknown").level).toBe("ok");
-      expect(described(body("You must be legally authorized to work in Canada - visa sponsorship is not available"), "canada").level).toBe("ok");
+    it("counts for an unclear region (it names the US by definition), not for Canada", () => {
+      expect(described(sponsorBody("Must be a US Citizen"), "unknown").level).toBe("no");
+      expect(described(sponsorBody("Must be a US Citizen"), "canada").level).toBe("ok");
     });
+  });
+});
+
+const sponsorBody = (line: string) => `Summary\n- Vandelay builds latex.\n\nMust have\n- Python\n- ${line}\n\nBenefits\n- Hybrid work`;
+
+describe("postingSponsorship", () => {
+  const described = (description: string | null, where: Region = "us") => postingSponsorship({ description }, where);
+
+  it("the ways postings say it are caught", () => {
+    for (const line of [
+      "This position is not eligible for visa sponsorship. We do not sponsor visas for this position or internship conversions",
+      "Applicants must be authorized to work for any employer in the U.S. Vandelay is unable to sponsor an employment Visa at this time",
+      "Applicants must be authorized to work in the United States on a full-time basis without the need for employer support or sponsorship now or in the future",
+      "Applicants must be legally authorized to work in the United States, and should not require, now or in the future, sponsorship for employment visa status",
+      "Legally authorized to work for any company in the United States without current or future sponsorship",
+      "Immigration Sponsorship is not available for this role",
+      "Employment eligibility is required as the company will not pursue visa sponsorship for these positions",
+      "You will not require Vandelay to sponsor you for any work visa, such as an H-1B, either immediately or at any time in the future",
+      "This position is not eligible for F1 and J1 students. It is not available for any work sponsorship",
+      "We don't offer any type of employment-based immigration sponsorship for this program",
+      // A citizenship rule only some visa holders get past is a visa policy.
+      "Must be a US Citizen, permanent resident or be an MS student with work authorization (F1 Visa on CPT accepted only for masters-level students)",
+    ]) {
+      expect(described(sponsorBody(line)), line).not.toBeNull();
+    }
+  });
+
+  it("quotes the sentence, minus the bullet", () => {
+    expect(described(sponsorBody("Visa sponsorship is not available for this position"))).toBe(
+      'The description says "Visa sponsorship is not available for this position"',
+    );
+    // "U.S." doesn't end the sentence.
+    expect(noSponsorshipLine("- Authorized to work in the U.S. without current or future sponsorship. Python a plus")).toBe(
+      "Authorized to work in the U.S. without current or future sponsorship.",
+    );
+  });
+
+  it("sponsorship offered, sponsored benefits, plain work authorization or a citizens-only rule aren't caught", () => {
+    for (const line of [
+      "Vandelay is supportive of US immigration sponsorship for this role",
+      "Eligible employees may participate in Company-sponsored medical, dental and vision plans",
+      "The summer program expects interns in the office 3-4 days a week, as determined by the sponsor. No exceptions",
+      "Interns must be legally authorized to work in the United States",
+      // That's "not eligible" instead.
+      "This opportunity is available to U.S. citizens only",
+    ]) {
+      expect(described(sponsorBody(line)), line).toBeNull();
+    }
+    expect(described(null)).toBeNull();
+  });
+
+  it("is separate from eligibility", () => {
+    const description = sponsorBody("Visa sponsorship is not available for this position");
+    expect(postingEligibility({ company: "Vandelay Industries", role: "Intern", categories: null, description }, "us").level).toBe("ok");
+  });
+
+  it("counts for an unclear region only when the description names the US", () => {
+    const line = "This position is not eligible for visa sponsorship";
+    expect(described(sponsorBody(`${line}. Candidates must be authorized to work in the United States`), "unknown")).not.toBeNull();
+    expect(described(sponsorBody(line), "unknown")).toBeNull();
+    expect(described(sponsorBody("You must be legally authorized to work in Canada - visa sponsorship is not available"), "canada")).toBeNull();
   });
 });

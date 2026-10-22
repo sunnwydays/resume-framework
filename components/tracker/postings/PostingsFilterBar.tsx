@@ -16,6 +16,7 @@ export interface PostingCounts {
   lengths: Map<LengthBucket, number>;
   levels: Map<Level, number>;
   ineligible: number; // hidden unless "Show not eligible" is on
+  noSponsorship: number; // hidden unless "Show no sponsorship" is on
   roleTypes: Map<RoleType, number>;
 }
 
@@ -133,7 +134,14 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
           onClick={() => set("showIneligible", !filters.showIneligible)}
           label="Show not eligible"
           count={counts.ineligible}
-          title="Defense employers and clearance or citizenship-only roles, in the US"
+          title="Defense employers and clearance, citizenship or green-card-only roles, in the US"
+        />
+        <Chip
+          active={filters.showNoSponsorship}
+          onClick={() => set("showNoSponsorship", !filters.showNoSponsorship)}
+          label="Show no sponsorship"
+          count={counts.noSponsorship}
+          title="US postings whose description says they won't sponsor a visa"
         />
         <Chip
           active={filters.hideTracked}

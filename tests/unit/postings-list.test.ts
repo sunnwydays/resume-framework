@@ -151,6 +151,7 @@ describe("matchesPostingFilters", () => {
       makePosting({ id: "p-new-us", company: "Globex", location: "Austin, TX", match_pct: 60, role: "Machine Learning Intern" }),
       makePosting({ id: "p-defense", company: "Lockheed Martin", location: "Marietta, GA", match_pct: 99 }),
       makePosting({ id: "p-gov", company: "Hooli", location: "Denver, CO", categories: "Government · Private", match_pct: null }),
+      makePosting({ id: "p-no-visa", company: "Pied Piper", location: "Austin, TX", description: "- Visa sponsorship is not available for this position" }),
       makePosting({ id: "p-tracked", company: "Initech", location: "Toronto, ON" }),
       makePosting({ id: "p-saved", company: "Umbrella", state: "saved" }),
       makePosting({ id: "p-applied", company: "Initech", state: "applied", application_id: apps[0].id }),
@@ -162,7 +163,7 @@ describe("matchesPostingFilters", () => {
   const ids = (f: Partial<PostingFilters>) =>
     views.filter((v) => matchesPostingFilters(v, { ...ANY_TERM_AND_LENGTH, ...f })).map((v) => v.posting.id);
 
-  it("by default: new ones, not-eligible and already-tracked hidden", () => {
+  it("by default: new ones, not-eligible, no-sponsorship and already-tracked hidden", () => {
     expect(ids({})).toEqual(["p-new-ca", "p-new-us", "p-gov"]);
   });
 
@@ -192,11 +193,16 @@ describe("matchesPostingFilters", () => {
   });
 
   it("all states", () => {
-    expect(ids({ state: "all", hideTracked: false, showIneligible: true })).toHaveLength(views.length);
+    expect(ids({ state: "all", hideTracked: false, showIneligible: true, showNoSponsorship: true })).toHaveLength(views.length);
   });
 
   it("not-eligible ones come back when asked", () => {
     expect(ids({ showIneligible: true })).toContain("p-defense");
+    expect(ids({ showIneligible: true })).not.toContain("p-no-visa");
+  });
+
+  it("no-sponsorship ones have their own chip", () => {
+    expect(ids({ showNoSponsorship: true })).toEqual(["p-new-ca", "p-new-us", "p-gov", "p-no-visa"]);
   });
 
   it("tracked ones come back when asked", () => {
