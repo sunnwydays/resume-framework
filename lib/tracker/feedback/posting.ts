@@ -39,6 +39,8 @@ export const POSTING_DISMISS_REASONS: FeedbackReason[] = [
   { key: "pay", label: "Pay", rule: "taste" },
   // Not a rule miss either: the alert was right, it just closed before Sunny got to it.
   { key: "closed", label: "Posting closed", rule: "taste" },
+  // Some companies cap how many roles you can apply to (or it's one shot per season).
+  { key: "already-applied", label: "Already applied there", rule: "taste" },
   { key: "other", label: "Other", rule: "taste" },
 ];
 
