@@ -50,7 +50,7 @@ export default function EmailReview({ tracker, review }: Props) {
   const [showMutes, setShowMutes] = useState(false);
   const [last, setLast] = useState<{ applicationId: string; label: string; feedbackId?: string | null } | null>(null);
   // The latest dismiss, for its "why?" chips.
-  const [dismissed, setDismissed] = useState<{ count: number; feedbackId?: string | null } | null>(null);
+  const [dismissed, setDismissed] = useState<{ count: number; ids: string[]; bulk: boolean; feedbackId?: string | null } | null>(null);
   // How new cards tidy the role from the emails (same options as the add form).
   const [trimSetting, setTrimSetting] = useLocalSetting("tracker.gmail.trims", trimsToString(DEFAULT_TRIMS));
   const trims = trimsFromString(trimSetting);
@@ -85,13 +85,22 @@ export default function EmailReview({ tracker, review }: Props) {
     return null;
   }
 
-  // Dismisses cards' emails and records it, then offers the reason chips.
+  // Dismisses cards' emails and records it, then offers Undo (and the reason
+  // chips for a single card; one reason can't cover a bulk dismiss).
   async function dismiss(groups: JobGroup[], bulk: boolean) {
-    tracker.dismissEmails(groups.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId))));
+    const ids = groups.flatMap((g) => g.emails.map((e) => rowIdOf(e.facts.gmailId)));
+    tracker.dismissEmails(ids);
     setLast(null);
-    setDismissed({ count: groups.length });
+    setDismissed({ count: groups.length, ids, bulk });
     const feedbackId = await recordFeedback(emailDismissFeedback(groups, bulk));
-    setDismissed((cur) => (cur ? { ...cur, feedbackId } : cur));
+    setDismissed((cur) => (cur && cur.ids === ids ? { ...cur, feedbackId } : cur));
+  }
+
+  function undoDismiss() {
+    if (!dismissed) return;
+    tracker.restoreEmails(dismissed.ids);
+    markFeedbackUndone(dismissed.feedbackId);
+    setDismissed(null);
   }
 
   // Undo for the card just accepted, while it's still the newest change on
@@ -290,7 +299,12 @@ export default function EmailReview({ tracker, review }: Props) {
           {dismissed && (
             <p className={bannerCls}>
               Dismissed {dismissed.count} card{dismissed.count === 1 ? "" : "s"}.
-              <ReasonChips key={dismissed.feedbackId ?? "pending"} reasons={EMAIL_DISMISS_REASONS} feedbackId={dismissed.feedbackId} />
+              <button type="button" className="underline" onClick={undoDismiss}>
+                Undo
+              </button>
+              {!dismissed.bulk && (
+                <ReasonChips key={dismissed.feedbackId ?? "pending"} reasons={EMAIL_DISMISS_REASONS} feedbackId={dismissed.feedbackId} />
+              )}
               <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setDismissed(null)}>
                 Hide
               </button>
