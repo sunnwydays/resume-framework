@@ -4,7 +4,8 @@ import { formatLength } from "@/lib/tracker/postings/term";
 import type { PostingView } from "@/lib/tracker/postings/view";
 
 export const POSTING_DISMISS_REASONS: FeedbackReason[] = [
-  { key: "not-eligible", label: "Can't take it", rule: "lib/tracker/postings/eligibility.ts" },
+  { key: "no-sponsor", label: "No sponsor", rule: "lib/tracker/postings/eligibility.ts" },
+  { key: "not-eligible", label: "Citizens / clearance only", rule: "lib/tracker/postings/eligibility.ts" },
   { key: "degree", label: "Needs a degree I don't have", rule: "lib/tracker/postings/eligibility.ts" },
   {
     key: "wrong-level",
