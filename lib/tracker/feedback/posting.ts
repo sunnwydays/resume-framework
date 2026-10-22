@@ -36,6 +36,8 @@ export const POSTING_DISMISS_REASONS: FeedbackReason[] = [
   { key: "company", label: "Company", rule: "taste" },
   { key: "location", label: "Don't want this location", rule: "taste" },
   { key: "pay", label: "Pay", rule: "taste" },
+  // Not a rule miss either: the alert was right, it just closed before Sunny got to it.
+  { key: "closed", label: "Posting closed", rule: "taste" },
   { key: "other", label: "Other", rule: "taste" },
 ];
 
