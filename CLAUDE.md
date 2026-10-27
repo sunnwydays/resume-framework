@@ -572,7 +572,9 @@ tracker paths; the resume pages never hit it.
     own trim checkboxes kept in localStorage, or a pick via
     `ApplicationPicker`; `retarget` re-plans after a pick). Cards that need
     action come first (`splitByAction`); the ones already reflected in the
-    tracker follow a separator, greyed out. Accept builds a
+    tracker (reminders and the like) sit in a collapsed "Already in
+    tracker N" list below them with its own Dismiss, and don't count in the
+    chips, the tab count or the Today card. Accept builds a
     payload (`payload.ts`; ticks start from the plan; every email on the card
     is consumed) for the `apply_email_job` RPC: one transaction, which also
     writes an `email_accepts` row recording what it changed. "Accept N ready"

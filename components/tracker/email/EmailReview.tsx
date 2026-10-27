@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Chip from "@/components/tracker/Chip";
 import DismissedEmails from "@/components/tracker/email/DismissedEmails";
 import ReasonChips from "@/components/tracker/feedback/ReasonChips";
@@ -48,6 +48,8 @@ export default function EmailReview({ tracker, review }: Props) {
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showMutes, setShowMutes] = useState(false);
+  const [showReflected, setShowReflected] = useState(false);
+  const [shownReflected, setShownReflected] = useState(PAGE);
   const [last, setLast] = useState<{ applicationId: string; label: string; feedbackId?: string | null } | null>(null);
   // The latest dismiss, for its "why?" chips.
   const [dismissed, setDismissed] = useState<{ count: number; ids: string[]; bulk: boolean; feedbackId?: string | null } | null>(null);
@@ -64,15 +66,18 @@ export default function EmailReview({ tracker, review }: Props) {
   });
 
   const rowIdOf = (gmailId: string) => review.rowIdOf.get(gmailId)!;
+  // Cards already reflected in the tracker sit in their own collapsed list, out
+  // of the chips and counts, so only cards that need something are up top.
+  const { action, nothing } = splitByAction(review.groups);
+  const matchesStatus = (g: JobGroup) => statusFilter === "all" || emailStatus(g) === statusFilter;
   // Each row's counts hold the other row's filter, so a chip says what it would show.
-  const byStatus = review.groups.filter((g) => statusFilter === "all" || emailStatus(g) === statusFilter);
-  const byCategory = review.groups.filter((g) => filter === "all" || category(g) === filter);
+  const byStatus = action.filter(matchesStatus);
+  const byCategory = action.filter((g) => filter === "all" || category(g) === filter);
   const counts = countByCategory(byStatus);
   const statusCounts = countByStatus(byCategory);
-  const split = splitByAction(byCategory.filter((g) => statusFilter === "all" || emailStatus(g) === statusFilter));
-  const visible = [...split.action, ...split.nothing];
-  const ready = review.groups.filter((g) => g.ready && !g.nothingToDo);
-  const nothing = review.groups.filter((g) => category(g) === "nothing");
+  const visible = byCategory.filter(matchesStatus);
+  const reflected = nothing.filter(matchesStatus);
+  const ready = action.filter((g) => g.ready);
 
   async function accept(payload: EmailJobPayload, label: string, feedback: FeedbackInsert): Promise<string | null> {
     const result = await tracker.applyEmailJob(payload);
@@ -149,14 +154,32 @@ export default function EmailReview({ tracker, review }: Props) {
     setMessage(`Accepted ${done} card${done === 1 ? "" : "s"}.`);
   }
 
-  function dismissNothing() {
-    dismiss(nothing, true);
+  function dismissReflected() {
+    dismiss(reflected, true);
   }
 
   function dismissAll() {
     if (!window.confirm(`Dismiss ${visible.length} card${visible.length === 1 ? "" : "s"}? Their emails won't come back on later scans.`)) return;
     dismiss(visible, true);
   }
+
+  const card = (g: JobGroup) => (
+    <EmailJobCard
+      key={g.key}
+      group={g}
+      applications={applications}
+      assessments={assessments}
+      statusChanges={statusChanges}
+      trims={trims}
+      rowIdOf={rowIdOf}
+      onAccept={accept}
+      onDismiss={(group) => dismiss([group], false)}
+      onMute={(kind, value, group) => {
+        tracker.addMute(kind, muteValue(kind, value));
+        recordFeedback(emailMuteFeedback(kind, value, group));
+      }}
+    />
+  );
 
   return (
     <div className="space-y-3">
@@ -170,7 +193,7 @@ export default function EmailReview({ tracker, review }: Props) {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {(Object.keys(REVIEW_FILTERS) as ReviewFilter[]).map((f) => (
+        {(Object.keys(REVIEW_FILTERS) as ReviewFilter[]).filter((f) => f !== "nothing").map((f) => (
           <Chip
             key={f}
             active={filter === f}
@@ -200,11 +223,6 @@ export default function EmailReview({ tracker, review }: Props) {
           {ready.length > 0 && (
             <button type="button" className={buttonCls} onClick={acceptReady} disabled={bulk !== null}>
               {bulk ? `Accepting ${bulk.done + 1} of ${bulk.total}…` : `Accept ${ready.length} ready`}
-            </button>
-          )}
-          {nothing.length > 0 && (
-            <button type="button" className={buttonCls} onClick={dismissNothing} disabled={bulk !== null}>
-              Dismiss {nothing.length} with nothing to do
             </button>
           )}
           {visible.length > 0 && (
@@ -240,38 +258,33 @@ export default function EmailReview({ tracker, review }: Props) {
       {message && <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>}
       {visible.length === 0 ? (
         <p className="py-8 text-center text-sm text-neutral-500">
-          {review.groups.length === 0 ? "All caught up: nothing from Gmail is waiting for review." : "Nothing here."}
+          {action.length === 0 ? "All caught up: nothing from Gmail needs you." : "Nothing here."}
         </p>
       ) : (
         <div className="space-y-3">
-          {visible.slice(0, shown).map((g, i) => (
-            <Fragment key={g.key}>
-              {i === split.action.length && i > 0 && (
-                <div className="flex items-center gap-3 pt-3 text-xs font-medium text-neutral-500">
-                  <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
-                  {split.nothing.length} already reflected in the tracker
-                  <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
-                </div>
-              )}
-              <EmailJobCard
-                group={g}
-                applications={applications}
-                assessments={assessments}
-                statusChanges={statusChanges}
-                trims={trims}
-                rowIdOf={rowIdOf}
-                onAccept={accept}
-                onDismiss={(group) => dismiss([group], false)}
-                onMute={(kind, value, group) => {
-                  tracker.addMute(kind, muteValue(kind, value));
-                  recordFeedback(emailMuteFeedback(kind, value, group));
-                }}
-              />
-            </Fragment>
-          ))}
+          {visible.slice(0, shown).map(card)}
           {visible.length > shown && (
             <button type="button" className={buttonCls} onClick={() => setShown((n) => n + PAGE)}>
               Show {Math.min(PAGE, visible.length - shown)} more of {visible.length - shown}
+            </button>
+          )}
+        </div>
+      )}
+      {reflected.length > 0 && (
+        <div className="space-y-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={buttonCls} onClick={() => setShowReflected((v) => !v)} aria-expanded={showReflected}>
+              Already in tracker {reflected.length}
+            </button>
+            <button type="button" className="text-xs underline" onClick={dismissReflected} disabled={bulk !== null}>
+              Dismiss {reflected.length === 1 ? "it" : `all ${reflected.length}`}
+            </button>
+            <span className="text-xs text-neutral-500">Reminders and updates the tracker already shows; nothing to do.</span>
+          </div>
+          {showReflected && reflected.slice(0, shownReflected).map(card)}
+          {showReflected && reflected.length > shownReflected && (
+            <button type="button" className={buttonCls} onClick={() => setShownReflected((n) => n + PAGE)}>
+              Show {Math.min(PAGE, reflected.length - shownReflected)} more of {reflected.length - shownReflected}
             </button>
           )}
         </div>

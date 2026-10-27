@@ -14,7 +14,7 @@ import ApplicationStats from "@/components/tracker/stats/ApplicationStats";
 import AssessmentStats from "@/components/tracker/stats/AssessmentStats";
 import TodayCard from "@/components/tracker/TodayCard";
 import UpcomingStrip from "@/components/tracker/UpcomingStrip";
-import { buildReview } from "@/lib/tracker/email/review";
+import { buildReview, splitByAction } from "@/lib/tracker/email/review";
 import { buildToday } from "@/lib/tracker/today";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 import { useMoves } from "@/lib/tracker/useMoves";
@@ -106,6 +106,9 @@ function TrackerPageInner() {
     () => buildReview(gmail.emails, gmail.mutes, applications, assessments, statusChanges),
     [gmail.emails, gmail.mutes, applications, assessments, statusChanges]
   );
+  // Cards already reflected in the tracker (reminders and the like) don't count
+  // as something to review, here or on the Today card.
+  const emailsToReview = useMemo(() => splitByAction(review.groups).action.length, [review.groups]);
 
   const [allPostings, setAllPostings] = useLocalSetting("tracker.today.allPostings", "");
   const today = useMemo(
@@ -116,11 +119,11 @@ function TrackerPageInner() {
         moves,
         postings: postings.postings,
         allPostings: allPostings === "1",
-        pendingEmails: review.groups.length,
+        pendingEmails: emailsToReview,
         lastScanAt: gmail.lastScan?.scanned_at ?? null,
         now,
       }),
-    [applications, assessments, moves, postings.postings, allPostings, review.groups.length, gmail.lastScan, now]
+    [applications, assessments, moves, postings.postings, allPostings, emailsToReview, gmail.lastScan, now]
   );
 
   const counts = useMemo(() => {
@@ -298,7 +301,7 @@ function TrackerPageInner() {
           <div role="tablist" className="flex gap-5">
             {tabButton("applications", "Applications", applications.length)}
             {tabButton("assessments", "Assessments & interviews", assessments.length)}
-            {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", review.groups.length)}
+            {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", emailsToReview)}
           </div>
           <AddApplication applications={applications} onAdd={tracker.addApplication} />
         </div>
