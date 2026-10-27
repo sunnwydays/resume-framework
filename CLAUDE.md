@@ -201,7 +201,9 @@ tracker paths; the resume pages never hit it.
   are created lazily (`supabase()` in `lib/tracker/useTracker.ts`) so the
   build doesn't need the env vars.
 - **Schema**: `applications`, `assessments` (OAs / video interviews /
-  interviews: one table, `kind` column, any number per application, plus
+  take-homes / interviews: one table, `kind` column, any number per
+  application; `kindStage()` maps a take-home to interview stage and
+  `hasDeadline()` gives it the OA's Due / Submitted wording; plus
   `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`

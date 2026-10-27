@@ -7,6 +7,7 @@ import {
   ASSESSMENT_KINDS,
   buttonCls,
   fromDatetimeLocal,
+  hasDeadline,
   inputCls,
   primaryButtonCls,
   toDatetimeLocal,
@@ -54,7 +55,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
       sections: cleanSections(sections) as unknown as Json,
       duration_min: Number.isFinite(minutes) ? minutes : null,
       due_at: fromDatetimeLocal(dueAt),
-      interviewer: kind === "oa" ? null : interviewer.trim() || null,
+      interviewer: hasDeadline(kind) ? null : interviewer.trim() || null,
       link: link.trim() || null,
       important,
       status: completed ? "completed" : "pending",
@@ -89,13 +90,13 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={`e.g. ${kind === "oa" ? "Coding Assessment (Ref: 131999)" : "Round 1"}`}
+            placeholder={`e.g. ${kind === "oa" ? "Coding Assessment (Ref: 131999)" : kind === "take_home" ? "Build a chess clock" : "Round 1"}`}
             className={inputCls}
             autoFocus
           />
         </label>
         <label className="block space-y-1 sm:col-span-3">
-          <span className={labelCls}>{kind === "oa" ? "Due" : "Scheduled for"}</span>
+          <span className={labelCls}>{hasDeadline(kind) ? "Due" : "Scheduled for"}</span>
           <input
             type="datetime-local"
             value={dueAt}
@@ -116,7 +117,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
             className={inputCls}
           />
         </label>
-        {kind !== "oa" ? (
+        {!hasDeadline(kind) ? (
           <label className="block space-y-1 sm:col-span-2">
             <span className={labelCls}>Interviewer</span>
             <input
@@ -159,7 +160,7 @@ export default function AssessmentForm({ initial, onSubmit, onCancel }: Props) {
         </label>
         {completed && (
           <label className="flex items-center gap-1.5">
-            <span className={labelCls}>{kind === "oa" ? "Submitted" : "Completed on"}</span>
+            <span className={labelCls}>{hasDeadline(kind) ? "Submitted" : "Completed on"}</span>
             <input
               type="datetime-local"
               value={completedAt}

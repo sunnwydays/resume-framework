@@ -7,5 +7,6 @@ export const DEFAULT_MINUTES_PER_APP = 3;
 export const ROUND_MINUTES: Record<AssessmentKind, number> = {
   oa: 120,
   video_interview: 90,
+  take_home: 240,
   interview: 150,
 };
