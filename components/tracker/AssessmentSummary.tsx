@@ -1,5 +1,5 @@
 import { DifficultyDots } from "@/components/tracker/AssessmentDetail";
-import { OUTCOMES, formatDateTime, kindLabel, titleIsKind, type Assessment, type Outcome } from "@/lib/tracker/format";
+import { OUTCOMES, formatDateTime, hasDeadline, kindLabel, titleIsKind, type Assessment, type Outcome } from "@/lib/tracker/format";
 import { sectionsLabel } from "@/lib/tracker/sections";
 
 // One-line view of an OA / interview, for collapsed rows.
@@ -22,12 +22,12 @@ export default function AssessmentSummary({
       <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-neutral-500">
         {a.due_at && (
           <span>
-            {a.kind === "oa" ? "Due" : "At"} {formatDateTime(a.due_at)}
+            {hasDeadline(a.kind) ? "Due" : "At"} {formatDateTime(a.due_at)}
           </span>
         )}
         {a.completed_at && (
           <span>
-            {a.kind === "oa" ? "Submitted" : "Completed"} {formatDateTime(a.completed_at)}
+            {hasDeadline(a.kind) ? "Submitted" : "Completed"} {formatDateTime(a.completed_at)}
           </span>
         )}
         {a.duration_min != null && <span>{a.duration_min} min</span>}
