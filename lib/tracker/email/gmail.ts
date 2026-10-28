@@ -355,9 +355,9 @@ export async function trashNote(ids: string[], noun: string, signal?: AbortSigna
 }
 
 // Jobright's instant alerts since a date (the Postings page reads these). Same
-// two subjects as isJobrightAlert in postings/parse.ts.
+// three subjects as isJobrightAlert in postings/parse.ts.
 export function alertQuery(since: Date): string {
-  return `after:${Math.floor(since.getTime() / 1000)} from:noreply@jobright.ai {subject:"just posted" subject:"top job matches"} -in:sent`;
+  return `after:${Math.floor(since.getTime() / 1000)} from:noreply@jobright.ai {subject:"just posted" subject:"top job matches" subject:"is hiring for"} -in:sent`;
 }
 
 export interface ScanOptions extends FetchOptions {

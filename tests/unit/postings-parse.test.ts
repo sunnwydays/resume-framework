@@ -13,6 +13,10 @@ describe("isJobrightAlert", () => {
   it("is also the multi-job 'Top Job matches' alert", () => {
     expect(isJobrightAlert("noreply@jobright.ai", "Your Top Job matches for “Software Intern” — 97% match from Jobright - 10/13/2026")).toBe(true);
   });
+  it("is also the daily 'is hiring for ... like you' alert", () => {
+    expect(isJobrightAlert("noreply@jobright.ai", "Vandelay is hiring for “Software Engineer, Intern (Summer 2027) - US” like you — 95% match from Jobright - 10/27/2026")).toBe(true);
+    expect(isJobrightAlert("noreply@example.com", "Vandelay is hiring for “Intern” like you")).toBe(false);
+  });
   it("is not the daily digest or other mail", () => {
     expect(isJobrightAlert("support@jobright.ai", "Today's Matching Jobs")).toBe(false);
     expect(isJobrightAlert("noreply@jobright.ai", "Welcome to Jobright")).toBe(false);
