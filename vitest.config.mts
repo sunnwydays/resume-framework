@@ -23,6 +23,7 @@ const DATE_SENSITIVE = [
   "tests/unit/next-steps.test.ts",
   "tests/unit/today.test.ts",
   "tests/unit/postings-list.test.ts",
+  "tests/unit/demo-data.test.ts",
 ];
 
 export default defineConfig({
