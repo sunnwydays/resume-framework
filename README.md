@@ -49,15 +49,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-You'll need an [Affinda API key](https://www.affinda.com/) set as
-`AFFINDA_API_KEY` in `.env.local`. the parse request is made server-side
-(`app/api/ats-parse/route.ts`).
+Live parsing is optional. To turn it on, set an
+[Affinda API key](https://www.affinda.com/) as `AFFINDA_API_KEY` in
+`.env.local`; the parse request is made server-side
+(`app/api/ats-parse/route.ts`). Without a working key (unset, or Affinda rejects it) the app still works: the page
+hides the PDF/Text path (the toggle is disabled), opens on the JSON tab and
+puts the sample resumes first. Setting the key brings live parsing back with no
+code change.
 
 ## Using it
 
-1. Choose **Text** or **PDF** and provide your resume, or click **Load
-   sample** on one of the built-in sample resumes.
-2. Click **Run ATS parse**. You'll get a 0-100 **ATS parse score** (with a
+1. Click **Load sample** on one of the built-in sample resumes, or paste (or
+   choose a file of) JSON from
+   [Affinda's free parser](https://www.affinda.com/free-resume-parser/)
+   (upload your resume there, download the JSON). With a key set you can also
+   choose **Text** or **PDF** and provide your resume directly.
+2. Click **Run ATS parse** (**Load JSON** on the JSON tab). You'll get a 0-100 **ATS parse score** (with a
    by-section and by-issue-type breakdown), plus a formatted breakdown
    (contact/personal info, education, work experience, projects, skills,
    achievements) with issues flagged inline next to the field they apply

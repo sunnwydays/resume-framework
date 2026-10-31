@@ -37,7 +37,8 @@ scratch. The literal code is recoverable from git history if needed
 ## Request flow
 
 ```
-Browser (app/page.tsx)
+app/page.tsx (server: passes liveParsing = Boolean(AFFINDA_API_KEY))
+Browser (components/ResumeApp.tsx)
  ├─ components/SectionNav.tsx    — sticky jump-to-section nav (rail on lg+,
  │                                  strip below), badges from the report
  ├─ components/InputSection.tsx — resume text/PDF input, triggers the parse
@@ -46,7 +47,12 @@ Browser (app/page.tsx)
                                     formatted breakdown)
 ```
 
-`app/page.tsx` holds the `resumeText` / `resumePdf` / `atsResult` state,
+`app/page.tsx` is a thin server component (`force-dynamic`, so the env var is
+read per request) that hands the browser only the boolean `liveParsing`:
+a key is set *and* `isAffindaKeyWorking` (`lib/affindaKey.ts`, one cached
+5-minute `GET api.affinda.com/v3/organizations`) didn't get a 401/403, so an
+expired key takes the same path as no key. Network errors / 5xx count as on.
+`components/ResumeApp.tsx` holds the `resumeText` / `resumePdf` / `atsResult` state,
 derives `report = buildAtsReport(atsResult)` once (`lib/atsReport.ts`), and
 passes it to both `SectionNav` and `AtsResult` so the nav badges and the
 breakdown read the same numbers. There's no pipeline orchestrator at this
@@ -57,7 +63,9 @@ stage — `InputSection` calls `/api/ats-parse` directly.
 Accepts multipart form data (`file` or `text`), forwards it to
 `https://resume-parser.us1.affinda.com/v1/resumes/parse` with
 `AFFINDA_API_KEY` (server-side env var — never sent to the browser), and
-returns Affinda's JSON response as-is (or `{error}` on failure). No
+returns Affinda's JSON response as-is (or `{error}` on failure). With no key
+it returns the KEY_DOWN_MESSAGE error, but the UI never reaches it: see
+`liveParsing` in `InputSection`. No
 normalization/reshaping happens here; `AtsResult.tsx` renders whatever
 shape comes back, falling back to a generic recursive renderer
 (`GenericValue`/`OtherFields`) for any field it doesn't have a dedicated
@@ -109,9 +117,14 @@ is `[key: string]: unknown` and falls through to the generic renderer.
   myth back as a fact — it's called out explicitly as debunked.
 - **`components/InputSection.tsx`** — PDF/Text/JSON toggle, textarea or
   file upload, "Run ATS parse" button (posts `FormData` to
-  `/api/ats-parse`). The JSON tab is the fallback while the Affinda key is
-  expired: the user parses at affinda.com/free-resume-parser and pastes the
-  JSON, which `lib/atsJson.ts` (`parseAtsJson`) normalizes locally (full
+  `/api/ats-parse`). Takes a `liveParsing` prop. When false (no Affinda key,
+  the current state; no paid parser and no Claude-as-parser on purpose, since
+  Claude reads resumes better than a real ATS and scores would lie): the
+  sample gallery goes above the input, the toggle defaults to JSON and PDF/Text
+  are disabled, and the JSON help is numbered steps (Affinda free parser, no
+  signup, offers a JSON *download*, so there's a "Choose .json file" button as
+  well as paste). The user parses at affinda.com/free-resume-parser; the JSON is
+  normalized by `lib/atsJson.ts` (`parseAtsJson`) locally (full
   response or bare `data`, array fields defaulted) with no API call. Also has a dev-only
   "Load ats sample" button that loads `lib/mocks/affindaSample.json`
   without hitting the API.
