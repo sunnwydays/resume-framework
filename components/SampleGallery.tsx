@@ -10,6 +10,7 @@ import { useState } from "react";
 interface Props {
   onLoadSample: (sample: SampleResume) => void;
   disabled: boolean;
+  heading?: string;
 }
 
 // Public, always-visible gallery of pre-parsed sample resumes so a visitor
@@ -17,7 +18,11 @@ interface Props {
 // own resume. Distinct from DevMockPanel: that one is dev-only and reads
 // whatever's sitting in the gitignored lib/mocks; this one is a fixed,
 // committed set meant for production.
-export default function SampleGallery({ onLoadSample, disabled }: Props) {
+export default function SampleGallery({
+  onLoadSample,
+  disabled,
+  heading = "Or try a sample",
+}: Props) {
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [previewingTexId, setPreviewingTexId] = useState<string | null>(null);
 
@@ -26,7 +31,7 @@ export default function SampleGallery({ onLoadSample, disabled }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-        Or try a sample
+        {heading}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {SAMPLE_RESUMES.map((sample) => {

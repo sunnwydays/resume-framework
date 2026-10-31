@@ -14,6 +14,9 @@ interface Props {
   setResumePdf: (v: File) => void;
   setAtsResult: (v: AtsParseResponse | null) => void;
   onLoadSample: (sample: SampleResume) => void;
+  // False when the server has no AFFINDA_API_KEY: samples and pasted JSON
+  // are then the only ways in, so the main flow never hits the API error.
+  liveParsing: boolean;
   disabled: boolean;
 }
 
@@ -28,10 +31,14 @@ export default function InputSection({
   setResumePdf,
   setAtsResult,
   onLoadSample,
+  liveParsing,
   disabled,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [resumeFormat, setResumeFormat] = useState<ResumeFormat>("pdf");
+  const jsonFileRef = useRef<HTMLInputElement>(null);
+  const [resumeFormat, setResumeFormat] = useState<ResumeFormat>(
+    liveParsing ? "pdf" : "json"
+  );
   const [jsonText, setJsonText] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -60,6 +67,10 @@ export default function InputSection({
         ? !resumeText.trim()
         : !jsonText.trim();
 
+  async function handleJsonFile(f: File | undefined) {
+    if (f) setJsonText(await f.text());
+  }
+
   async function runAtsParse() {
     if (disabled || missingInput) return;
 
@@ -86,22 +97,32 @@ export default function InputSection({
 
   return (
     <section className="space-y-4">
+      {!liveParsing && (
+        <SampleGallery
+          onLoadSample={onLoadSample}
+          disabled={disabled}
+          heading="Try a sample"
+        />
+      )}
+
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Your resume</h2>
         <div className="inline-flex items-center gap-0.5 rounded-md border border-neutral-200 dark:border-neutral-800 bg-surface p-0.5 text-xs font-medium">
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || !liveParsing}
+            title={liveParsing ? undefined : "Needs the live parser"}
             onClick={() => setResumeFormat("pdf")}
-            className={toggleCls(resumeFormat === "pdf")}
+            className={`${toggleCls(resumeFormat === "pdf")} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-neutral-500`}
           >
             PDF
           </button>
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || !liveParsing}
+            title={liveParsing ? undefined : "Needs the live parser"}
             onClick={() => setResumeFormat("text")}
-            className={toggleCls(resumeFormat === "text")}
+            className={`${toggleCls(resumeFormat === "text")} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-neutral-500`}
           >
             Text
           </button>
@@ -127,20 +148,46 @@ export default function InputSection({
             spellCheck={false}
             onChange={(e) => setJsonText(e.target.value)}
           />
-          <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            The live parser&apos;s API key has expired, so parse your resume on{" "}
-            <a
-              href={AFFINDA_FREE_PARSER}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-neutral-300 underline-offset-2 transition-colors hover:text-neutral-900 dark:decoration-neutral-700 dark:hover:text-neutral-100"
-            >
-              Affinda&apos;s free resume parser
-            </a>
-            , copy the JSON it gives you, and paste it here. Everything after
-            that (the breakdown, issues and score) runs in this app, and your
-            JSON never leaves your browser.
-          </p>
+          <div className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+            <p>
+              {liveParsing
+                ? "Or parse your resume yourself and bring the result:"
+                : "Live parsing is off on this deployment. To score your own resume:"}
+            </p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-5">
+              <li>
+                Open{" "}
+                <a
+                  href={AFFINDA_FREE_PARSER}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-neutral-300 underline-offset-2 transition-colors hover:text-neutral-900 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+                >
+                  Affinda&apos;s free resume parser
+                </a>{" "}
+                (no signup) and upload your resume.
+              </li>
+              <li>Download the JSON export (the exact shape their API returns).</li>
+              <li>
+                Choose that file here, or open it and paste its contents into
+                the box above.
+              </li>
+            </ol>
+            <p className="mt-1">
+              Everything after that (the breakdown, issues and score) runs in
+              this app, and your JSON never leaves your browser.
+            </p>
+          </div>
+          <input
+            ref={jsonFileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              handleJsonFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
         </div>
       ) : resumeFormat === "text" ? (
         <div className="space-y-2">
@@ -226,6 +273,17 @@ export default function InputSection({
           {resumeFormat === "json" ? "Load JSON" : "Run ATS parse"}
         </button>
 
+        {resumeFormat === "json" && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => jsonFileRef.current?.click()}
+            className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-surface px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 transition-colors hover:border-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-50"
+          >
+            Choose .json file
+          </button>
+        )}
+
         {loading && (
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Parsing&hellip;
@@ -233,7 +291,9 @@ export default function InputSection({
         )}
       </div>
 
-      <SampleGallery onLoadSample={onLoadSample} disabled={disabled} />
+      {liveParsing && (
+        <SampleGallery onLoadSample={onLoadSample} disabled={disabled} />
+      )}
 
       <DevMockPanel setAtsResult={setAtsResult} disabled={disabled} />
     </section>
