@@ -7,7 +7,6 @@ import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingsFilterBar, { type PostingCounts } from "@/components/tracker/postings/PostingsFilterBar";
 import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
-import { loadPostingDismissals, markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
 import { toJson } from "@/lib/tracker/feedback/events";
 import {
   POSTING_DISMISS_REASONS,
@@ -29,12 +28,13 @@ import { buildPostingViews, postingView, ruleValues, type PostingView } from "@/
 import { ROLE_TYPES, type RoleType } from "@/lib/tracker/roles";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
-import { usePostings } from "@/lib/tracker/usePostings";
-import { useNow, useTracker } from "@/lib/tracker/useTracker";
+import { usePostingsStore, useTrackerEnv, useTrackerStore } from "@/lib/tracker/env";
+import { useNow } from "@/lib/tracker/useTracker";
 
 export default function PostingsPage() {
-  const store = usePostings();
-  const tracker = useTracker();
+  const store = usePostingsStore();
+  const tracker = useTrackerStore();
+  const { loadPostingDismissals, markFeedbackUndone, recordFeedback } = useTrackerEnv().feedback;
   const now = useNow();
   const [filters, setFilters] = useState<PostingFilters>(DEFAULT_POSTING_FILTERS);
   const [clearing, setClearing] = useState(false);
@@ -111,7 +111,7 @@ export default function PostingsPage() {
   const [dismissals, setDismissals] = useState<Map<string, DismissLabel> | null>(null);
   useEffect(() => {
     loadPostingDismissals().then((rows) => rows && setDismissals(latestDismissals(rows)));
-  }, []);
+  }, [loadPostingDismissals]);
   const setDismissal = (postingId: string, label: DismissLabel | null) =>
     setDismissals((cur) => {
       if (!cur) return cur;

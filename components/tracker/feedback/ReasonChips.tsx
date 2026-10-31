@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { setFeedbackLabel } from "@/lib/tracker/feedback/client";
+import { useTrackerEnv } from "@/lib/tracker/env";
 import type { FeedbackReason } from "@/lib/tracker/feedback/events";
 
 interface Props {
@@ -34,6 +34,7 @@ const inputClass = "rounded border border-emerald-300 bg-transparent px-1.5 py-0
 // or it's just not for me (taste). Skipping all of it is
 // fine, the event is already saved without a reason.
 export default function ReasonChips({ reasons, feedbackId, initial, onSaved }: Props) {
+  const { setFeedbackLabel } = useTrackerEnv().feedback;
   const [picked, setPicked] = useState<string | null>(initial?.reason ?? null);
   const [fix, setFix] = useState(initial?.fix ?? "");
   const [note, setNote] = useState(initial?.note ?? "");

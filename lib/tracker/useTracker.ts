@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { assertNotDemo } from "@/lib/tracker/demo/mode";
 import type { Json, TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
 import type { EmailJobPayload } from "@/lib/tracker/email/payload";
 import { planSave } from "@/lib/tracker/email/rows";
@@ -22,6 +23,7 @@ import type {
 // doesn't have while the tracker is local-only.
 let client: ReturnType<typeof createClient> | null = null;
 export function supabase() {
+  assertNotDemo();
   return (client ??= createClient());
 }
 

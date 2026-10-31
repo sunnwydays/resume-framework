@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { DEFAULT_MOVE_MINUTES, type TemplateStat } from "@/lib/tracker/arbitrage";
-import { recordFeedback } from "@/lib/tracker/feedback/client";
+import { useTrackerEnv } from "@/lib/tracker/env";
 import { draftFeedback } from "@/lib/tracker/feedback/draft";
 import {
   MOVE_CHANNELS,
@@ -56,6 +56,7 @@ interface Props {
 // Pick a template, fill the blanks, optionally have Claude draft it, then copy
 // it out and log it as sent. Nothing is ever sent from here.
 export default function Workshop({ seed, templates, stats, store }: Props) {
+  const { recordFeedback } = useTrackerEnv().feedback;
   const options = useMemo<TemplateOption[]>(
     () => [
       ...BUILT_IN_TEMPLATES,

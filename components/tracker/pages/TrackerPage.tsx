@@ -17,9 +17,8 @@ import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
 import { buildToday } from "@/lib/tracker/today";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
-import { useMoves } from "@/lib/tracker/useMoves";
-import { usePostings } from "@/lib/tracker/usePostings";
-import { useNow, useTracker } from "@/lib/tracker/useTracker";
+import { useMovesStore, usePostingsStore, useTrackerStore } from "@/lib/tracker/env";
+import { useNow } from "@/lib/tracker/useTracker";
 import {
   CLOSED,
   DEFAULT_APP_FILTERS,
@@ -64,9 +63,9 @@ export default function TrackerPage() {
 }
 
 function TrackerPageInner() {
-  const tracker = useTracker();
-  const postings = usePostings(); // for the alert half of "Scan Gmail", and the Today card
-  const { moves, loading: movesLoading } = useMoves(); // the Today card's people to follow up
+  const tracker = useTrackerStore();
+  const postings = usePostingsStore(); // for the alert half of "Scan Gmail", and the Today card
+  const { moves, loading: movesLoading } = useMovesStore(); // the Today card's people to follow up
   const now = useNow();
   const scanRef = useRef<GmailScanHandle>(null);
   const { applications, assessments, questions, statusChanges, gmail } = tracker;

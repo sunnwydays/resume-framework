@@ -8,7 +8,7 @@ import EmailJobCard from "@/components/tracker/email/EmailJobCard";
 import type { JobGroup } from "@/lib/tracker/email/group";
 import { muteValue } from "@/lib/tracker/email/mute";
 import { EMAIL_DISMISS_REASONS, emailAcceptFeedback, emailDismissFeedback, emailMuteFeedback } from "@/lib/tracker/feedback/email";
-import { markFeedbackUndone, recordFeedback } from "@/lib/tracker/feedback/client";
+import { useTrackerEnv } from "@/lib/tracker/env";
 import type { FeedbackInsert } from "@/lib/tracker/feedback/events";
 import { buildPayload, defaultTicks, newAppDefaults, type EmailJobPayload } from "@/lib/tracker/email/payload";
 import {
@@ -41,6 +41,7 @@ const bannerCls =
 
 // The "Gmail Updates" tab: one card per job, newest activity first.
 export default function EmailReview({ tracker, review }: Props) {
+  const { markFeedbackUndone, recordFeedback } = useTrackerEnv().feedback;
   const { applications, assessments, statusChanges, gmail } = tracker;
   const [filter, setFilter] = useState<ReviewFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

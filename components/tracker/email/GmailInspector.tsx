@@ -15,7 +15,7 @@ import {
   todayISO,
   type EmailKind,
 } from "@/lib/tracker/format";
-import { useTracker } from "@/lib/tracker/useTracker";
+import { useTrackerStore } from "@/lib/tracker/env";
 
 // Development tool (/tracker/gmail-debug). Fetches mail like the real scan
 // but writes nothing: every email appears with what the rules made of it, so
@@ -113,7 +113,7 @@ function Field({ value, origin }: { value: string | null; origin?: string }) {
 }
 
 export default function GmailInspector() {
-  const tracker = useTracker();
+  const tracker = useTrackerStore();
   const { applications, assessments, statusChanges } = tracker;
 
   const [since, setSince] = useState(() => daysAgo(30));

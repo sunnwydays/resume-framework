@@ -5,6 +5,7 @@ import { useState } from "react";
 import { kindLabel, todayISO } from "@/lib/tracker/format";
 import { plural } from "@/lib/tracker/stats";
 import { showsToday, type TodayBrief } from "@/lib/tracker/today";
+import { useTrackerEnv } from "@/lib/tracker/env";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
 
 interface Props {
@@ -49,6 +50,7 @@ function Bell({ active }: { active: boolean }) {
 // day and stays open until "Done for now"; after that it's a one-line summary
 // you can reopen. When nothing needs you it is only that line.
 export default function TodayCard({ brief, allPostings, onTogglePostings, now, onScan, onOpenAssessment, onReviewEmails }: Props) {
+  const { base } = useTrackerEnv();
   const [dismissedDay, setDismissedDay] = useLocalSetting("tracker.today.dismissed", "");
   // null: follow the daily rule; otherwise the user's last choice this visit.
   const [pinned, setPinned] = useState<boolean | null>(null);
@@ -149,7 +151,7 @@ export default function TodayCard({ brief, allPostings, onTogglePostings, now, o
             <ul className="space-y-2">
               {brief.steps.map((s) => (
                 <li key={`${s.kind}-${s.moveId}`}>
-                  <Link href="/tracker/arbitrage" className={tileCls}>
+                  <Link href={`${base}/arbitrage`} className={tileCls}>
                     <div className="truncate font-medium">{s.text}</div>
                     {s.detail && <div className="truncate text-xs text-neutral-500">{s.detail}</div>}
                   </Link>
@@ -159,7 +161,7 @@ export default function TodayCard({ brief, allPostings, onTogglePostings, now, o
             {brief.moreSteps > 0 && (
               <p className={`px-1 ${softTextCls}`}>
                 and {brief.moreSteps} more on{" "}
-                <Link href="/tracker/arbitrage" className="underline">
+                <Link href={`${base}/arbitrage`} className="underline">
                   Arbitrage
                 </Link>
               </p>
@@ -181,7 +183,7 @@ export default function TodayCard({ brief, allPostings, onTogglePostings, now, o
               )}
               {brief.newPostings > 0 && (
                 <li>
-                  <Link href="/tracker/postings" className={tileCls}>
+                  <Link href={`${base}/postings`} className={tileCls}>
                     <span className="font-medium">{plural(brief.newPostings, "new posting")}</span>
                     {!allPostings && <span className="block text-xs text-neutral-500">Matching your Postings filters</span>}
                   </Link>

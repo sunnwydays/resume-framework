@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { useTrackerEnv } from "@/lib/tracker/env";
 
 // A per-viewer setting kept in localStorage (same-tab changes via
 // CHANGE_EVENT, other tabs via "storage"), falling back to memory when
@@ -27,7 +28,13 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function useLocalSetting(key: string, fallback: string): [string, (value: string) => void] {
+// The demo keeps its own keys, so it never reads or overwrites the real tracker's.
+export function settingKey(key: string, demo: boolean): string {
+  return demo ? `demo.${key}` : key;
+}
+
+export function useLocalSetting(rawKey: string, fallback: string): [string, (value: string) => void] {
+  const key = settingKey(rawKey, useTrackerEnv().demo);
   const value = useSyncExternalStore(
     subscribe,
     () => read(key) ?? fallback,

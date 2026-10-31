@@ -1,6 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useTrackerEnv } from "@/lib/tracker/env";
+import { settingKey } from "@/lib/tracker/useLocalSetting";
 
 // Collapsible stats section. Open/closed is a per-viewer convenience, so it
 // lives in localStorage (same-tab changes via CHANGE_EVENT, other tabs via
@@ -48,7 +50,7 @@ export default function StatsPanel({
   summary?: string;
   children: React.ReactNode;
 }) {
-  const key = `tracker.stats.${id}`;
+  const key = settingKey(`tracker.stats.${id}`, useTrackerEnv().demo);
   const open = useSyncExternalStore(
     subscribe,
     () => read(key),

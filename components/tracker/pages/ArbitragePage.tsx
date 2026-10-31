@@ -15,14 +15,14 @@ import { groupBy } from "@/lib/tracker/stats";
 import { BUILT_IN_TEMPLATES, splitTarget } from "@/lib/tracker/templates";
 import { DEFAULT_MINUTES_PER_APP } from "@/lib/tracker/timeEstimates";
 import { useLocalNumber } from "@/lib/tracker/useLocalSetting";
-import { useMoves } from "@/lib/tracker/useMoves";
-import { useNow, useTracker } from "@/lib/tracker/useTracker";
+import { useMovesStore, useTrackerStore } from "@/lib/tracker/env";
+import { useNow } from "@/lib/tracker/useTracker";
 
 const FOLLOW_UP_TEMPLATE = "builtin:follow-up";
 
 export default function ArbitragePage() {
-  const store = useMoves();
-  const tracker = useTracker();
+  const store = useMovesStore();
+  const tracker = useTrackerStore();
   const now = useNow();
   const { moves, templates } = store;
   const { applications, assessments, statusChanges } = tracker;

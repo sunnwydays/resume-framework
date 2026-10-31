@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTrackerEnv } from "@/lib/tracker/env";
 import { setGmailAccountHint } from "@/lib/tracker/email/gmail";
 import { supabase } from "@/lib/tracker/useTracker";
 
 const LINKS = [
-  { href: "/tracker", label: "Applications" },
-  { href: "/tracker/postings", label: "Postings" },
-  { href: "/tracker/arbitrage", label: "Arbitrage" },
+  { path: "", label: "Applications" },
+  { path: "/postings", label: "Postings" },
+  { path: "/arbitrage", label: "Arbitrage" },
 ] as const;
 
 // Pages that aren't part of the day-to-day tracker get no nav.
@@ -17,16 +18,18 @@ const HIDDEN = ["/tracker/login", "/tracker/gmail-debug"];
 
 export default function TrackerNav() {
   const pathname = usePathname();
+  const { demo, base } = useTrackerEnv();
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    if (demo) return; // the demo has no account and never creates a Supabase client
     supabase()
       .auth.getUser()
       .then(({ data }) => {
         setEmail(data.user?.email ?? null);
         setGmailAccountHint(data.user?.email);
       });
-  }, []);
+  }, [demo]);
 
   async function signOut() {
     await supabase().auth.signOut();
@@ -42,7 +45,8 @@ export default function TrackerNav() {
       >
         &larr; Resume Framework
       </Link>
-      {LINKS.map(({ href, label }) => {
+      {LINKS.map(({ path, label }) => {
+        const href = `${base}${path}`;
         const active = pathname === href;
         return (
           <Link
