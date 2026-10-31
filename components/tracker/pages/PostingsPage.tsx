@@ -34,6 +34,7 @@ import { useNow } from "@/lib/tracker/useTracker";
 export default function PostingsPage() {
   const store = usePostingsStore();
   const tracker = useTrackerStore();
+  const { demo } = useTrackerEnv();
   const { loadPostingDismissals, markFeedbackUndone, recordFeedback } = useTrackerEnv().feedback;
   const now = useNow();
   const [filters, setFilters] = useState<PostingFilters>(DEFAULT_POSTING_FILTERS);
@@ -188,23 +189,28 @@ export default function PostingsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <PostingsScan store={store} postings={store.postings} now={now} />
-          <OverflowMenu>
-            {(close) => (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  close();
-                  setClearing(true);
-                }}
-                className={dangerMenuItemCls}
-                disabled={store.postings.length === 0}
-              >
-                Clear all…
-              </button>
-            )}
-          </OverflowMenu>
+          {/* The demo has no inbox to scan and nothing it may delete. */}
+          {!demo && (
+            <>
+              <PostingsScan store={store} postings={store.postings} now={now} />
+              <OverflowMenu>
+                {(close) => (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      close();
+                      setClearing(true);
+                    }}
+                    className={dangerMenuItemCls}
+                    disabled={store.postings.length === 0}
+                  >
+                    Clear all…
+                  </button>
+                )}
+              </OverflowMenu>
+            </>
+          )}
         </div>
       </div>
 

@@ -84,6 +84,12 @@ export default function ResumeApp({ liveParsing }: { liveParsing: boolean }) {
               >
                 Job tracker
               </Link>
+              <Link
+                href="/demo/tracker"
+                className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:decoration-neutral-700 dark:hover:text-neutral-100"
+              >
+                See a demo
+              </Link>
               <a
                 href="https://github.com/sunnwydays/resume-framework"
                 target="_blank"

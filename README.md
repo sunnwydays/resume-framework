@@ -89,6 +89,15 @@ only emails on `TRACKER_ALLOWED_EMAILS` get in. The rest of the setup is in
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
 `.env.local` (and `TRACKER_ALLOWED_EMAILS` is optional in dev).
 
+### Demo
+
+Try it signed out, with fake data and nothing saved:
+[Applications](https://resume-framework.vercel.app/demo/tracker),
+[Postings](https://resume-framework.vercel.app/demo/tracker/postings) and
+[Arbitrage](https://resume-framework.vercel.app/demo/tracker/arbitrage).
+Filters, sorting, stats and the Today card all work; scanning Gmail, importing,
+adding by link and drafting with Claude are switched off.
+
 ### Tracker screenshots
 
 **Applications**: one row per application, with status, role type, and the

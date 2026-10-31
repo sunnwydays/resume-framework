@@ -13,7 +13,8 @@ interface Props {
   allPostings: boolean;
   onTogglePostings: () => void;
   now: number;
-  onScan: () => void;
+  // Absent in the demo, which has no inbox to scan.
+  onScan?: () => void;
   onOpenAssessment: (id: string) => void;
   onReviewEmails: () => void;
 }
@@ -81,9 +82,11 @@ export default function TodayCard({ brief, allPostings, onTogglePostings, now, o
             Show
           </button>
         )}
-        <button type="button" onClick={onScan} className={brief.empty ? neutralBtnCls : scanBtnCls}>
-          Scan Gmail
-        </button>
+        {onScan && (
+          <button type="button" onClick={onScan} className={brief.empty ? neutralBtnCls : scanBtnCls}>
+            Scan Gmail
+          </button>
+        )}
       </section>
     );
   }
@@ -116,9 +119,11 @@ export default function TodayCard({ brief, allPostings, onTogglePostings, now, o
           <button type="button" onClick={done} className={quietBtnCls}>
             Done for now
           </button>
-          <button type="button" onClick={onScan} className={scanBtnCls}>
-            Scan Gmail
-          </button>
+          {onScan && (
+            <button type="button" onClick={onScan} className={scanBtnCls}>
+              Scan Gmail
+            </button>
+          )}
         </div>
       </div>
 

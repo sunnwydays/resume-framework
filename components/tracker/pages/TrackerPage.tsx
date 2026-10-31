@@ -17,7 +17,7 @@ import UpcomingStrip from "@/components/tracker/UpcomingStrip";
 import { buildReview } from "@/lib/tracker/email/review";
 import { buildToday } from "@/lib/tracker/today";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
-import { useMovesStore, usePostingsStore, useTrackerStore } from "@/lib/tracker/env";
+import { useMovesStore, usePostingsStore, useTrackerEnv, useTrackerStore } from "@/lib/tracker/env";
 import { useNow } from "@/lib/tracker/useTracker";
 import {
   CLOSED,
@@ -63,6 +63,7 @@ export default function TrackerPage() {
 }
 
 function TrackerPageInner() {
+  const { demo } = useTrackerEnv();
   const tracker = useTrackerStore();
   const postings = usePostingsStore(); // for the alert half of "Scan Gmail", and the Today card
   const { moves, loading: movesLoading } = useMovesStore(); // the Today card's people to follow up
@@ -252,14 +253,19 @@ function TrackerPageInner() {
           <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
-          <GmailScan ref={scanRef} tracker={tracker} postings={postings} now={now} onScanned={() => setTab("gmail")} />
-          <ImportExport
-            applications={applications}
-            assessments={assessments}
-            questions={questions}
-            onImported={tracker.reload}
-            onClearAll={tracker.deleteAllApplications}
-          />
+          {/* The demo has no inbox and no database to import into. */}
+          {!demo && (
+            <>
+              <GmailScan ref={scanRef} tracker={tracker} postings={postings} now={now} onScanned={() => setTab("gmail")} />
+              <ImportExport
+                applications={applications}
+                assessments={assessments}
+                questions={questions}
+                onImported={tracker.reload}
+                onClearAll={tracker.deleteAllApplications}
+              />
+            </>
+          )}
         </div>
       </header>
 
@@ -269,7 +275,7 @@ function TrackerPageInner() {
           allPostings={allPostings === "1"}
           onTogglePostings={() => setAllPostings(allPostings === "1" ? "" : "1")}
           now={now}
-          onScan={() => scanRef.current?.start()}
+          onScan={demo ? undefined : () => scanRef.current?.start()}
           onOpenAssessment={openAssessment}
           onReviewEmails={() => setTab("gmail")}
         />
@@ -299,7 +305,7 @@ function TrackerPageInner() {
             {tabButton("assessments", "Assessments & interviews", assessments.length)}
             {(review.groups.length > 0 || hasDismissed || tab === "gmail") && tabButton("gmail", "Gmail Updates", review.groups.length)}
           </div>
-          <AddApplication applications={applications} onAdd={tracker.addApplication} />
+          {!demo && <AddApplication applications={applications} onAdd={tracker.addApplication} />}
         </div>
 
         {tab === "gmail" &&

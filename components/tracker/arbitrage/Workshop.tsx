@@ -56,7 +56,8 @@ interface Props {
 // Pick a template, fill the blanks, optionally have Claude draft it, then copy
 // it out and log it as sent. Nothing is ever sent from here.
 export default function Workshop({ seed, templates, stats, store }: Props) {
-  const { recordFeedback } = useTrackerEnv().feedback;
+  const { demo, feedback } = useTrackerEnv();
+  const { recordFeedback } = feedback;
   const options = useMemo<TemplateOption[]>(
     () => [
       ...BUILT_IN_TEMPLATES,
@@ -346,15 +347,18 @@ export default function Workshop({ seed, templates, stats, store }: Props) {
           )}
 
           <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={draftWithClaude}
-              disabled={drafting || !target}
-              title={target ? undefined : "Fill in their name or company first"}
-              className={buttonCls}
-            >
-              {drafting ? "Drafting…" : draft === null ? "Draft with Claude" : "Redraft"}
-            </button>
+            {/* Each draft is a paid API call, so the demo doesn't offer it. */}
+            {!demo && (
+              <button
+                type="button"
+                onClick={draftWithClaude}
+                disabled={drafting || !target}
+                title={target ? undefined : "Fill in their name or company first"}
+                className={buttonCls}
+              >
+                {drafting ? "Drafting…" : draft === null ? "Draft with Claude" : "Redraft"}
+              </button>
+            )}
             {draft !== null && (
               <button type="button" onClick={() => setDraft(null)} className={buttonCls}>
                 Back to template

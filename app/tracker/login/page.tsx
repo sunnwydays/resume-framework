@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/tracker/useTracker";
@@ -76,6 +77,13 @@ function LoginForm() {
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         </form>
       )}
+      <p className="mt-8 text-sm text-neutral-500">
+        Not me?{" "}
+        <Link href="/demo/tracker" className="underline underline-offset-4">
+          See a demo
+        </Link>{" "}
+        with fake data.
+      </p>
     </div>
   );
 }

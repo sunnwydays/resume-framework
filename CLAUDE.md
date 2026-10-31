@@ -726,6 +726,46 @@ tracker paths; the resume pages never hit it.
     holds both the guess and the final value, and a unit test. The not-yet-built
     ones are the "Later" checklist in `docs/feedback-loop.md`.
 
+- **Demo mode** (`/demo/tracker`, `/demo/tracker/postings`, `/demo/tracker/arbitrage`):
+  a public, read-only copy of the three pages on fake data, for interviews and
+  outreach. Nothing about the real tracker's auth changes: `/demo` is outside
+  the `proxy.ts` matcher on purpose, so don't add it. The real and demo routes
+  render the **same page components** (`components/tracker/pages/`); the routes
+  are thin wrappers.
+  - **The seam** (`lib/tracker/env.tsx`): pages and the components that need
+    data get `useTrackerStore()` / `usePostingsStore()` / `useMovesStore()`
+    from a context whose default is the real Supabase hooks. The demo layout
+    (`components/tracker/demo/DemoShell.tsx`) provides `useDemoTracker` /
+    `useDemoPostings` / `useDemoMoves` (`lib/tracker/demo/stores.ts`), typed as
+    `typeof useTracker` etc. so they can't drift. The context also carries
+    `feedback` (the `feedback_events` writers; the demo's are no-ops), `demo`
+    and `base` (`/tracker` or `/demo/tracker`: build links from it, never
+    hardcode `/tracker`). New code that needs tracker data goes through the
+    seam; a component importing `useTracker` directly would work in the real app
+    and break the demo's "never touches Supabase" rule.
+  - **Read-only**: every demo mutation is a no-op that fires `demoNotice()`;
+    the banner turns amber with "Demo: changes aren't saved". Things that call
+    out are hidden when `demo` is true (Scan Gmail, import / export, Add by
+    link, Scan alerts, Clear all, "Draft with Claude"), so a new feature that
+    fetches `/api/tracker/*` or writes to Supabase needs the same `demo` check.
+    `supabase()` also throws on a `/demo` path (`assertNotDemo`) as a backstop.
+    `tests/unit/demo-mode.test.ts` scans the demo-only files for `supabase` /
+    `fetch(` / `api/tracker`.
+  - **Fixtures** (`lib/tracker/demo/data.ts`, `buildDemoData(now)`): typed
+    against the database rows, every date an offset from `now` (built when the
+    page loads, rebuilt after an hour), every name fictional and every address
+    `.example`. `tests/unit/demo-data.test.ts` pins the variety (all statuses,
+    overdue / expired / bombed assessments, a multi-section OA, US / Canada /
+    unclear / ineligible / no-sponsorship postings, every move channel) and runs
+    the fixtures through the stats, Today, posting-view, arbitrage and review
+    builders. A new enum value or feature wants a fixture row.
+  - The demo renders on the client only (`DemoShell`'s `useIsClient`): the
+    fixtures depend on the current time, so a server render wouldn't hydrate.
+  - **localStorage** keys are namespaced `demo.` (`settingKey` in
+    `useLocalSetting.ts`, also used by `StatsPanel`), so the demo never reads or
+    overwrites the real tracker's settings, such as "Done for now" on the Today
+    card or the Arbitrage "about you" text.
+
 ## Testing
 
 Vitest 3 (4+ needs a newer Node than the 20.15 here) plus fast-check for
