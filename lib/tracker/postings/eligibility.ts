@@ -39,6 +39,7 @@ export const ELIGIBILITY_RULES = {
   citizenship: /\b(?:U\.?S\.?|United States)\s+(?:citizen(?:ship|s)?|persons?|nationals?)\b|\bpermanent residents?\b|\bgreen card\b|\bITAR\b|\bexport control/i,
   citizenshipRequired: /\b(?:must|requires?|required|only)\b/i,
   citizenshipWaived: /\bnot\s+(?:required|necessary|needed)\b/i,
+  j1: /\bJ-?1\b/i,
   visa: /\bvisas?\b|\b[FJ]-?1\b|\bCPT\b|\bOPT\b|\bH-?1B\b/i,
 
   // A description sentence that mentions sponsorship and a negation is a "no
@@ -84,6 +85,7 @@ export function noSponsorshipLine(description: string | null | undefined): strin
     sentences(description).find(
       (s) =>
         (rules.sponsorship.test(s) && rules.sponsorshipNegation.test(s) && !rules.sponsorshipIgnore.test(s)) ||
+        (rules.j1.test(s) && rules.sponsorshipNegation.test(s)) ||
         (citizenshipSentence(s) && rules.visa.test(s))
     ) ?? null
   );

@@ -20,7 +20,7 @@ import {
 } from "@/lib/tracker/feedback/posting";
 import { planPostingEdit, type EditField, type PostingDraft, type PostingEdits } from "@/lib/tracker/postings/edits";
 import { POSTING_STATES } from "@/lib/tracker/format";
-import { DEFAULT_POSTING_FILTERS, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
+import { DEFAULT_POSTING_FILTERS, HIDDEN_ROLE_TYPES, matchesPostingFilters, type PostingFilters } from "@/lib/tracker/postings/filters";
 import type { Level } from "@/lib/tracker/postings/level";
 import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
@@ -92,6 +92,10 @@ export default function PostingsPage() {
         (v) => v.eligibility.level === "no" && matchesPostingFilters(v, { ...filters, showIneligible: true })
       ).length,
       noSponsorship: views.filter((v) => v.noSponsorship && matchesPostingFilters(v, { ...filters, showNoSponsorship: true })).length,
+      hiddenRoleTypes: views.filter(
+        (v) => HIDDEN_ROLE_TYPES.includes(v.roleType) && matchesPostingFilters(v, { ...filters, showHiddenRoleTypes: true })
+      ).length,
+      gradDegree: views.filter((v) => v.gradDegree && matchesPostingFilters(v, { ...filters, showGradDegree: true })).length,
       // Keep the chips in ROLE_TYPES order whatever order they were counted in.
       roleTypes: new Map(ROLE_TYPES.filter((t) => typeCounts.has(t.key)).map((t) => [t.key, typeCounts.get(t.key)!])),
     };

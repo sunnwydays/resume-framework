@@ -7,6 +7,7 @@
 import type { Application, JobPosting } from "@/lib/tracker/format";
 import { editsOf, readLengthInput, readTermInput, withTextEdits, type EditField } from "@/lib/tracker/postings/edits";
 import { postingEligibility, postingSponsorship, type Eligibility } from "@/lib/tracker/postings/eligibility";
+import { postingGradDegree } from "@/lib/tracker/postings/degree";
 import { postingLevel, type LevelResult } from "@/lib/tracker/postings/level";
 import { matchPosting } from "@/lib/tracker/postings/match";
 import { postingRegion, type RegionResult } from "@/lib/tracker/postings/region";
@@ -24,6 +25,7 @@ export interface PostingView {
   length: Length | null; // in months, when the title or the posting page says
   level: LevelResult; // intern, new grad, experienced, or not stated, and why
   roleType: RoleType;
+  gradDegree: string | null; // why it needs a Masters / PhD, from the title
   // The application it was marked applied as, else the closest match.
   tracked: Application | null;
 }
@@ -41,7 +43,12 @@ export function ruleValues(posting: JobPosting) {
   };
 }
 
-export function postingView(parsed: JobPosting, applications: Application[], byId?: Map<string, Application>): PostingView {
+export function postingView(
+  parsed: JobPosting,
+  applications: Application[],
+  byId?: Map<string, Application>,
+  appLocations?: Map<string, string>
+): PostingView {
   const edits = editsOf(parsed);
   const posting = withTextEdits(parsed, edits);
   const rules = ruleValues(posting);
@@ -58,13 +65,20 @@ export function postingView(parsed: JobPosting, applications: Application[], byI
     length: edits.length !== undefined ? (readLengthInput(edits.length ?? "") ?? null) : rules.length,
     level: edits.level ? { level: edits.level, why: BY_HAND } : rules.level,
     roleType: edits.role_type ?? rules.roleType,
-    tracked: (posting.application_id ? apps.get(posting.application_id) : undefined) ?? matchPosting(posting, applications),
+    gradDegree: postingGradDegree(posting.role),
+    tracked:
+      (posting.application_id ? apps.get(posting.application_id) : undefined) ??
+      matchPosting(posting, applications, appLocations),
   };
 }
 
 export function buildPostingViews(postings: JobPosting[], applications: Application[]): PostingView[] {
   const byId = new Map(applications.map((a) => [a.id, a]));
-  return postings.map((p) => postingView(p, applications, byId));
+  // A tracked application keeps the location of the posting it came from, so
+  // matching can ignore a city left in its role ("SWE - (Mountain View, CA)").
+  const appLocations = new Map<string, string>();
+  for (const p of postings) if (p.application_id && p.location) appLocations.set(p.application_id, p.location);
+  return postings.map((p) => postingView(p, applications, byId, appLocations));
 }
 
 // Postings that need a decision first, then the ones already in the tracker,

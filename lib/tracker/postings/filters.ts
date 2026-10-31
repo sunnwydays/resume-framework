@@ -5,6 +5,10 @@ import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
 import type { RoleType } from "@/lib/tracker/roles";
 
+// Role types hidden unless "Show Data roles" is on or the type's own chip is picked:
+// every data posting Sunny has seen was dismissed.
+export const HIDDEN_ROLE_TYPES: RoleType[] = ["data"];
+
 // Empty `regions` / `terms` / `lengths` / `levels` / `roleTypes` mean "all",
 // like the role-type chips on the other tabs. `terms` holds term keys
 // ("2027-summer") and NO_TERM for postings whose title names no term.
@@ -16,6 +20,8 @@ export interface PostingFilters {
   levels: Set<Level>;
   showIneligible: boolean;
   showNoSponsorship: boolean;
+  showHiddenRoleTypes: boolean;
+  showGradDegree: boolean;
   roleTypes: Set<RoleType>;
   hideTracked: boolean;
   query: string;
@@ -33,13 +39,15 @@ export const DEFAULT_POSTING_FILTERS: PostingFilters = {
   levels: new Set<Level>(["intern", "unstated"]),
   showIneligible: false,
   showNoSponsorship: false,
+  showHiddenRoleTypes: false,
+  showGradDegree: false,
   roleTypes: new Set(),
   hideTracked: true,
   query: "",
 };
 
 export function matchesPostingFilters(
-  { posting, region, eligibility, noSponsorship, tracked, term, length, level, roleType }: PostingView,
+  { posting, region, eligibility, noSponsorship, tracked, term, length, level, roleType, gradDegree }: PostingView,
   f: PostingFilters
 ): boolean {
   if (f.state !== "all" && posting.state !== f.state) return false;
@@ -49,7 +57,9 @@ export function matchesPostingFilters(
   if (f.levels.size > 0 && !f.levels.has(level.level)) return false;
   if (!f.showIneligible && eligibility.level === "no") return false;
   if (!f.showNoSponsorship && noSponsorship) return false;
+  if (!f.showGradDegree && gradDegree) return false;
   if (f.roleTypes.size > 0 && !f.roleTypes.has(roleType)) return false;
+  if (!f.showHiddenRoleTypes && HIDDEN_ROLE_TYPES.includes(roleType) && !f.roleTypes.has(roleType)) return false;
   // Applied postings are tracked by definition; hiding them would empty that chip.
   if (f.hideTracked && tracked && posting.state !== "applied") return false;
   const q = f.query.trim().toLowerCase();
@@ -71,6 +81,8 @@ export function isDefaultPostingFilters(f: PostingFilters): boolean {
     sameSet(f.levels, d.levels) &&
     f.showIneligible === d.showIneligible &&
     f.showNoSponsorship === d.showNoSponsorship &&
+    f.showHiddenRoleTypes === d.showHiddenRoleTypes &&
+    f.showGradDegree === d.showGradDegree &&
     f.roleTypes.size === 0 &&
     f.hideTracked === d.hideTracked &&
     f.query === d.query

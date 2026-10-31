@@ -128,7 +128,7 @@ export default function PostingsTable({
         <tbody>
           {[...open, ...inTracker].map((view, i) => {
             const { posting, region, eligibility, tracked, term, length, level } = view;
-            const blocked = eligibility.level === "no" || view.noSponsorship !== null;
+            const blocked = eligibility.level === "no" || view.noSponsorship !== null || view.gradDegree !== null;
             // Grey the tracked rows only when they sit under a separator; the
             // Applied chip is all tracked rows and shouldn't look disabled.
             const dimmed = blocked || (tracked !== null && open.length > 0);
@@ -203,6 +203,9 @@ export default function PostingsTable({
                       )}
                       {view.noSponsorship && (
                         <div className="mt-1 text-xs text-red-700 dark:text-red-400">No sponsorship: {view.noSponsorship}</div>
+                      )}
+                      {view.gradDegree && (
+                        <div className="mt-1 text-xs text-red-700 dark:text-red-400">Masters/PhD: {view.gradDegree}</div>
                       )}
                       {eligibility.level === "check" && (
                         <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">Check: {eligibility.why}</div>

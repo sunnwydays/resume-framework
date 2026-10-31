@@ -493,6 +493,15 @@ tracker paths; the resume pages never hit it.
     The table has a sortable Level column (a colored pill; `postingLevel`
     returns `{ level, why }` and the hover text is `why`, the title word or the
     page text it came from; "—" when not stated).
+  - **Label-driven rules** (from the dismiss feedback): Data roles (`HIDDEN_ROLE_TYPES`
+    in `filters.ts`; bare `analyst` is no longer Data) are hidden unless "Show Data
+    roles" is on or the Data chip is picked. `degree.ts` (`postingGradDegree`) flags
+    Masters / PhD titles (not MBA, not titles that also name an undergrad route),
+    hidden behind "Show Masters/PhD" and left out of the Today count. A description
+    sentence with J-1 plus a negation counts as no sponsorship (`ELIGIBILITY_RULES.j1`).
+    `match.ts` strips location and company words (and "(City, ST)" chunks, and the
+    linked posting's location) from both roles before comparing, so a city doesn't
+    split a match.
   - **Parsed and stored, not shown**: `match_pct` and `referrals`. Match
     didn't tell postings apart (88 of 99 were 80–100%, and the average was the
     same for dismissed, new and applied), and "N+ referrals" is Jobright's list

@@ -6,7 +6,7 @@
 
 export const ROLE_TYPES = [
   { key: "robotics", label: "Robotics & autonomy", pattern: /\b(robo(tics?)?|autonom\w*)\b/ },
-  { key: "data", label: "Data", pattern: /\b(data (scien\w*|eng\w*|analy\w*)|analyst)\b/ },
+  { key: "data", label: "Data", pattern: /\b(data (scien\w*|eng\w*|analy\w*)|analytics)\b/ },
   { key: "research", label: "Research", pattern: /\bresearch\w*\b/ },
   {
     key: "ml",
