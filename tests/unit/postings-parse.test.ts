@@ -13,6 +13,9 @@ describe("isJobrightAlert", () => {
   it("is also the multi-job 'Top Job matches' alert", () => {
     expect(isJobrightAlert("noreply@jobright.ai", "Your Top Job matches for “Software Intern” — 97% match from Jobright - 10/13/2026")).toBe(true);
   });
+  it("is also the multi-job 'Your job matches … curated for you' alert", () => {
+    expect(isJobrightAlert("noreply@jobright.ai", "Your job matches for “Software Engineer Intern” — curated for you from Jobright - 11/07/2026")).toBe(true);
+  });
   it("is not the daily digest or other mail", () => {
     expect(isJobrightAlert("support@jobright.ai", "Today's Matching Jobs")).toBe(false);
     expect(isJobrightAlert("noreply@jobright.ai", "Welcome to Jobright")).toBe(false);
