@@ -115,6 +115,7 @@ describe("demo fixtures: variety", () => {
     expect(views.some((v) => v.eligibility.level === "no")).toBe(true);
     expect(views.some((v) => v.noSponsorship)).toBe(true);
     expect(new Set(views.map((v) => v.level.level)).size).toBeGreaterThanOrEqual(3);
+    expect(views.filter((v) => v.relist).map((v) => v.relist!.of.id)).toEqual(["demo-post-14"]);
     // The default filters leave something to look at.
     expect(views.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).length).toBeGreaterThan(3);
   });

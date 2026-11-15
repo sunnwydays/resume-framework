@@ -19,6 +19,7 @@ export interface PostingCounts {
   noSponsorship: number; // hidden unless "Show no sponsorship" is on
   hiddenRoleTypes: number; // hidden unless "Show Data / non-eng AI roles" is on
   gradDegree: number; // hidden unless "Show Masters/PhD" is on
+  relists: number; // hidden unless "Show relists" is on
   roleTypes: Map<RoleType, number>;
 }
 
@@ -158,6 +159,13 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
           label="Show Masters/PhD"
           count={counts.gradDegree}
           title="Postings whose title asks for a Masters or PhD"
+        />
+        <Chip
+          active={filters.showRelists}
+          onClick={() => set("showRelists", !filters.showRelists)}
+          label="Show relists"
+          count={counts.relists}
+          title="New postings with the same company and role as one you already dismissed"
         />
         <Chip
           active={filters.hideTracked}

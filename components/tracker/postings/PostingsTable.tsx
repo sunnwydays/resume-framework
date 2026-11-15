@@ -217,6 +217,11 @@ export default function PostingsTable({
                           <TrackedPill app={tracked} />
                         </div>
                       )}
+                      {view.relist && (
+                        <div className="mt-1 text-xs text-neutral-500" title={view.relist.why}>
+                          <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-medium dark:bg-neutral-800">Relisted</span>
+                        </div>
+                      )}
                       {posting.state === "dismissed" && dismissals && (
                         <div className="mt-1 text-xs text-neutral-500">
                           {why ? <>Dismissed: {why}</> : "Dismissed, no reason given"}{" "}

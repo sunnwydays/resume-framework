@@ -17,6 +17,11 @@ function withoutWords(role: string, ...sources: (string | null | undefined)[]): 
 }
 const withoutCityState = (role: string) => role.replace(/\([^()]*,\s*[A-Za-z]{2}\)/g, " ");
 
+// A posting's role with its own location, company and "(City, ST)" chunks removed:
+// what the application match and the relist check both compare.
+export const normalizedPostingRole = (p: { company: string; role: string; location?: string | null }) =>
+  withoutWords(withoutCityState(p.role), p.location, p.company);
+
 // The closest application with the same company and a similar role, or null.
 // A role with nothing distinguishing ("Software Engineer Intern") matches
 // other such roles at 50: weak, but not a clash.
@@ -26,7 +31,7 @@ export function matchPosting<A extends Pick<Application, "company" | "role"> & {
   // application id -> location of the posting it was made from
   appLocations?: Map<string, string>
 ): A | null {
-  const postingRole = withoutWords(withoutCityState(p.role), p.location, p.company);
+  const postingRole = normalizedPostingRole(p);
   let best: { app: A; score: number } | null = null;
   for (const app of applications) {
     const company = companyCloseness(p.company, app.company);

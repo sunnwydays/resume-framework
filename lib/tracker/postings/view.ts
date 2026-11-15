@@ -10,6 +10,7 @@ import { postingEligibility, postingSponsorship, type Eligibility } from "@/lib/
 import { postingGradDegree } from "@/lib/tracker/postings/degree";
 import { postingLevel, type LevelResult } from "@/lib/tracker/postings/level";
 import { matchPosting } from "@/lib/tracker/postings/match";
+import { buildDismissedIndex, postingRelist, type DismissedIndex, type Relist } from "@/lib/tracker/postings/relist";
 import { postingRegion, type RegionResult } from "@/lib/tracker/postings/region";
 import { postingLength, postingTerm, type Length, type Term } from "@/lib/tracker/postings/term";
 import { roleType, type RoleType } from "@/lib/tracker/roles";
@@ -28,6 +29,9 @@ export interface PostingView {
   gradDegree: string | null; // why it needs a Masters / PhD, from the title
   // The application it was marked applied as, else the closest match.
   tracked: Application | null;
+  // A new posting that repeats a dismissed one (same company and role); null
+  // when tracked, since that path handles it.
+  relist: Relist | null;
 }
 
 const BY_HAND = "Set by you";
@@ -47,13 +51,16 @@ export function postingView(
   parsed: JobPosting,
   applications: Application[],
   byId?: Map<string, Application>,
-  appLocations?: Map<string, string>
+  appLocations?: Map<string, string>,
+  dismissed?: DismissedIndex
 ): PostingView {
   const edits = editsOf(parsed);
   const posting = withTextEdits(parsed, edits);
   const rules = ruleValues(posting);
   const region = edits.region ? { region: edits.region, why: BY_HAND } : rules.region;
   const apps = byId ?? new Map(applications.map((a) => [a.id, a]));
+  const tracked =
+    (posting.application_id ? apps.get(posting.application_id) : undefined) ?? matchPosting(posting, applications, appLocations);
   return {
     posting,
     parsed,
@@ -66,9 +73,8 @@ export function postingView(
     level: edits.level ? { level: edits.level, why: BY_HAND } : rules.level,
     roleType: edits.role_type ?? rules.roleType,
     gradDegree: postingGradDegree(posting.role, posting.description),
-    tracked:
-      (posting.application_id ? apps.get(posting.application_id) : undefined) ??
-      matchPosting(posting, applications, appLocations),
+    tracked,
+    relist: tracked || !dismissed ? null : postingRelist(posting, dismissed),
   };
 }
 
@@ -78,7 +84,9 @@ export function buildPostingViews(postings: JobPosting[], applications: Applicat
   // matching can ignore a city left in its role ("SWE - (Mountain View, CA)").
   const appLocations = new Map<string, string>();
   for (const p of postings) if (p.application_id && p.location) appLocations.set(p.application_id, p.location);
-  return postings.map((p) => postingView(p, applications, byId, appLocations));
+  // Dismissed postings, with their text edits applied, normalized once for the relist check.
+  const dismissed = buildDismissedIndex(postings.map((p) => withTextEdits(p, editsOf(p))));
+  return postings.map((p) => postingView(p, applications, byId, appLocations, dismissed));
 }
 
 // Postings that need a decision first, then the ones already in the tracker,

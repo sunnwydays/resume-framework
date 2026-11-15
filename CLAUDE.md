@@ -517,6 +517,14 @@ tracker paths; the resume pages never hit it.
     `match.ts` strips location and company words (and "(City, ST)" chunks, and the
     linked posting's location) from both roles before comparing, so a city doesn't
     split a match.
+    **Relists** (`relist.ts`, `view.relist`): Jobright relists a job under a new
+    source id, or once per city. A `new` posting is a relist when a dismissed one has
+    the same company (`companyCloseness` >= `COMPANY_MATCH`) and the same role after
+    `normalizedPostingRole` (role closeness >= 90, stricter than the application
+    match, so one differing word isn't a repeat), both read with hand edits applied.
+    It's role-level only, derived every render, null when the posting already matches
+    an application, hidden behind "Show relists" and left out of the Today count. The
+    date in the why is the dismissed row's `updated_at`; there is no dismissed-at column.
   - **Parsed and stored, not shown**: `match_pct` and `referrals`. Match
     didn't tell postings apart (88 of 99 were 80–100%, and the average was the
     same for dismissed, new and applied), and "N+ referrals" is Jobright's list

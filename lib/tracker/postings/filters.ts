@@ -23,6 +23,7 @@ export interface PostingFilters {
   showNoSponsorship: boolean;
   showHiddenRoleTypes: boolean;
   showGradDegree: boolean;
+  showRelists: boolean;
   roleTypes: Set<RoleType>;
   hideTracked: boolean;
   query: string;
@@ -42,13 +43,14 @@ export const DEFAULT_POSTING_FILTERS: PostingFilters = {
   showNoSponsorship: false,
   showHiddenRoleTypes: false,
   showGradDegree: false,
+  showRelists: false,
   roleTypes: new Set(),
   hideTracked: true,
   query: "",
 };
 
 export function matchesPostingFilters(
-  { posting, region, eligibility, noSponsorship, tracked, term, length, level, roleType, gradDegree }: PostingView,
+  { posting, region, eligibility, noSponsorship, tracked, term, length, level, roleType, gradDegree, relist }: PostingView,
   f: PostingFilters
 ): boolean {
   if (f.state !== "all" && posting.state !== f.state) return false;
@@ -59,6 +61,7 @@ export function matchesPostingFilters(
   if (!f.showIneligible && eligibility.level === "no") return false;
   if (!f.showNoSponsorship && noSponsorship) return false;
   if (!f.showGradDegree && gradDegree) return false;
+  if (!f.showRelists && relist) return false;
   if (f.roleTypes.size > 0 && !f.roleTypes.has(roleType)) return false;
   if (!f.showHiddenRoleTypes && HIDDEN_ROLE_TYPES.includes(roleType) && !f.roleTypes.has(roleType)) return false;
   // Applied postings are tracked by definition; hiding them would empty that chip.
@@ -84,6 +87,7 @@ export function isDefaultPostingFilters(f: PostingFilters): boolean {
     f.showNoSponsorship === d.showNoSponsorship &&
     f.showHiddenRoleTypes === d.showHiddenRoleTypes &&
     f.showGradDegree === d.showGradDegree &&
+    f.showRelists === d.showRelists &&
     f.roleTypes.size === 0 &&
     f.hideTracked === d.hideTracked &&
     f.query === d.query

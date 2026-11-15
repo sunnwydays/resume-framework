@@ -97,6 +97,7 @@ export default function PostingsPage() {
         (v) => HIDDEN_ROLE_TYPES.includes(v.roleType) && matchesPostingFilters(v, { ...filters, showHiddenRoleTypes: true })
       ).length,
       gradDegree: views.filter((v) => v.gradDegree && matchesPostingFilters(v, { ...filters, showGradDegree: true })).length,
+      relists: views.filter((v) => v.relist && matchesPostingFilters(v, { ...filters, showRelists: true })).length,
       // Keep the chips in ROLE_TYPES order whatever order they were counted in.
       roleTypes: new Map(ROLE_TYPES.filter((t) => typeCounts.has(t.key)).map((t) => [t.key, typeCounts.get(t.key)!])),
     };

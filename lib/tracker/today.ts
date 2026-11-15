@@ -69,7 +69,7 @@ export function buildToday({ applications, assessments, moves, postings, allPost
   // filters: summer 2027 or no term, internship or no level, up to 4 months or
   // no length), so tuning those defaults tunes this number too.
   const fresh = buildPostingViews(postings, applications).filter(
-    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no" && !v.noSponsorship && !v.gradDegree
+    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no" && !v.noSponsorship && !v.gradDegree && !v.relist
   );
   const matching = fresh.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).length;
   const newPostings = allPostings ? fresh.length : matching;

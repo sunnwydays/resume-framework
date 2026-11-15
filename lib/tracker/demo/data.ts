@@ -426,6 +426,8 @@ export function buildDemoData(now: number): DemoData {
   addPosting(12, { company: "Linden Systems", role: "Software Developer Co-op (Summer 2027, 4 months)", location: "Waterloo, ON", level_text: "Internship", categories: "Information Technology · Established" }, 2);
   addPosting(13, { company: "Opaline Health", role: "Full Stack Developer Intern", location: "Boston, MA", pay: "$38/hr", level_text: "Internship", state: "saved", categories: "Health Care · Growth Stage" }, 5);
   addPosting(14, { company: "Everly Mobility", role: "iOS Developer Intern", location: "San Francisco, CA", level_text: "Internship", state: "dismissed", categories: "Transportation · Growth Stage" }, 6);
+  // A relist of the dismissed posting 14 (same company and role, another city), hidden behind "Show relists".
+  addPosting(17, { company: "Everly Mobility", role: "iOS Developer Intern", location: "New York, NY", level_text: "Internship", categories: "Transportation · Growth Stage" }, 0.4);
   // Masters / PhD, hidden behind its own chip.
   addPosting(15, { company: "Thistle Security", role: "Software Engineer Intern (MS/PhD)", location: "Palo Alto, CA", level_text: "Internship", categories: "Cybersecurity · Growth Stage" }, 3);
   addPosting(16, { company: "Hollis Payments", role: "Backend Developer Intern", location: "Toronto, ON", pay: "CA$32/hr", level_text: "Internship", length_text: "8 months", categories: "Financial Services · Public Company" }, 0.5);
