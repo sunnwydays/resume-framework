@@ -554,6 +554,12 @@ tracker paths; the resume pages never hit it.
     role edit doesn't freeze the level. Use `view.posting` (edited) for anything
     shown or saved, `view.parsed` for the original, `view.roleType` rather than
     `roleType(posting.role)`.
+  - **Keyboard triage** (`postings/keys.ts`, listener in `PostingsTable`): `j`/`k`
+    move a focused row (click a row to focus it), `o` open, `a` applied, `d` dismiss,
+    `s` save; the same functions the buttons call, so the undo banner and feedback
+    events are unchanged. One document `keydown` listener that stands down in text
+    fields, while `[data-modal]` is open, with Ctrl/Meta/Alt, and while a row is
+    being edited. A dismissed or filtered-out row loses focus, so the next `j` starts at the top.
   - **Undo**: the last Save / Dismiss / Applied shows a green banner with
     Undo (`lib/tracker/postings/undo.ts`). Undo puts the posting's state and
     link back; for Applied it also deletes the application it added, unless

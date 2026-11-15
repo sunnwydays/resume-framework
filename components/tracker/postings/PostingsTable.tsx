@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingEditRow from "@/components/tracker/postings/PostingEditRow";
 import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
@@ -9,6 +9,7 @@ import { POSTING_DISMISS_REASONS, dismissLabelText, type DismissLabel } from "@/
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
 import { EDIT_LABEL, type PostingDraft } from "@/lib/tracker/postings/edits";
 import { industryLabel } from "@/lib/tracker/postings/industry";
+import { keyAction, moveIndex } from "@/lib/tracker/postings/keys";
 import { levelLabel, type Level } from "@/lib/tracker/postings/level";
 import { formatLength } from "@/lib/tracker/postings/term";
 import { REGION_LABEL, type Region } from "@/lib/tracker/postings/region";
@@ -116,6 +117,81 @@ export default function PostingsTable({
 
   const { open, tracked: inTracker } = splitTracked(sorted);
   const toMark = trackedToMark(inTracker);
+  const rows = [...open, ...inTracker];
+
+  const markApplied = async (view: PostingView) => {
+    const { posting, tracked } = view;
+    if (posting.state === "applied" || adding.has(posting.id)) return;
+    setAdding((s) => new Set(s).add(posting.id));
+    try {
+      const done = await store.markApplied(posting, addApplication, tracked, trims);
+      if (done) onAction(postingUndo(posting, "applied", done.created), view);
+    } finally {
+      setAdding((s) => {
+        const next = new Set(s);
+        next.delete(posting.id);
+        return next;
+      });
+    }
+  };
+  const save = (view: PostingView) => {
+    if (view.posting.state !== "new") return;
+    onAction(postingUndo(view.posting, "saved"), view);
+    store.setState(view.posting.id, "saved");
+  };
+  const dismiss = (view: PostingView) => {
+    if (view.posting.state !== "new" && view.posting.state !== "saved") return;
+    onAction(postingUndo(view.posting, "dismissed"), view);
+    store.setState(view.posting.id, "dismissed");
+  };
+
+  // Keyboard triage. The listener is bound once and reads the latest render through a ref.
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const keyState = useRef({ rows, focusedId, editing, markApplied, save, dismiss });
+  useEffect(() => {
+    keyState.current = { rows, focusedId, editing, markApplied, save, dismiss };
+  });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target;
+      const typing =
+        t instanceof HTMLElement && (t.isContentEditable || t.closest("input, textarea, select") !== null);
+      const action = keyAction({
+        key: e.key,
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        altKey: e.altKey,
+        typing,
+        modalOpen: document.querySelector("[data-modal]") !== null,
+      });
+      if (!action) return;
+      const s = keyState.current;
+      if (s.editing) return;
+      const index = s.rows.findIndex((v) => v.posting.id === s.focusedId);
+      if (action === "next" || action === "prev") {
+        const to = moveIndex(index < 0 ? null : index, action === "next" ? 1 : -1, s.rows.length);
+        if (to === null) return;
+        e.preventDefault();
+        setFocusedId(s.rows[to].posting.id);
+        return;
+      }
+      const view = s.rows[index];
+      if (!view) return;
+      e.preventDefault();
+      if (action === "open") window.open(view.posting.url, "_blank", "noopener,noreferrer");
+      else if (action === "applied") void s.markApplied(view);
+      else if (action === "save") s.save(view);
+      else s.dismiss(view);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Keep the focused row on screen, moving the page only when it's out of view.
+  useEffect(() => {
+    if (focusedId) document.querySelector(`[data-posting-row="${CSS.escape(focusedId)}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [focusedId]);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-surface dark:border-neutral-800">
@@ -135,7 +211,7 @@ export default function PostingsTable({
           </tr>
         </thead>
         <tbody>
-          {[...open, ...inTracker].map((view, i) => {
+          {rows.map((view, i) => {
             const { posting, region, eligibility, tracked, term, length, level } = view;
             const blocked = eligibility.level === "no" || view.noSponsorship !== null || view.gradDegree !== null;
             // Grey the tracked rows only when they sit under a separator; the
@@ -185,9 +261,13 @@ export default function PostingsTable({
                   />
                 ) : (
                   <tr
+                    data-posting-row={posting.id}
+                    onClick={(e) => {
+                      if (!(e.target instanceof HTMLElement) || !e.target.closest("a, button")) setFocusedId(posting.id);
+                    }}
                     className={`border-b border-neutral-100 transition-colors hover:bg-neutral-50 dark:border-neutral-900 dark:hover:bg-neutral-900 ${
                       dimmed ? "opacity-60" : ""
-                    }`}
+                    } ${focusedId === posting.id ? "bg-sky-50 outline outline-2 -outline-offset-2 outline-sky-500 dark:bg-sky-950/40" : ""}`}
                   >
                     <td className={`${tdCls} whitespace-nowrap tabular-nums text-neutral-500`} title={posting.posted_at ?? undefined}>
                       {formatAgo(posting.posted_at ?? posting.first_seen_at, now)}
@@ -305,19 +385,7 @@ export default function PostingsTable({
                             <button
                               type="button"
                               disabled={adding.has(posting.id)}
-                              onClick={async () => {
-                                setAdding((s) => new Set(s).add(posting.id));
-                                try {
-                                  const done = await store.markApplied(posting, addApplication, tracked, trims);
-                                  if (done) onAction(postingUndo(posting, "applied", done.created), view);
-                                } finally {
-                                  setAdding((s) => {
-                                    const next = new Set(s);
-                                    next.delete(posting.id);
-                                    return next;
-                                  });
-                                }
-                              }}
+                              onClick={() => markApplied(view)}
                               className={`${smallButtonCls} disabled:opacity-60`}
                               title={tracked ? "Link it to the application you already have" : "Add it to the tracker as applied today"}
                             >
@@ -327,10 +395,7 @@ export default function PostingsTable({
                           {posting.state === "new" && (
                             <button
                               type="button"
-                              onClick={() => {
-                                onAction(postingUndo(posting, "saved"), view);
-                                store.setState(posting.id, "saved");
-                              }}
+                              onClick={() => save(view)}
                               className={smallButtonCls}
                               title="Keep it on the Saved list to apply to later"
                             >
@@ -345,10 +410,7 @@ export default function PostingsTable({
                           {(posting.state === "new" || posting.state === "saved") && (
                             <button
                               type="button"
-                              onClick={() => {
-                                onAction(postingUndo(posting, "dismissed"), view);
-                                store.setState(posting.id, "dismissed");
-                              }}
+                              onClick={() => dismiss(view)}
                               className={smallButtonCls}
                             >
                               Dismiss
