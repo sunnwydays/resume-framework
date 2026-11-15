@@ -17,6 +17,13 @@ describe("hidden Data roles", () => {
     expect(show("Data Engineer Intern", { ...ANY, roleTypes: new Set(["data"]) })).toBe(true);
     expect(show("Software Engineer Intern")).toBe(true);
   });
+  it("non-engineering AI roles are hidden the same way, engineering AI ones are not", () => {
+    expect(show("AI Intern")).toBe(false);
+    expect(show("AI Intern", { ...ANY, showHiddenRoleTypes: true })).toBe(true);
+    expect(show("AI Intern", { ...ANY, roleTypes: new Set(["ai_noneng"]) })).toBe(true);
+    expect(show("Machine Learning Engineer Intern")).toBe(true);
+    expect(show("ASIC Engineer Intern")).toBe(true);
+  });
   it("a toggle flips the filters off their defaults", () => {
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, showHiddenRoleTypes: true })).toBe(false);
     expect(isDefaultPostingFilters({ ...DEFAULT_POSTING_FILTERS, showGradDegree: true })).toBe(false);
@@ -42,6 +49,42 @@ describe("postingGradDegree", () => {
     "leaves %j",
     (role) => expect(postingGradDegree(role)).toBeNull()
   );
+  it("flags Summer Associate but not Summer Analyst", () => {
+    expect(postingGradDegree("2027 Quant Summer Associate (Initech)")).toBe('The title says "Summer Associate"');
+    expect(postingGradDegree("2027 Engineering Summer Analyst")).toBeNull();
+    expect(postingGradDegree("Summer Associate [UG/Masters]")).toBeNull();
+  });
+  it("reads a requiring sentence from the description", () => {
+    const why = (d: string | null | undefined, role = "Software Engineer Intern") => postingGradDegree(role, d);
+    expect(why("About us.\nEnrolled in a PhD or MS program in Computer Science.")).toBe(
+      'The description says "Enrolled in a PhD or MS program in Computer Science."'
+    );
+    expect(why("Currently pursuing a graduate degree in Data Science.")).not.toBeNull();
+    expect(why("Graduate degree in CS with focus on compilers.")).not.toBeNull();
+    expect(why("You will graduate with a Master's or PhD degree in 2027.")).not.toBeNull();
+    expect(why("Must be pursuing a Master's degree.", "Intern (Masters)")).toBe('The title says "Masters"');
+  });
+  it("leaves description guards alone", () => {
+    const why = (d: string | null | undefined) => postingGradDegree("Software Engineer Intern", d);
+    expect(why("Current enrollment in a BS, MS, or PhD program.")).toBeNull();
+    expect(why("Pursuing a BS/MS in Computer Science.")).toBeNull();
+    expect(why("Required: Bachelor's or Master's degree.")).toBeNull();
+    expect(why("Have a mastery of at least one systems language. Must be enrolled in a program.")).toBeNull();
+    expect(why("PhD candidates may receive additional compensation.")).toBeNull();
+    expect(why("Pursuing a degree. Contact Ms. Smith, currently in HR. Items in ms are fast.")).toBeNull();
+    expect(why("Proficiency in MS Office is required.")).toBeNull();
+    expect(why("A Master's degree in Data Science is preferred.")).toBeNull();
+    expect(why("Enrolled in a Master's program. Also an associate's degree is fine.")).toBeNull();
+    expect(why("")).toBeNull();
+    expect(why(null)).toBeNull();
+  });
+  it("hides a description-only grad posting by default", () => {
+    const view = (description: string) => buildPostingViews([makePosting({ role: "Data Scientist Intern", description })], [])[0];
+    const grad = view("Currently pursuing a graduate degree in Data Science.");
+    expect(grad.gradDegree).toContain("The description says");
+    expect(matchesPostingFilters(grad, { ...ANY, showHiddenRoleTypes: true })).toBe(false);
+    expect(matchesPostingFilters(grad, { ...ANY, showHiddenRoleTypes: true, showGradDegree: true })).toBe(true);
+  });
   it("is hidden by default", () => {
     expect(show("Software Engineer Intern (Masters)")).toBe(false);
     expect(show("Software Engineer Intern (Masters)", { ...ANY, showGradDegree: true })).toBe(true);

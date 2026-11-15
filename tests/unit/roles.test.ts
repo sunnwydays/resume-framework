@@ -91,6 +91,48 @@ describe("roleType", () => {
   });
 });
 
+describe("roleType: analyst, non-engineering AI, hardware", () => {
+  it.each([
+    ["AI Analyst", "data"],
+    ["Intern-AI Analyst, Merchandising", "data"],
+    ["2027 Data & AI Program - Summer Internship - Analyst", "data"],
+    ["Data and AI Program Intern", "data"],
+    ["Applied AI & Analytics Summer Intern", "data"],
+    // an analyst title with neither ai nor data keeps its old type
+    ["2027 Engineering Summer Analyst", "swe"],
+    ["2027 Summer Analyst, Engineering", "swe"],
+    ["Summer Analyst", "other"],
+  ])("analyst: %j -> %s", (role, expected) => expect(roleType(role)).toBe(expected));
+
+  it.each([
+    ["AI Intern", "ai_noneng"],
+    ["Intern - Supply Chain AI Implementation", "ai_noneng"],
+    ["Summer Internship - AI and Automation", "ai_noneng"],
+    ["Rotational AI Intern", "ai_noneng"],
+    ["Artificial Intelligence Intern", "ai_noneng"],
+    ["Machine Learning Engineer Intern", "ml"],
+    ["2027 Intern - AI/ML Engineer - Platform", "ml"],
+    ["Machine Learning & Artificial Intelligence Engineering Internship", "ml"],
+    ["AI Engineering - Assoc Software Engineer Internships (Bachelors)", "ml"],
+    ["Machine Learning Research Intern", "research"],
+    ["Machine Learning Intern", "ml"],
+    ["AI Software Engineer Intern", "ml"],
+    ["NLP Engineer Intern", "swe"],
+    ["LLM Intern", "ml"],
+  ])("non-eng AI: %j -> %s", (role, expected) => expect(roleType(role)).toBe(expected));
+
+  it.each([
+    ["ASIC Engineer Intern", "hardware"],
+    ["Electrical Engineering Intern", "hardware"],
+    ["Analog Design Intern", "hardware"],
+    ["RF Engineer Intern", "hardware"],
+    ["Multimedia Engineering Internship", "swe"],
+    ["Software Engineer Intern", "swe"],
+    ["Hardware Engineer", "embedded"],
+    ["SDE Intern (Embedded Systems)", "embedded"],
+  ])("hardware: %j -> %s", (role, expected) => expect(roleType(role)).toBe(expected));
+});
+
 describe("roleWithType", () => {
   // Just the type when the role says nothing more than the type does.
   it.each([

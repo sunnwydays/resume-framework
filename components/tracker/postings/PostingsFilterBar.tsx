@@ -17,7 +17,7 @@ export interface PostingCounts {
   levels: Map<Level, number>;
   ineligible: number; // hidden unless "Show not eligible" is on
   noSponsorship: number; // hidden unless "Show no sponsorship" is on
-  hiddenRoleTypes: number; // hidden unless "Show Data roles" is on
+  hiddenRoleTypes: number; // hidden unless "Show Data / non-eng AI roles" is on
   gradDegree: number; // hidden unless "Show Masters/PhD" is on
   roleTypes: Map<RoleType, number>;
 }
@@ -148,9 +148,9 @@ export default function PostingsFilterBar({ filters, onChange, counts, onClear }
         <Chip
           active={filters.showHiddenRoleTypes}
           onClick={() => set("showHiddenRoleTypes", !filters.showHiddenRoleTypes)}
-          label="Show Data roles"
+          label="Show Data / non-eng AI roles"
           count={counts.hiddenRoleTypes}
-          title="Data science, data engineering and analytics roles"
+          title="Data science, data engineering and analytics roles, and AI roles with no engineering in the title"
         />
         <Chip
           active={filters.showGradDegree}

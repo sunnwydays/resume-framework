@@ -5,9 +5,10 @@ import type { Region } from "@/lib/tracker/postings/region";
 import { NO_TERM, lengthBucket, type LengthBucket } from "@/lib/tracker/postings/term";
 import type { RoleType } from "@/lib/tracker/roles";
 
-// Role types hidden unless "Show Data roles" is on or the type's own chip is picked:
-// every data posting Sunny has seen was dismissed.
-export const HIDDEN_ROLE_TYPES: RoleType[] = ["data"];
+// Role types hidden unless "Show Data / non-eng AI roles" is on or the type's own chip
+// is picked: every data posting and every AI one with no engineering word Sunny has
+// seen was dismissed.
+export const HIDDEN_ROLE_TYPES: RoleType[] = ["data", "ai_noneng"];
 
 // Empty `regions` / `terms` / `lengths` / `levels` / `roleTypes` mean "all",
 // like the role-type chips on the other tabs. `terms` holds term keys

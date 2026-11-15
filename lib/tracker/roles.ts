@@ -6,12 +6,32 @@
 
 export const ROLE_TYPES = [
   { key: "robotics", label: "Robotics & autonomy", pattern: /\b(robo(tics?)?|autonom\w*)\b/ },
-  { key: "data", label: "Data", pattern: /\b(data (scien\w*|eng\w*|analy\w*)|analytics)\b/ },
+  {
+    key: "data",
+    label: "Data",
+    // "analyst" alone isn't Data ("Engineering Summer Analyst"), but with ai / data it is.
+    pattern:
+      /\b(data (scien\w*|eng\w*|analy\w*)|analytics|data (and )?ai|analyst\b.*\b(ai|data)|(ai|data)\b.*\banalyst)\b/,
+  },
   { key: "research", label: "Research", pattern: /\bresearch\w*\b/ },
+  {
+    // AI titles that aren't engineering: matches ML only through the "ai" words and
+    // has no engineer / developer / software / research / scientist word. Zero-width
+    // (lookaheads only) so roleWithType still sees the whole role as leftover text.
+    key: "ai_noneng",
+    label: "AI (non-eng)",
+    pattern:
+      /^(?!.*\b(mle|ml|machine learning|llms?|deep learning|nlp|cv|computer vision|engineer\w*|engineering|developer|software|research\w*|scientist|swe|sde|swd)\b)(?=.*\b(ai|artificial intelligence)\b)/,
+  },
   {
     key: "ml",
     label: "ML / AI",
     pattern: /\b(mle|ml|machine learning|ai|llms?|deep learning|cv|computer vision)\b/,
+  },
+  {
+    key: "hardware",
+    label: "Hardware",
+    pattern: /\b(asic|electrical eng\w*|vlsi|silicon|analog|circuit|pcb|rf)\b/,
   },
   { key: "embedded", label: "Embedded", pattern: /\b(embedded|firmware|hardware|fpga)\b/ },
   { key: "mobile", label: "Mobile", pattern: /\b(mobile|ios|android)\b/ },
