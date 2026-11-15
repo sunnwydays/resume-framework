@@ -16,12 +16,13 @@ export const ROLE_TYPES = [
   { key: "research", label: "Research", pattern: /\bresearch\w*\b/ },
   {
     // AI titles that aren't engineering: matches ML only through the "ai" words and
-    // has no engineer / developer / software / research / scientist word. Zero-width
+    // has no engineer / developer / software / research / scientist word (or product /
+    // manager / MBA: an applied PM role named its AI team). Zero-width
     // (lookaheads only) so roleWithType still sees the whole role as leftover text.
     key: "ai_noneng",
     label: "AI (non-eng)",
     pattern:
-      /^(?!.*\b(mle|ml|machine learning|llms?|deep learning|nlp|cv|computer vision|engineer\w*|engineering|developer|software|research\w*|scientist|swe|sde|swd)\b)(?=.*\b(ai|artificial intelligence)\b)/,
+      /^(?!.*\b(mle|ml|machine learning|llms?|deep learning|nlp|cv|computer vision|engineer\w*|engineering|developer|software|research\w*|scientist|swe|sde|swd|product|manager|mba)\b)(?=.*\b(ai|artificial intelligence)\b)/,
   },
   {
     key: "ml",

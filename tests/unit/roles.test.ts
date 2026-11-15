@@ -110,6 +110,7 @@ describe("roleType: analyst, non-engineering AI, hardware", () => {
     ["Summer Internship - AI and Automation", "ai_noneng"],
     ["Rotational AI Intern", "ai_noneng"],
     ["Artificial Intelligence Intern", "ai_noneng"],
+    ["Product Manager MBA Intern, Enterprise AI - Summer 2027", "ml"],
     ["Machine Learning Engineer Intern", "ml"],
     ["2027 Intern - AI/ML Engineer - Platform", "ml"],
     ["Machine Learning & Artificial Intelligence Engineering Internship", "ml"],
