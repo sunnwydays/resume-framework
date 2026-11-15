@@ -328,6 +328,9 @@ describe("assessments sheet", () => {
       ["Interview", "Final round", "interview"],
       ["", "Technical interview", "interview"],
       ["OA", "Interview prep quiz", "oa"],
+      ["Take-home", "Chess clock", "take_home"],
+      ["", "Take home assignment", "take_home"],
+      ["", "Takehome before final interview", "take_home"],
     ])("type %j, title %j -> %s", (type, title, expected) => expect(kindOf(type, title)).toBe(expected));
   });
 

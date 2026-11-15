@@ -150,7 +150,7 @@ export const ASSESSMENT_FIELDS = {
     hint: "Helps pick the right application when a company has several",
     aliases: ["role", "role title", "position", "job title"],
   },
-  kind: { label: "Type", hint: "OA, Video interview or Interview", aliases: ["type", "kind", "assessment type"] },
+  kind: { label: "Type", hint: "OA, Video interview, Take-home or Interview", aliases: ["type", "kind", "assessment type"] },
   title: {
     label: "Title",
     hint: "Required, e.g. \"Coding round\"",
@@ -399,6 +399,7 @@ export function parseStatus(value: string): { status: AppStatus; known: boolean 
 function parseKind(type: string, title: string, details: string): AssessmentKind {
   const v = `${type} ${title} ${details}`.toLowerCase();
   if (/video|hirevue|vidcruiter|one.?way/.test(v)) return "video_interview";
+  if (/take.?home/.test(v)) return "take_home";
   if (/interview/.test(v) && !/\boa\b|online assessment/.test(type.toLowerCase())) return "interview";
   return "oa";
 }

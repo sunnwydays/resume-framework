@@ -124,6 +124,7 @@ describe("pipeline stage", () => {
     expect(furthestStage(app("rejected"), [], [makeChange({ status: "interview" }), makeChange({ status: "rejected" })])).toBe("interview");
     expect(furthestStage(app("applied"), [makeAssessment({ kind: "interview" })], [])).toBe("interview");
     expect(furthestStage(app("oa"), [makeAssessment({ kind: "video_interview" })], [])).toBe("video_interview");
+    expect(furthestStage(app("applied"), [makeAssessment({ kind: "take_home" })], [])).toBe("interview");
   });
 
   it("a rejection or withdrawal on its own is no progress", () => {
@@ -377,6 +378,12 @@ describe("assessmentResult", () => {
   it("undecided while the application is still at this stage", () => {
     expect(result(done(), makeApp({ status: "oa" }))).toBeNull();
     expect(result(done(), makeApp({ status: "withdrawn" }))).toBeNull();
+  });
+  it("a take-home counts as interview stage, so only an offer passes it", () => {
+    const takeHome = done({ kind: "take_home" });
+    expect(result(takeHome, makeApp({ status: "interview" }), [makeAssessment({ kind: "interview" })])).toBeNull();
+    expect(result(takeHome, makeApp({ status: "offer" }))).toBe("passed");
+    expect(result(takeHome, makeApp({ status: "rejected" }))).toBe("failed");
   });
   it("no result for expired, not-yet-taken, or an unknown application", () => {
     expect(result(done({ outcome: "expired" }), makeApp({ status: "interview" }))).toBeNull();

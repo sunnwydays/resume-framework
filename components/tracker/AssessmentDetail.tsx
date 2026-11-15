@@ -10,6 +10,7 @@ import {
   QUESTION_SOURCES,
   buttonCls,
   formatDateTime,
+  hasDeadline,
   inputCls,
   kindLabel,
   titleIsKind,
@@ -464,12 +465,12 @@ export default function AssessmentDetail({ assessment: a, questions, tracker, on
             <p className="space-x-3 text-neutral-600 dark:text-neutral-400">
               {a.due_at && (
                 <span>
-                  {a.kind === "oa" ? "Due" : "At"} {formatDateTime(a.due_at)}
+                  {hasDeadline(a.kind) ? "Due" : "At"} {formatDateTime(a.due_at)}
                 </span>
               )}
               {a.completed_at && (
                 <span>
-                  {a.kind === "oa" ? "Submitted" : "Completed"} {formatDateTime(a.completed_at)}
+                  {hasDeadline(a.kind) ? "Submitted" : "Completed"} {formatDateTime(a.completed_at)}
                 </span>
               )}
               {a.duration_min != null && <span>{a.duration_min} min</span>}

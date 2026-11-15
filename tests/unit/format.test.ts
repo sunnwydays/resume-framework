@@ -204,7 +204,8 @@ describe("labels", () => {
   });
   it("kinds map to labels", () => {
     expect(kindLabel("video_interview")).toBe("Video interview");
-    expect(Object.keys(ASSESSMENT_KINDS)).toEqual(["oa", "video_interview", "interview"]);
+    expect(kindLabel("take_home")).toBe("Take-home");
+    expect(Object.keys(ASSESSMENT_KINDS)).toEqual(["oa", "video_interview", "take_home", "interview"]);
   });
   it("spots a title that only repeats the kind", () => {
     expect(titleIsKind({ kind: "oa", title: "OA" })).toBe(true);

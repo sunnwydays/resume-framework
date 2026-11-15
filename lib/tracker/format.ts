@@ -57,12 +57,27 @@ export function statusLabel(status: string): string {
 export const ASSESSMENT_KINDS = {
   oa: "OA",
   video_interview: "Video interview",
+  take_home: "Take-home",
   interview: "Interview",
 } as const;
 export type AssessmentKind = keyof typeof ASSESSMENT_KINDS;
 
 export function kindLabel(kind: string): string {
   return ASSESSMENT_KINDS[kind as AssessmentKind] ?? kind;
+}
+
+// The pipeline stage an assessment of this kind shows the application
+// reached. A take-home usually comes after a first call, so it's interview
+// stage: it only counts as passed once an offer comes, not when the next
+// round is booked.
+export function kindStage(kind: string): string {
+  return kind === "take_home" ? "interview" : kind;
+}
+
+// Work done on your own before a deadline (Due / Submitted), not a round
+// booked for a time (At / Completed), and with no interviewer.
+export function hasDeadline(kind: string): boolean {
+  return kind === "oa" || kind === "take_home";
 }
 
 // A generic assessment is often titled after its kind ("OA" titled "OA"), so

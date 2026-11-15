@@ -2,6 +2,7 @@ import {
   ASSESSMENT_KINDS,
   formatDate,
   isOpen,
+  kindStage,
   todayISO,
   type Application,
   type Assessment,
@@ -111,7 +112,7 @@ export function furthestStage(app: Application, assessments: Assessment[], chang
   };
   bump(app.status);
   changes.forEach((c) => bump(c.status));
-  assessments.forEach((a) => bump(a.kind));
+  assessments.forEach((a) => bump(kindStage(a.kind)));
   return STAGES[best];
 }
 
@@ -410,7 +411,7 @@ export function assessmentResult(
   changes: StatusChange[]
 ): "passed" | "failed" | null {
   if (!app || a.status !== "completed" || a.outcome === "expired") return null;
-  if (STAGES.indexOf(furthestStage(app, assessments, changes)) > STAGES.indexOf(a.kind as Stage)) return "passed";
+  if (STAGES.indexOf(furthestStage(app, assessments, changes)) > STAGES.indexOf(kindStage(a.kind) as Stage)) return "passed";
   return a.outcome === "bombed" || app.status === "rejected" ? "failed" : null;
 }
 

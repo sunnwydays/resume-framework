@@ -214,7 +214,9 @@ tracker paths; the resume pages never hit it.
   are created lazily (`supabase()` in `lib/tracker/useTracker.ts`) so the
   build doesn't need the env vars.
 - **Schema**: `applications`, `assessments` (OAs / video interviews /
-  interviews: one table, `kind` column, any number per application, plus
+  take-homes / interviews: one table, `kind` column, any number per
+  application; `kindStage()` maps a take-home to interview stage and
+  `hasDeadline()` gives it the OA's Due / Submitted wording; plus
   `difficulty` 1–5, `outcome` waiting/passed/failed, `score`, `prep_notes`,
   `reflection`), `assessment_questions` (per assessment, `source`
   expected/asked, with an answer), `status_changes` (history), `time_log`
@@ -463,9 +465,9 @@ tracker paths; the resume pages never hit it.
     card is a link wrapping `<table id="job-section">` with fields found by
     element id (`job-company-name`, `job-title`, `job-tag` x0-3, ...). Tags
     are classified by what they say (pay / location / referrals), not by
-    position. Three `noreply@jobright.ai` subjects use this card layout, the
-    single-job "X just posted…" and the ten-job "Your Top Job matches for
-    …" / "Your job matches for … curated for you"; `isJobrightAlert` and `alertQuery` must list the same subjects. Bare `$` is not a US signal (a Montreal posting shows "$18/hr");
+    position. Four `noreply@jobright.ai` subjects use this card layout, the
+    single-job "X just posted…", the ten-job "Your Top Job matches for
+    …" / "Your job matches for … curated for you" and the daily "X is hiring for “…” like you"; `isJobrightAlert` and `alertQuery` must list the same subjects. Bare `$` is not a US signal (a Montreal posting shows "$18/hr");
     `CA$` is a Canada one. The daily "Today's Matching Jobs" digest
     (`support@jobright.ai`, different layout) is not handled; its jobs overlap
     the instant alerts. If Jobright changes the card markup, the parse tests'
@@ -592,7 +594,9 @@ tracker paths; the resume pages never hit it.
     own trim checkboxes kept in localStorage, or a pick via
     `ApplicationPicker`; `retarget` re-plans after a pick). Cards that need
     action come first (`splitByAction`); the ones already reflected in the
-    tracker follow a separator, greyed out. Accept builds a
+    tracker (reminders and the like) sit in a collapsed "Already in
+    tracker N" list below them with its own Dismiss, and don't count in the
+    chips, the tab count or the Today card. Accept builds a
     payload (`payload.ts`; ticks start from the plan; every email on the card
     is consumed) for the `apply_email_job` RPC: one transaction, which also
     writes an `email_accepts` row recording what it changed. "Accept N ready"

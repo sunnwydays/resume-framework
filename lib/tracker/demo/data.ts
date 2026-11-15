@@ -252,6 +252,7 @@ export function buildDemoData(now: number): DemoData {
   ]);
   addAsmt(14, tamarind, { kind: "oa", title: "Automation exercise", status: "completed", completed_at: ts(-9, 16), due_at: ts(-7, 23), duration_min: 80, difficulty: 2 });
   addAsmt(15, foxglove, { kind: "oa", title: "OA", status: "completed", completed_at: ts(-27, 17), due_at: ts(-26, 23), duration_min: 100, score: "74%", difficulty: 4 });
+  addAsmt(21, tamarind, { kind: "take_home", title: "Take-home project", status: "completed", completed_at: ts(-5, 20), due_at: ts(-3, 23), duration_min: 180, difficulty: 3 });
   addAsmt(16, cobalt, { kind: "video_interview", title: "Recorded interview", status: "completed", completed_at: ts(-12, 20), duration_min: 25, difficulty: 2 });
   addAsmt(17, zephyr, { kind: "oa", title: "OA", status: "completed", completed_at: ts(-38, 14), due_at: ts(-36, 23), duration_min: 60, score: "55%", difficulty: 3 });
   addAsmt(18, halcyon, { kind: "oa", title: "OA", status: "completed", completed_at: ts(-19, 18), due_at: ts(-17, 23), duration_min: 70, score: "88%", difficulty: 3 });
