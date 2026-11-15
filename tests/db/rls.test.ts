@@ -67,6 +67,7 @@ async function world(tx: Tx): Promise<World> {
     await applyEmailJob(tx, { application_id: app, message_ids: [accepted] });
     await tx.query("insert into public.gmail_scans (since) values (now() - interval '7 days')");
     mute = await tx.scalar<string>("insert into public.email_mutes (kind, value) values ('company', 'Muted Co') returning id");
+    await tx.query("insert into public.posting_mutes (company) values ('Muted Posting Co')");
     await tx.query("insert into public.feedback_events (surface, action) values ('posting', 'dismiss')");
   });
   return { a, b, app, asmt, question, move, posting, template, email, accepted, mute };
@@ -85,6 +86,7 @@ const READ_AS_OWNER = [
   ["email_accepts", "select id from public.email_accepts"],
   ["gmail_scans", "select id from public.gmail_scans"],
   ["email_mutes", "select id from public.email_mutes"],
+  ["posting_mutes", "select id from public.posting_mutes"],
   ["feedback_events", "select id from public.feedback_events"],
 ] as const;
 

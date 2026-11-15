@@ -1,5 +1,5 @@
 import { scanNudge } from "@/lib/tracker/email/scan";
-import { todayISO, type Application, type Assessment, type JobPosting, type Move } from "@/lib/tracker/format";
+import { todayISO, type Application, type Assessment, type JobPosting, type Move, type PostingMute } from "@/lib/tracker/format";
 import { nextSteps, type NextStep, type NextStepKind } from "@/lib/tracker/nextSteps";
 import { DEFAULT_POSTING_FILTERS, matchesPostingFilters } from "@/lib/tracker/postings/filters";
 import { buildPostingViews } from "@/lib/tracker/postings/view";
@@ -28,6 +28,7 @@ export interface TodayInput {
   assessments: Assessment[];
   moves: Move[];
   postings: JobPosting[];
+  postingMutes?: PostingMute[];
   allPostings?: boolean; // count every new posting, not just the ones matching the default filters
   pendingEmails: number; // Gmail suggestion cards waiting for review
   lastScanAt: string | null;
@@ -49,7 +50,7 @@ export interface TodayBrief {
   empty: boolean;
 }
 
-export function buildToday({ applications, assessments, moves, postings, allPostings = false, pendingEmails, lastScanAt, now }: TodayInput): TodayBrief {
+export function buildToday({ applications, assessments, moves, postings, postingMutes = [], allPostings = false, pendingEmails, lastScanAt, now }: TodayInput): TodayBrief {
   const appsById = new Map(applications.map((a) => [a.id, a]));
   const ranked = prioritize(assessments, appsById, now);
   const open = assessments
@@ -68,8 +69,8 @@ export function buildToday({ applications, assessments, moves, postings, allPost
   // By default only the ones the Postings page shows on load count (its default
   // filters: summer 2027 or no term, internship or no level, up to 4 months or
   // no length), so tuning those defaults tunes this number too.
-  const fresh = buildPostingViews(postings, applications).filter(
-    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no" && !v.noSponsorship && !v.gradDegree && !v.relist
+  const fresh = buildPostingViews(postings, applications, postingMutes).filter(
+    (v) => v.posting.state === "new" && !v.tracked && v.eligibility.level !== "no" && !v.noSponsorship && !v.gradDegree && !v.relist && !v.mutedCompany
   );
   const matching = fresh.filter((v) => matchesPostingFilters(v, DEFAULT_POSTING_FILTERS)).length;
   const newPostings = allPostings ? fresh.length : matching;

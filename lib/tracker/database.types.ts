@@ -642,6 +642,27 @@ export type Database = {
           },
         ]
       }
+      posting_mutes: {
+        Row: {
+          company: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       status_changes: {
         Row: {
           application_id: string

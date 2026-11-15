@@ -50,6 +50,16 @@ describe.skipIf(!dbReady)("job_postings", () => {
     });
   });
 
+  it("a company can be hidden once per user, ignoring case", async () => {
+    await asNewUser(async (tx) => {
+      await tx.query("insert into public.posting_mutes (company) values ('Globex')");
+      const e = await failure(tx, "insert into public.posting_mutes (company) values ('GLOBEX')");
+      expect(e.code).toBe("23505");
+      const blank = await failure(tx, "insert into public.posting_mutes (company) values ('  ')");
+      expect(blank.code).toBe("23514");
+    });
+  });
+
   it("a job not seen before is stored", async () => {
     await asNewUser(async (tx) => {
       await addPosting(tx, { source_id: "one" });

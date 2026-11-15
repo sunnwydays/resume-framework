@@ -42,6 +42,9 @@ interface Props {
   onLabelDismissal: (postingId: string, feedbackId: string, label: Omit<DismissLabel, "id">) => void;
   // For a dismissed row with no dismiss event to label.
   onRecordLateDismissal: (view: PostingView) => Promise<void>;
+  // "Hide every posting from this company": offered on a dismissed row whose reason is Company.
+  canMute: (company: string) => boolean;
+  onMuteCompany: (view: PostingView) => void;
 }
 
 const thCls = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
@@ -96,6 +99,8 @@ export default function PostingsTable({
   dismissals,
   onLabelDismissal,
   onRecordLateDismissal,
+  canMute,
+  onMuteCompany,
 }: Props) {
   // One row at a time is a form.
   const [editing, setEditing] = useState<string | null>(null);
@@ -224,6 +229,18 @@ export default function PostingsTable({
                           <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-medium dark:bg-neutral-800">Relisted</span>
                         </div>
                       )}
+                      {view.mutedCompany && (
+                        <div className="mt-1 text-xs text-neutral-500">
+                          <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-medium dark:bg-neutral-800">Company hidden</span>{" "}
+                          <button
+                            type="button"
+                            onClick={() => store.removeMute(view.mutedCompany!.id)}
+                            className="underline hover:text-neutral-800 dark:hover:text-neutral-200"
+                          >
+                            Unhide
+                          </button>
+                        </div>
+                      )}
                       {posting.state === "dismissed" && dismissals && (
                         <div className="mt-1 text-xs text-neutral-500">
                           {why ? <>Dismissed: {why}</> : "Dismissed, no reason given"}{" "}
@@ -239,6 +256,18 @@ export default function PostingsTable({
                           >
                             {labelOpen ? "done" : why ? "change" : "add one"}
                           </button>
+                          {dismissal?.reason === "company" && canMute(posting.company) && (
+                            <>
+                              {" · "}
+                              <button
+                                type="button"
+                                onClick={() => onMuteCompany(view)}
+                                className="underline hover:text-neutral-800 dark:hover:text-neutral-200"
+                              >
+                                Hide every posting from {posting.company}
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                     </td>

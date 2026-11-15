@@ -120,12 +120,13 @@ function TrackerPageInner() {
         assessments,
         moves,
         postings: postings.postings,
+        postingMutes: postings.mutes,
         allPostings: allPostings === "1",
         pendingEmails: emailsToReview,
         lastScanAt: gmail.lastScan?.scanned_at ?? null,
         now,
       }),
-    [applications, assessments, moves, postings.postings, allPostings, emailsToReview, gmail.lastScan, now]
+    [applications, assessments, moves, postings.postings, postings.mutes, allPostings, emailsToReview, gmail.lastScan, now]
   );
 
   const counts = useMemo(() => {

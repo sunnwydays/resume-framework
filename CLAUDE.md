@@ -525,6 +525,12 @@ tracker paths; the resume pages never hit it.
     It's role-level only, derived every render, null when the posting already matches
     an application, hidden behind "Show relists" and left out of the Today count. The
     date in the why is the dismissed row's `updated_at`; there is no dismissed-at column.
+  - **Hidden companies** (`posting_mutes`, `postings/mutes.ts`, `view.mutedCompany`): an explicit
+    list built from a dismiss whose reason is Company ("Hide every posting from X" in the undo
+    banner and the dismissed row). Fuzzy company match (`COMPANY_MATCH`), only `new` postings
+    (saved / applied / dismissed are never hidden), hidden behind "Show hidden companies", left
+    out of the Today count; "Unhide" on the row's pill deletes the entry. Kept apart from
+    `email_mutes` so hiding postings never drops application mail. Logged as a `mute` posting event.
   - **Parsed and stored, not shown**: `match_pct` and `referrals`. Match
     didn't tell postings apart (88 of 99 were 80–100%, and the average was the
     same for dismissed, new and applied), and "N+ referrals" is Jobright's list

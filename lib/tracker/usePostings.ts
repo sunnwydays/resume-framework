@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
-import { type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
+import { type Application, type JobPosting, type PostingMute, type PostingState } from "@/lib/tracker/format";
 import { DEFAULT_TRIMS, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { alertQuery, fetchMessages, trashNote, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
@@ -19,11 +19,16 @@ import { supabase } from "@/lib/tracker/useTracker";
 // Pages per request to the details route (its limit is 10).
 const DETAILS_BATCH = 8;
 
-type FetchResult = { error: string } | { postings: JobPosting[] };
+type FetchResult = { error: string } | { postings: JobPosting[]; mutes: PostingMute[] };
 
 async function fetchAll(): Promise<FetchResult> {
-  const { data, error } = await supabase().from("job_postings").select("*").order("first_seen_at", { ascending: false });
-  return error ? { error: error.message } : { postings: data ?? [] };
+  const sb = supabase();
+  const [postings, mutes] = await Promise.all([
+    sb.from("job_postings").select("*").order("first_seen_at", { ascending: false }),
+    sb.from("posting_mutes").select("*").order("created_at", { ascending: true }),
+  ]);
+  const error = postings.error ?? mutes.error;
+  return error ? { error: error.message } : { postings: postings.data ?? [], mutes: mutes.data ?? [] };
 }
 
 // Job postings found in alert emails, for the Postings page. Same approach as
@@ -31,12 +36,16 @@ async function fetchAll(): Promise<FetchResult> {
 // and reloads from the database.
 export function usePostings() {
   const [postings, setPostings] = useState<JobPosting[]>([]);
+  const [mutes, setMutes] = useState<PostingMute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const apply = useCallback((result: FetchResult) => {
     if ("error" in result) setError(result.error);
-    else setPostings(result.postings);
+    else {
+      setPostings(result.postings);
+      setMutes(result.mutes);
+    }
     setLoading(false);
   }, []);
 
@@ -247,6 +256,27 @@ export function usePostings() {
     [patch]
   );
 
+  // Hide every new posting from a company (an explicit list; see mutes.ts).
+  const addMute = useCallback(
+    async (company: string) => {
+      const name = company.trim();
+      if (!name || mutes.some((m) => m.company.toLowerCase() === name.toLowerCase())) return;
+      const { data, error } = await supabase().from("posting_mutes").insert({ company: name }).select().single();
+      if (error) return fail(error.message);
+      setMutes((list) => [...list, data]);
+    },
+    [mutes, fail]
+  );
+
+  const removeMute = useCallback(
+    async (id: string) => {
+      setMutes((list) => list.filter((m) => m.id !== id));
+      const { error } = await supabase().from("posting_mutes").delete().eq("id", id);
+      if (error) fail(error.message);
+    },
+    [fail]
+  );
+
   // Every posting of the signed-in user (RLS scopes the delete). Applications
   // linked to them are untouched. Returns an error message.
   const deleteAllPostings = useCallback(async (): Promise<string | null> => {
@@ -257,6 +287,9 @@ export function usePostings() {
 
   return {
     postings,
+    mutes,
+    addMute,
+    removeMute,
     loading,
     error,
     clearError: () => setError(null),

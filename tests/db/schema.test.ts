@@ -32,6 +32,7 @@ const TABLES = [
   "job_postings",
   "message_templates",
   "moves",
+  "posting_mutes",
   "status_changes",
   "time_log",
 ];
@@ -235,6 +236,7 @@ describe.skipIf(!dbReady)("the live schema matches the app", () => {
           ["job_postings", "own job postings", "ALL"],
           ["message_templates", "own message templates", "ALL"],
           ["moves", "own moves", "ALL"],
+          ["posting_mutes", "own posting mutes", "ALL"],
           ["status_changes", "delete own email history", "DELETE"],
           ["status_changes", "read own status changes", "SELECT"],
           ["time_log", "own time log", "ALL"],

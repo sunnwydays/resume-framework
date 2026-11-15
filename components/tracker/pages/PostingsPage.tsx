@@ -7,6 +7,8 @@ import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingsFilterBar, { type PostingCounts } from "@/components/tracker/postings/PostingsFilterBar";
 import PostingsScan from "@/components/tracker/postings/PostingsScan";
 import PostingsTable from "@/components/tracker/postings/PostingsTable";
+import { companyCloseness } from "@/lib/tracker/email/match";
+import { COMPANY_MATCH } from "@/lib/tracker/postings/match";
 import { toJson } from "@/lib/tracker/feedback/events";
 import {
   POSTING_DISMISS_REASONS,
@@ -44,7 +46,7 @@ export default function PostingsPage() {
   const trims = trimsFromString(trimSetting);
   const toggleTrim = (key: keyof RoleTrimOptions) => setTrimSetting(trimsToString({ ...trims, [key]: !trims[key] }));
 
-  const views = useMemo(() => buildPostingViews(store.postings, tracker.applications), [store.postings, tracker.applications]);
+  const views = useMemo(() => buildPostingViews(store.postings, tracker.applications, store.mutes), [store.postings, tracker.applications, store.mutes]);
   const shown = useMemo(() => views.filter((v) => matchesPostingFilters(v, filters)), [views, filters]);
 
   // Each chip's count is what clicking it would show, with the rest held.
@@ -97,6 +99,7 @@ export default function PostingsPage() {
         (v) => HIDDEN_ROLE_TYPES.includes(v.roleType) && matchesPostingFilters(v, { ...filters, showHiddenRoleTypes: true })
       ).length,
       gradDegree: views.filter((v) => v.gradDegree && matchesPostingFilters(v, { ...filters, showGradDegree: true })).length,
+      mutedCompanies: views.filter((v) => v.mutedCompany && matchesPostingFilters(v, { ...filters, showMutedCompanies: true })).length,
       relists: views.filter((v) => v.relist && matchesPostingFilters(v, { ...filters, showRelists: true })).length,
       // Keep the chips in ROLE_TYPES order whatever order they were counted in.
       roleTypes: new Map(ROLE_TYPES.filter((t) => typeCounts.has(t.key)).map((t) => [t.key, typeCounts.get(t.key)!])),
@@ -147,7 +150,7 @@ export default function PostingsPage() {
   // A hand edit: store it over the parsed values and record the before/after
   // (what the row showed against what Sunny made it show).
   const saveEdits = async (view: PostingView, edits: PostingEdits, touched: EditField[], reset = false) => {
-    const after = postingView({ ...view.parsed, edits: toJson(edits) }, tracker.applications);
+    const after = postingView({ ...view.parsed, edits: toJson(edits) }, tracker.applications, undefined, undefined, undefined, store.mutes);
     await store.setEdits(view.posting.id, edits);
     const event = postingEditFeedback(view, after, touched, reset);
     if (event) recordFeedback(event);
@@ -165,6 +168,12 @@ export default function PostingsPage() {
     await saveEdits(view, {}, [], true);
     return null;
   };
+  // "Also hide every posting from <company>", offered once the dismiss reason is Company.
+  const muteCompany = async (view: PostingView) => {
+    await store.addMute(view.posting.company);
+    recordFeedback(postingFeedback(view, "mute"));
+  };
+  const isMuted = (company: string) => store.mutes.some((m) => companyCloseness(company, m.company) >= COMPANY_MATCH);
   const undoLast = async () => {
     if (!last) return;
     setLast(null);
@@ -261,6 +270,8 @@ export default function PostingsPage() {
               onEdit={onEdit}
               onResetEdits={onResetEdits}
               dismissals={dismissals}
+              canMute={(company) => !demo && !isMuted(company)}
+              onMuteCompany={muteCompany}
               onLabelDismissal={labelDismissal}
               onRecordLateDismissal={recordLateDismissal}
             />
@@ -281,6 +292,14 @@ export default function PostingsPage() {
                   onSaved={(label) => last.feedbackId && labelDismissal(last.postingId, last.feedbackId, label)}
                 />
               )}
+              {last.action === "dismissed" && dismissals?.get(last.postingId)?.reason === "company" && (() => {
+                const v = views.find((x) => x.posting.id === last.postingId);
+                return v && !demo && !isMuted(v.posting.company) ? (
+                  <button type="button" className="underline" onClick={() => muteCompany(v)}>
+                    Also hide every posting from {v.posting.company}
+                  </button>
+                ) : null;
+              })()}
               <button type="button" className="ml-auto text-xs underline opacity-70" onClick={() => setLast(null)}>
                 Hide
               </button>

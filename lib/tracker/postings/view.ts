@@ -4,9 +4,10 @@
 // hand edits (edits.ts) are applied here: text edits before the rules run,
 // derived overrides after.
 
-import type { Application, JobPosting } from "@/lib/tracker/format";
+import type { Application, JobPosting, PostingMute } from "@/lib/tracker/format";
 import { editsOf, readLengthInput, readTermInput, withTextEdits, type EditField } from "@/lib/tracker/postings/edits";
 import { postingEligibility, postingSponsorship, type Eligibility } from "@/lib/tracker/postings/eligibility";
+import { mutedCompany } from "@/lib/tracker/postings/mutes";
 import { postingGradDegree } from "@/lib/tracker/postings/degree";
 import { postingLevel, type LevelResult } from "@/lib/tracker/postings/level";
 import { matchPosting } from "@/lib/tracker/postings/match";
@@ -32,6 +33,8 @@ export interface PostingView {
   // A new posting that repeats a dismissed one (same company and role); null
   // when tracked, since that path handles it.
   relist: Relist | null;
+  // The hidden-company entry this new posting falls under (see mutes.ts).
+  mutedCompany: PostingMute | null;
 }
 
 const BY_HAND = "Set by you";
@@ -52,7 +55,8 @@ export function postingView(
   applications: Application[],
   byId?: Map<string, Application>,
   appLocations?: Map<string, string>,
-  dismissed?: DismissedIndex
+  dismissed?: DismissedIndex,
+  mutes: PostingMute[] = []
 ): PostingView {
   const edits = editsOf(parsed);
   const posting = withTextEdits(parsed, edits);
@@ -75,10 +79,11 @@ export function postingView(
     gradDegree: postingGradDegree(posting.role, posting.description),
     tracked,
     relist: tracked || !dismissed ? null : postingRelist(posting, dismissed),
+    mutedCompany: mutedCompany(posting, mutes),
   };
 }
 
-export function buildPostingViews(postings: JobPosting[], applications: Application[]): PostingView[] {
+export function buildPostingViews(postings: JobPosting[], applications: Application[], mutes: PostingMute[] = []): PostingView[] {
   const byId = new Map(applications.map((a) => [a.id, a]));
   // A tracked application keeps the location of the posting it came from, so
   // matching can ignore a city left in its role ("SWE - (Mountain View, CA)").
@@ -86,7 +91,7 @@ export function buildPostingViews(postings: JobPosting[], applications: Applicat
   for (const p of postings) if (p.application_id && p.location) appLocations.set(p.application_id, p.location);
   // Dismissed postings, with their text edits applied, normalized once for the relist check.
   const dismissed = buildDismissedIndex(postings.map((p) => withTextEdits(p, editsOf(p))));
-  return postings.map((p) => postingView(p, applications, byId, appLocations, dismissed));
+  return postings.map((p) => postingView(p, applications, byId, appLocations, dismissed, mutes));
 }
 
 // Postings that need a decision first, then the ones already in the tracker,

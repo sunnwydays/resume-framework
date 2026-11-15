@@ -13,6 +13,7 @@ import type {
   EmailMessage,
   GmailScan,
   JobPosting,
+  PostingMute,
   MessageTemplate,
   Move,
   Question,
@@ -28,6 +29,7 @@ export interface DemoData {
   statusChanges: StatusChange[];
   gmail: GmailData;
   postings: JobPosting[];
+  postingMutes: PostingMute[];
   moves: Move[];
   templates: MessageTemplate[];
 }
@@ -486,6 +488,9 @@ export function buildDemoData(now: number): DemoData {
     },
   ];
 
+  // A company hidden from the Postings list ("Hide every posting from…").
+  const postingMutes: PostingMute[] = [{ id: "demo-pmute-1", user_id: USER, company: "Hollis Payments", created_at: ts(-3) }];
+
   return {
     applications,
     assessments,
@@ -498,6 +503,7 @@ export function buildDemoData(now: number): DemoData {
       lastScan,
     },
     postings,
+    postingMutes,
     moves,
     templates,
   };

@@ -235,6 +235,7 @@ export type EmailKind = keyof typeof EMAIL_KINDS;
 export type EmailMessage = Tables<"email_messages">;
 export type EmailAccept = Tables<"email_accepts">;
 export type EmailMute = Tables<"email_mutes">;
+export type PostingMute = Tables<"posting_mutes">;
 export type GmailScan = Tables<"gmail_scans">;
 
 // Must match the check constraint on email_messages.state. Accepted and

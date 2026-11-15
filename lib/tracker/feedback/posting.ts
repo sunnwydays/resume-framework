@@ -44,7 +44,7 @@ export const POSTING_DISMISS_REASONS: FeedbackReason[] = [
   { key: "other", label: "Other", rule: "taste" },
 ];
 
-export type PostingFeedbackAction = "dismiss" | "restore" | "save" | "applied";
+export type PostingFeedbackAction = "dismiss" | "restore" | "save" | "applied" | "mute";
 
 // The parsed row (description included), without the user id.
 function parsedRow(view: PostingView) {

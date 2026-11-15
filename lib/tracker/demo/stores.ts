@@ -58,9 +58,12 @@ export const useDemoTracker: typeof useTracker = () => {
 };
 
 export const useDemoPostings: typeof usePostings = () => {
-  const [{ postings }] = useState(demoData);
+  const [{ postings, postingMutes }] = useState(demoData);
   return {
     postings,
+    mutes: postingMutes,
+    addMute: noop,
+    removeMute: noop,
     loading: false,
     error: null,
     clearError: () => {},
