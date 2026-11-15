@@ -1,7 +1,8 @@
 // What a Jobright posting page says that the alert email doesn't: the start
 // line ("Start in 2027 Winter"), the sentence naming the length ("16-week
 // internship program") and the seniority ("New Grad", with the employment
-// type), and Jobright's own flags for "U.S. Citizen Only" and clearance. The
+// type), Jobright's own flags for "U.S. Citizen Only", clearance, work
+// authorization and H-1B, and the pay and work model. The
 // alert's title often has none of them. The page is fetched
 // server-side (no CORS); only what term.ts and level.ts can read is kept, as
 // text, so tuning their rules applies to postings already read. The page's
@@ -18,6 +19,12 @@ export interface PostingDetails {
   // carry the flag reads as false, so it counts as read.
   citizenOnly: boolean;
   clearanceRequired: boolean;
+  // Stored, not used by any rule yet (H-1B isn't J-1). Null when the page doesn't
+  // carry the flag, so "read, nothing stated" differs from "not read yet".
+  workAuthRequired: boolean | null;
+  h1bSponsor: boolean | null;
+  salaryText: string | null; // "$87K/yr - $124K/yr"
+  workModel: string | null; // "Remote", "Hybrid", "Onsite"
   // Jobright's summary, responsibilities, qualifications, skills and benefits,
   // as plain text. It has no full job description, only these.
   description: string | null;
@@ -94,7 +101,19 @@ export function parseJobrightPage(html: string): PostingDetails | null {
   const { jobSeniority, employmentType } = job as { jobSeniority?: unknown; employmentType?: unknown };
   const levelText = [text(jobSeniority), text(employmentType)].filter(Boolean).join(" · ").slice(0, 100) || null;
   const { isCitizenOnly, isClearanceRequired } = job as { isCitizenOnly?: unknown; isClearanceRequired?: unknown };
-  return { startText, lengthText, levelText, citizenOnly: isCitizenOnly === true, clearanceRequired: isClearanceRequired === true, description: describeJob(job) };
+  const { isWorkAuthRequired, isH1bSponsor, salaryDesc, workModel } = job as Record<string, unknown>;
+  return {
+    startText,
+    lengthText,
+    levelText,
+    citizenOnly: isCitizenOnly === true,
+    clearanceRequired: isClearanceRequired === true,
+    workAuthRequired: typeof isWorkAuthRequired === "boolean" ? isWorkAuthRequired : null,
+    h1bSponsor: typeof isH1bSponsor === "boolean" ? isH1bSponsor : null,
+    salaryText: text(salaryDesc)?.slice(0, 100) ?? null,
+    workModel: text(workModel)?.slice(0, 50) ?? null,
+    description: describeJob(job),
+  };
 }
 
 const JOBRIGHT_JOB = /^https:\/\/jobright\.ai\/jobs\/info\/[0-9a-f]{24}\/?$/i;

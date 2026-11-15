@@ -25,13 +25,17 @@ describe("parseJobrightPage", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      workAuthRequired: null,
+      h1bSponsor: null,
+      salaryText: null,
+      workModel: null,
       description: expect.stringContaining("Skills\n- This is a hybrid position."),
     });
   });
 
   it("finds the length in a sentence of a longer text", () => {
     const html = page({ benefitsSummaries: ["Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym."] });
-    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null, citizenOnly: false, clearanceRequired: false, description: "Benefits\n- Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym." });
+    expect(parseJobrightPage(html)).toEqual({ startText: null, lengthText: "16-week internship program running January 4th–April 23rd, 2027.", levelText: null, citizenOnly: false, clearanceRequired: false, workAuthRequired: null, h1bSponsor: null, salaryText: null, workModel: null, description: "Benefits\n- Free lunch. 16-week internship program running January 4th–April 23rd, 2027. Gym." });
   });
 
   it("is a read page with nothing stated when the job says neither", () => {
@@ -41,6 +45,10 @@ describe("parseJobrightPage", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      workAuthRequired: null,
+      h1bSponsor: null,
+      salaryText: null,
+      workModel: null,
       description: null,
     });
   });
@@ -50,6 +58,17 @@ describe("parseJobrightPage", () => {
     expect(parseJobrightPage(page({ isCitizenOnly: false, isClearanceRequired: true }))).toMatchObject({ citizenOnly: false, clearanceRequired: true });
     // Absent or not a real boolean: not flagged, but the page still counts as read.
     expect(parseJobrightPage(page({ isCitizenOnly: "true" }))).toMatchObject({ citizenOnly: false, clearanceRequired: false });
+  });
+
+  it("stores the work-auth and H-1B flags, the pay and the work model", () => {
+    expect(parseJobrightPage(page({ isWorkAuthRequired: true, isH1bSponsor: false, salaryDesc: " $87K/yr - $124K/yr ", workModel: "Hybrid" }))).toMatchObject({
+      workAuthRequired: true,
+      h1bSponsor: false,
+      salaryText: "$87K/yr - $124K/yr",
+      workModel: "Hybrid",
+    });
+    // Absent or not the right type: null, which the next scan treats as not read yet.
+    expect(parseJobrightPage(page({ isWorkAuthRequired: "yes", salaryDesc: 5, workModel: " " }))).toMatchObject({ workAuthRequired: null, h1bSponsor: null, salaryText: null, workModel: null });
   });
 
   it("keeps the seniority and employment type as the level", () => {
@@ -105,6 +124,10 @@ describe("fetchPostingDetails", () => {
       levelText: null,
       citizenOnly: false,
       clearanceRequired: false,
+      workAuthRequired: null,
+      h1bSponsor: null,
+      salaryText: null,
+      workModel: null,
       description: null,
     });
   });

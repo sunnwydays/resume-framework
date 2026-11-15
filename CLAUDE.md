@@ -454,8 +454,14 @@ tracker paths; the resume pages never hit it.
     flags `isCitizenOnly` / `isClearanceRequired` (the "U.S. Citizen Only" tag) as
     `citizen_only` / `clearance_required`; a page without them reads as false, and
     null means "read before these were stored", so the next scan re-reads those rows
-    (a backfill). The page also has `workModel`, `countryCode`, `minYearsOfExperience`,
-    `salaryDesc`, `isH1bSponsor` and `isWorkAuthRequired`, not used yet.
+    (a backfill). It also stores `isWorkAuthRequired` / `isH1bSponsor` / `salaryDesc` /
+    `workModel` as `work_auth_required` / `h1b_sponsor` / `salary_text` / `work_model`
+    (null = not read yet, same backfill), **store only, no rule uses them**: compare
+    the two booleans against the dismissed no-sponsor postings first, and H-1B isn't
+    J-1. The page also has `countryCode` and `minYearsOfExperience`, not used.
+    The employer's apply URL (`jobResult.originalUrl` / `applyLink`) is only in the
+    page when fetched with a logged-in Jobright session cookie, so the server-side
+    fetch can't read it; "Open" stays on the Jobright page.
     `details_read_at` marks a page as read (left null when the
     fetch failed or wasn't a posting page, so the next scan retries; set even
     when the page states nothing). Only text is stored, so term.ts tuning

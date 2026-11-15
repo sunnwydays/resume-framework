@@ -97,7 +97,7 @@ export function usePostings() {
       onProgress?: (done: number, total: number) => void,
       signal?: AbortSignal
     ): Promise<{ read: number; stopped?: true } | { error: string }> => {
-      const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null || p.description === null));
+      const todo = candidates.filter((p) => p.state === "new" && (!p.details_read_at || p.citizen_only === null || p.work_auth_required === null || p.description === null));
       let read = 0;
       for (let i = 0; i < todo.length; i += DETAILS_BATCH) {
         if (signal?.aborted) return { read, stopped: true };
@@ -122,7 +122,7 @@ export function usePostings() {
         const updates = batch.flatMap((p, j) => {
           const d = results[j];
           return d
-            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, citizen_only: d.citizenOnly, clearance_required: d.clearanceRequired, description: d.description ?? "", details_read_at: stamp } }]
+            ? [{ id: p.id, changes: { start_text: d.startText, length_text: d.lengthText, level_text: d.levelText, citizen_only: d.citizenOnly, clearance_required: d.clearanceRequired, work_auth_required: d.workAuthRequired, h1b_sponsor: d.h1bSponsor, salary_text: d.salaryText, work_model: d.workModel, description: d.description ?? "", details_read_at: stamp } }]
             : [];
         });
         const writes = await Promise.all(updates.map((u) => supabase().from("job_postings").update(u.changes).eq("id", u.id)));

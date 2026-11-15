@@ -472,6 +472,10 @@ export type Database = {
           updated_at: string
           url: string
           user_id: string
+          work_auth_required: boolean | null
+          h1b_sponsor: boolean | null
+          salary_text: string | null
+          work_model: string | null
         }
         Insert: {
           application_id?: string | null
@@ -501,6 +505,10 @@ export type Database = {
           updated_at?: string
           url: string
           user_id?: string
+          work_auth_required?: boolean | null
+          h1b_sponsor?: boolean | null
+          salary_text?: string | null
+          work_model?: string | null
         }
         Update: {
           application_id?: string | null
@@ -530,6 +538,10 @@ export type Database = {
           updated_at?: string
           url?: string
           user_id?: string
+          work_auth_required?: boolean | null
+          h1b_sponsor?: boolean | null
+          salary_text?: string | null
+          work_model?: string | null
         }
         Relationships: [
           {
