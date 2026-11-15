@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TablesInsert, TablesUpdate } from "@/lib/tracker/database.types";
-import { todayISO, type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
-import { DEFAULT_TRIMS, trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
+import { type Application, type JobPosting, type PostingState } from "@/lib/tracker/format";
+import { DEFAULT_TRIMS, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { alertQuery, fetchMessages, trashNote, type ScanProgress } from "@/lib/tracker/email/gmail";
 import { messageHtml, parseGmailMessage } from "@/lib/tracker/email/parse";
 import { toJson } from "@/lib/tracker/feedback/events";
 import type { PostingDetails } from "@/lib/tracker/postings/details";
+import { applicationFromPosting } from "@/lib/tracker/postings/application";
 import type { PostingEdits } from "@/lib/tracker/postings/edits";
+import { createOncePerKey } from "@/lib/tracker/postings/once";
 import { isJobrightAlert, parseJobrightAlert, type ParsedPosting } from "@/lib/tracker/postings/parse";
 import { dedupePostings, summarizePostingScan, toPostingRow } from "@/lib/tracker/postings/scan";
 import type { PostingUndo } from "@/lib/tracker/postings/undo";
@@ -203,6 +205,9 @@ export function usePostings() {
   // "Applied": adds the application (or links the one it already matches),
   // then marks the posting applied. `trims` tidies the role on a new application.
   // Returns the application it added (null when it linked one, or failed), for undo.
+  // A second call for a posting still pending (a double click) does nothing and
+  // returns null.
+  const appliedOnce = useRef(createOncePerKey());
   const markApplied = useCallback(
     async (
       posting: JobPosting,
@@ -210,20 +215,13 @@ export function usePostings() {
       existing?: Application | null,
       trims: RoleTrimOptions = DEFAULT_TRIMS
     ): Promise<{ created: Application | null } | null> => {
-      const app =
-        existing ??
-        (await addApplication({
-          company: posting.company,
-          role: trimRole(posting.role, trims),
-          location: posting.location,
-          url: posting.url,
-          applied_on: todayISO(),
-          status: "applied",
-          source: "alert",
-        }));
-      if (!app) return null;
-      await patch(posting.id, { state: "applied", application_id: app.id });
-      return { created: existing ? null : app };
+      const result = await appliedOnce.current(posting.id, async () => {
+        const app = existing ?? (await addApplication(applicationFromPosting(posting, trims)));
+        if (!app) return null;
+        await patch(posting.id, { state: "applied", application_id: app.id });
+        return { created: existing ? null : app };
+      });
+      return result ?? null;
     },
     [patch]
   );

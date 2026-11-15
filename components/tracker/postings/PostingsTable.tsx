@@ -101,6 +101,8 @@ export default function PostingsTable({
   const [editing, setEditing] = useState<string | null>(null);
   // The dismissed row whose reason chips are open.
   const [labelling, setLabelling] = useState<string | null>(null);
+  // Postings whose "Applied" is still saving (the button waits, so a double click adds one).
+  const [adding, setAdding] = useState<Set<string>>(new Set());
   const { sort, setSort, sorted } = useSortedRows<PostingView, SortKey>(views, postingSortValue, { key: "posted", dir: "desc" });
 
   const header = (key: SortKey, label: string) => (
@@ -273,14 +275,24 @@ export default function PostingsTable({
                           {posting.state !== "applied" && (
                             <button
                               type="button"
+                              disabled={adding.has(posting.id)}
                               onClick={async () => {
-                                const done = await store.markApplied(posting, addApplication, tracked, trims);
-                                if (done) onAction(postingUndo(posting, "applied", done.created), view);
+                                setAdding((s) => new Set(s).add(posting.id));
+                                try {
+                                  const done = await store.markApplied(posting, addApplication, tracked, trims);
+                                  if (done) onAction(postingUndo(posting, "applied", done.created), view);
+                                } finally {
+                                  setAdding((s) => {
+                                    const next = new Set(s);
+                                    next.delete(posting.id);
+                                    return next;
+                                  });
+                                }
                               }}
-                              className={smallButtonCls}
+                              className={`${smallButtonCls} disabled:opacity-60`}
                               title={tracked ? "Link it to the application you already have" : "Add it to the tracker as applied today"}
                             >
-                              Applied
+                              {adding.has(posting.id) ? "Adding…" : "Applied"}
                             </button>
                           )}
                           {posting.state === "new" && (
