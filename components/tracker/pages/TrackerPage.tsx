@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import AddApplication from "@/components/tracker/AddApplication";
 import ApplicationsTable from "@/components/tracker/ApplicationsTable";
@@ -71,7 +71,8 @@ function TrackerPageInner() {
   const scanRef = useRef<GmailScanHandle>(null);
   const { applications, assessments, questions, statusChanges, gmail } = tracker;
   const pathname = usePathname();
-  const tab = parseTab(useSearchParams().get("tab"));
+  const searchParams = useSearchParams();
+  const tab = parseTab(searchParams.get("tab"));
   // history.replaceState, not router.replace: Next feeds it into useSearchParams
   // without a server round trip (router.replace re-ran the proxy, and a stalled
   // one left every later tab click doing nothing).
@@ -204,6 +205,21 @@ function TrackerPageInner() {
       document.getElementById(`app-${id}`)?.scrollIntoView({ block: "center" })
     );
   }
+
+  // ?app=<id> (the Postings "In tracker" pill) opens that application once the
+  // list has loaded, then drops the param so a reload doesn't reopen it. An
+  // unknown id just drops the param.
+  const appParam = searchParams.get("app");
+  const openedFromLink = useRef(false);
+  useEffect(() => {
+    if (!appParam || tracker.loading || openedFromLink.current) return;
+    openedFromLink.current = true;
+    if (applicationsById.has(appParam)) openApplication(appParam);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("app");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appParam, tracker.loading, applicationsById]);
 
   function openAssessment(id: string) {
     setTab("assessments");

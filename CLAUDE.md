@@ -503,7 +503,7 @@ tracker paths; the resume pages never hit it.
     same company and role: the "In tracker" pill), `view.ts` (all of that per
     posting, once per render), `filters.ts`, `sorting.ts`. "Applied" adds an
     application (`source: 'alert'`, role trimmed with the default trims,
-    applied today) or, if one already matches, just links it. Chip counts on
+    applied today) or, if one already matches, just links it. The "In tracker" pill links to `?app=<id>` on the tracker page, which opens that application once loaded (`openApplication`, ref-guarded) and then strips the param. Chip counts on
     the page are "what this chip would show", with every other filter held.
     The table has a sortable Level column (a colored pill; `postingLevel`
     returns `{ level, why }` and the hover text is `why`, the title word or the

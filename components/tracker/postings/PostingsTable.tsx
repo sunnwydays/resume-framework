@@ -74,7 +74,7 @@ function TrackedPill({ app }: { app: Application }) {
   const { base } = useTrackerEnv();
   return (
     <Link
-      href={base}
+      href={`${base}?app=${app.id}`}
       title={`Already in the tracker as ${app.company} - ${app.role} (${app.status})`}
       className="inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 hover:underline dark:bg-emerald-950 dark:text-emerald-300"
     >
