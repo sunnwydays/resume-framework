@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import ReasonChips from "@/components/tracker/feedback/ReasonChips";
 import PostingEditRow from "@/components/tracker/postings/PostingEditRow";
-import { SortHeader, useSortedRows } from "@/components/tracker/sorting";
+import { SortHeader } from "@/components/tracker/sorting";
+import { useSessionState } from "@/components/tracker/useSessionState";
+import { SORT_KEY, parseSort, serializeSort } from "@/lib/tracker/postings/persist";
 import { POSTING_DISMISS_REASONS, dismissLabelText, type DismissLabel } from "@/lib/tracker/feedback/posting";
 import { buttonCls, formatAgo, formatDate, type Application } from "@/lib/tracker/format";
 import { EDIT_LABEL, type PostingDraft } from "@/lib/tracker/postings/edits";
@@ -19,7 +21,7 @@ import { useTrackerEnv } from "@/lib/tracker/env";
 import { splitTracked, trackedToMark, type PostingView } from "@/lib/tracker/postings/view";
 import { roleTypeLabel } from "@/lib/tracker/roles";
 import { trimRole, type RoleTrimOptions } from "@/lib/tracker/trimRole";
-import type { SortDir } from "@/lib/tracker/sorting";
+import { sortRows, type SortDir, type SortState } from "@/lib/tracker/sorting";
 import type { PostingsStore } from "@/lib/tracker/usePostings";
 
 interface Props {
@@ -60,6 +62,9 @@ const FIRST_DIR: Record<SortKey, SortDir> = {
   type: "asc",
   region: "asc",
 };
+
+const SORT_KEYS = Object.keys(FIRST_DIR) as SortKey[];
+const DEFAULT_SORT: SortState<SortKey> = { key: "posted", dir: "desc" };
 
 const REGION_CLS: Record<Region, string> = {
   us: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
@@ -109,7 +114,13 @@ export default function PostingsTable({
   const [labelling, setLabelling] = useState<string | null>(null);
   // Postings whose "Applied" is still saving (the button waits, so a double click adds one).
   const [adding, setAdding] = useState<Set<string>>(new Set());
-  const { sort, setSort, sorted } = useSortedRows<PostingView, SortKey>(views, postingSortValue, { key: "posted", dir: "desc" });
+  const [sort, setSort] = useSessionState<SortState<SortKey>>(
+    SORT_KEY,
+    DEFAULT_SORT,
+    (raw) => parseSort(raw, SORT_KEYS, DEFAULT_SORT),
+    serializeSort
+  );
+  const sorted = useMemo(() => sortRows(views, postingSortValue, sort), [views, sort]);
 
   const header = (key: SortKey, label: string) => (
     <SortHeader sortKey={key} label={label} sort={sort} setSort={setSort} firstDir={FIRST_DIR[key]} className={thCls} />

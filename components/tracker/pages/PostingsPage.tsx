@@ -30,6 +30,8 @@ import { buildPostingViews, postingView, ruleValues, type PostingView } from "@/
 import { ROLE_TYPES, type RoleType } from "@/lib/tracker/roles";
 import { DEFAULT_TRIMS, TRIM_LABELS, trimsFromString, trimsToString, type RoleTrimOptions } from "@/lib/tracker/trimRole";
 import { useLocalSetting } from "@/lib/tracker/useLocalSetting";
+import { useSessionState } from "@/components/tracker/useSessionState";
+import { FILTERS_KEY, parseFilters, serializeFilters } from "@/lib/tracker/postings/persist";
 import { usePostingsStore, useTrackerEnv, useTrackerStore } from "@/lib/tracker/env";
 import { useNow } from "@/lib/tracker/useTracker";
 
@@ -39,7 +41,7 @@ export default function PostingsPage() {
   const { demo } = useTrackerEnv();
   const { loadPostingDismissals, markFeedbackUndone, recordFeedback } = useTrackerEnv().feedback;
   const now = useNow();
-  const [filters, setFilters] = useState<PostingFilters>(DEFAULT_POSTING_FILTERS);
+  const [filters, setFilters] = useSessionState<PostingFilters>(FILTERS_KEY, DEFAULT_POSTING_FILTERS, parseFilters, serializeFilters);
   const [clearing, setClearing] = useState(false);
   // Role name tidying, shown in the table and used by "Applied" (same options as the add form).
   const [trimSetting, setTrimSetting] = useLocalSetting("tracker.postings.trims", trimsToString(DEFAULT_TRIMS));
