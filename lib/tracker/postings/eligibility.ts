@@ -64,7 +64,7 @@ export const ELIGIBILITY_RULES = {
 
 // The description's sentences, bullets stripped. A sentence ends after a
 // lowercase word, so "the U.S. without…" stays whole.
-function sentences(description: string): string[] {
+export function sentences(description: string): string[] {
   return description
     .split(/\n|(?<=[a-z]{2}[.!?])\s+(?=[A-Z])/)
     .map((s) => s.replace(/^[\s\-•*+]+/, "").trim())
@@ -108,7 +108,7 @@ function clip(text: string, max = 140): string {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
-const quoted = (line: string) => `The description says "${clip(line)}"`;
+export const quoted = (line: string) => `The description says "${clip(line)}"`;
 
 // The description is read for US postings, and for unclear-region (mostly
 // remote) ones that name the US.

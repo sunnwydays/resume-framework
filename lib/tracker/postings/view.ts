@@ -65,7 +65,7 @@ export function postingView(
     length: edits.length !== undefined ? (readLengthInput(edits.length ?? "") ?? null) : rules.length,
     level: edits.level ? { level: edits.level, why: BY_HAND } : rules.level,
     roleType: edits.role_type ?? rules.roleType,
-    gradDegree: postingGradDegree(posting.role),
+    gradDegree: postingGradDegree(posting.role, posting.description),
     tracked:
       (posting.application_id ? apps.get(posting.application_id) : undefined) ??
       matchPosting(posting, applications, appLocations),
