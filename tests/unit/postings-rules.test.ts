@@ -70,7 +70,7 @@ describe("postingEligibility", () => {
     postingEligibility({ company, role, categories }, where);
 
   it("a defense contractor in the US is out", () => {
-    for (const company of ["RTX", "Raytheon Technologies", "Lockheed Martin Corporation", "CACI", "Booz Allen Hamilton", "Northrop Grumman"]) {
+    for (const company of ["RTX", "Raytheon Technologies", "Lockheed Martin Corporation", "CACI", "Booz Allen Hamilton", "Northrop Grumman", "Expedition Technology"]) {
       expect(e(company).level, company).toBe("no");
     }
     expect(e("RTX").why).toContain("RTX");
@@ -155,6 +155,39 @@ describe("postingEligibility", () => {
     it("counts for an unclear region (it names the US by definition), not for Canada", () => {
       expect(described(sponsorBody("Must be a US Citizen"), "unknown").level).toBe("no");
       expect(described(sponsorBody("Must be a US Citizen"), "canada").level).toBe("ok");
+    });
+  });
+
+  describe("enrolled at a US school in the description", () => {
+    const described = (description: string | null, where: Region = "us") =>
+      postingEligibility({ company: "Vandelay Industries", role: "Software Engineer Intern", categories: null, description }, where);
+
+    it("a US college, university or school requirement is out, quoting the sentence", () => {
+      for (const line of [
+        "Be enrolled in an accredited college or university in the United States",
+        "Currently pursuing a degree at a university in the U.S.",
+        "Must attend a school in the US",
+        "Currently enrolled at a U.S.-based university",
+        "Enrolled at a US-based college",
+      ]) {
+        expect(described(sponsorBody(line)), line).toMatchObject({ level: "no", why: expect.stringContaining("The description says") });
+      }
+    });
+
+    it("no US, no school word, or the US before the school word isn't", () => {
+      for (const line of [
+        "Be enrolled at an accredited college or university throughout the internship",
+        "Gain exposure to real projects across the United States",
+        "Our offices in the United States work with university partners",
+      ]) {
+        expect(described(sponsorBody(line)).level, line).toBe("ok");
+      }
+    });
+
+    it("counts for an unclear region that names the US, not for Canada", () => {
+      const line = "Be enrolled in an accredited college or university in the United States";
+      expect(described(sponsorBody(line), "unknown").level).toBe("no");
+      expect(described(sponsorBody(line), "canada").level).toBe("ok");
     });
   });
 });

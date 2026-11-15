@@ -18,7 +18,7 @@ export const ELIGIBILITY_RULES = {
     "RTX", "Raytheon", "Collins Aerospace", "Pratt & Whitney", "Lockheed Martin", "Northrop Grumman",
     "General Dynamics", "L3Harris", "BAE Systems", "Leidos", "SAIC", "CACI", "Booz Allen Hamilton",
     "Huntington Ingalls", "Anduril", "SpaceX", "Blue Origin", "MITRE", "Sandia", "Lawrence Livermore",
-    "Los Alamos", "Johns Hopkins APL",
+    "Los Alamos", "Johns Hopkins APL", "Expedition Technology",
   ],
   companyMatch: 85,
 
@@ -41,6 +41,13 @@ export const ELIGIBILITY_RULES = {
   citizenshipWaived: /\bnot\s+(?:required|necessary|needed)\b/i,
   j1: /\bJ-?1\b/i,
   visa: /\bvisas?\b|\b[FJ]-?1\b|\bCPT\b|\bOPT\b|\bH-?1B\b/i,
+
+  // A description sentence that requires enrollment at a US school ("enrolled
+  // in an accredited college or university in the United States", "a U.S.-based
+  // university"). Sunny is at a Canadian school, so it's a "no". The US has to
+  // come after the school word, within a few words.
+  usSchool:
+    /\b(?:college|university|school|institution)\b(?:\W+\w+){0,4}?\W+in the (?:United States|U\.S\.?|US\b)|\b(?:U\.?S\.?|United States)-based\s+(?:college|university|school|institution)/i,
 
   // A description sentence that mentions sponsorship and a negation is a "no
   // sponsorship" line ("not eligible for visa sponsorship", "without current or
@@ -74,6 +81,12 @@ function citizenshipSentence(s: string): boolean {
 export function citizenshipLine(description: string | null | undefined): string | null {
   if (!description) return null;
   return sentences(description).find((s) => citizenshipSentence(s) && !ELIGIBILITY_RULES.visa.test(s)) ?? null;
+}
+
+// The first sentence that requires enrolment at a US school.
+export function usSchoolLine(description: string | null | undefined): string | null {
+  if (!description) return null;
+  return sentences(description).find((s) => ELIGIBILITY_RULES.usSchool.test(s)) ?? null;
 }
 
 // The first sentence that says there's no sponsorship, or a citizenship rule
@@ -124,6 +137,8 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
   if (region === "unknown" && readsDescription(p, region)) {
     const line = citizenshipLine(p.description);
     if (line) return { level: "no", why: quoted(line) };
+    const school = usSchoolLine(p.description);
+    if (school) return { level: "no", why: quoted(school) };
   }
   if (region !== "us") return { level: "ok" };
 
@@ -138,6 +153,9 @@ export function postingEligibility(p: Eligible, region: Region): Eligibility {
 
   const citizenship = citizenshipLine(p.description);
   if (citizenship) return { level: "no", why: quoted(citizenship) };
+
+  const school = usSchoolLine(p.description);
+  if (school) return { level: "no", why: quoted(school) };
 
   if (p.categories && rules.ineligibleCategories.test(p.categories)) {
     return { level: "no", why: `The company's industry is listed as "${p.categories}": US aerospace and defense roles need US citizenship (ITAR)` };
